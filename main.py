@@ -5,6 +5,10 @@ from modules.bar import StatusBar
 from modules.launcher import AppLauncher
 from services.notifications import create_notification_window
 
+from utils import (
+    APPLICATION_NAME,
+)
+
 def apply_css(app: Application):
     result = subprocess.run(
         ["sass", "styles/main.scss", "dist/main.css", "--no-source-map"],
@@ -24,7 +28,7 @@ if __name__ == "__main__":
     launcher = AppLauncher()
     bar = StatusBar()
     notifications = create_notification_window()
-    app = Application("Lunur-Shell", bar, launcher, notifications)
+    app = Application(APPLICATION_NAME, bar, launcher, notifications)
 
     apply_css(app)
 

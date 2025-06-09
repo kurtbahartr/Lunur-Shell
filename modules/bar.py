@@ -25,17 +25,17 @@ class StatusBar(Window):
         self.connect("key-press-event", self.on_key_press)
 
         # Lazy load each widget
-        AppLauncherButton = lazy_load_widget("AppLauncherButton", widget_registry)
-        WorkspacesWidget = lazy_load_widget("WorkspacesWidget", widget_registry)
-        DateTimeWidget = lazy_load_widget("DateTimeWidget", widget_registry)
+        widgets = {
+            name: lazy_load_widget(name, widget_registry)() for name in widget_registry
+        }
 
         start_container = Box(
             name="bar-start",
             spacing=4,
             orientation="h",
             children=[
-                AppLauncherButton(),
-                WorkspacesWidget()
+                widgets["AppLauncherButton"],
+                widgets["WorkspacesWidget"],
             ],
         )
 
@@ -44,7 +44,7 @@ class StatusBar(Window):
             spacing=4,
             orientation="h",
             children=[
-                DateTimeWidget(),
+                widgets["DateTimeWidget"],
             ],
         )
 
@@ -52,9 +52,7 @@ class StatusBar(Window):
             name="bar-end",
             spacing=4,
             orientation="h",
-            children=[
-                
-            ],
+            children=[],
         )
 
         self.children = CenterBox(

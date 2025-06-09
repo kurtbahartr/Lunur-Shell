@@ -1,0 +1,5 @@
+[layout]
+start_container = ["app_launcher"]
+center_container = ["date_time"]
+end_container = ["workspaces"]
+

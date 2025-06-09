@@ -1,7 +1,12 @@
 from functools import lru_cache
 from gi.repository import GLib
-from .icons import text_icons  # Ensure this dictionary has distro icons mapped
+from .icons import text_icons
+from .thread import run_in_thread
+from fabric.utils import (
+    get_relative_path,
+)
 import time
+from typing import Dict, List
 
 def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
     def wrapper(func):
@@ -11,8 +16,87 @@ def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
         return lambda *args, **kwargs: inner(time.time() // seconds_to_live, *args, **kwargs)
     return wrapper
 
+# Function to exclude keys from a dictionary        )
+def exclude_keys(d: Dict, keys_to_exclude: List[str]) -> Dict:
+    return {k: v for k, v in d.items() if k not in keys_to_exclude}
+
+# Merge the parsed data with the default configuration
+def merge_defaults(data: dict, defaults: dict):
+    return {**defaults, **data}
+
+@run_in_thread
+def copy_theme(theme: str):
+    destination_file = get_relative_path("../styles/theme.scss")
+    source_file = get_relative_path(f"../styles/themes/{theme}.scss")
+
+    if not os.path.exists(source_file):
+        logger.warning(
+            f"{Colors.WARNING}Warning: The theme file '{theme}.scss' was not found. Using default theme."  # noqa: E501
+        )
+        source_file = get_relative_path("../styles/themes/catpuccin-mocha.scss")
+
+    try:
+        shutil.copyfile(source_file, destination_file)
+
+    except FileNotFoundError:
+        logger.error(
+            f"{Colors.ERROR}Error: The theme file '{source_file}' was not found."
+        )
+        exit(1)
+
+# Validate the widgets
+def validate_widgets(parsed_data, default_config):
+    """Validates the widgets defined in the layout configuration.
+
+    Args:
+        parsed_data (dict): The parsed configuration data
+        default_config (dict): The default configuration data
+
+    Raises:
+        ValueError: If an invalid widget is found in the layout
+    """
+    layout = parsed_data["layout"]
+    for section in layout:
+        for widget in layout[section]:
+            if widget.startswith("@group:"):
+                # Handle module groups
+                group_idx = widget.replace("@group:", "", 1)
+                if not group_idx.isdigit():
+                    raise ValueError(
+                        "Invalid module group index "
+                        f"'{group_idx}' in section {section}. Must be a number."
+                    )
+                idx = int(group_idx)
+                groups = parsed_data.get("module_groups", [])
+                if not isinstance(groups, list):
+                    raise ValueError(
+                        "module_groups must be an array when using @group references"
+                    )
+                if not (0 <= idx < len(groups)):
+                    raise ValueError(
+                        "Module group index "
+                        f"{idx} is out of range. Available indices: 0-{len(groups) - 1}"
+                    )
+                # Validate widgets inside the group
+                group = groups[idx]
+                if not isinstance(group, dict) or "widgets" not in group:
+                    raise ValueError(
+                        f"Invalid module group at index {idx}. "
+                        "Must be an object with 'widgets' array."
+                    )
+                for group_widget in group["widgets"]:
+                    if group_widget not in default_config:
+                        raise ValueError(
+                            f"Invalid widget '{group_widget}' found in "
+                            f"module group {idx}. Please check the widget name."
+                        )
+            elif widget not in default_config:
+                raise ValueError(
+                    f"Invalid widget '{widget}' found in section {section}. "
+                    "Please check the widget name."
+                )
+
 @ttl_lru_cache(600, 10)
 def get_distro_icon():
     distro_id = GLib.get_os_info("ID")
     return text_icons["distro"].get(distro_id, "")  # Fallback icon
-

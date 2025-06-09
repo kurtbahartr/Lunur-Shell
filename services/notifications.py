@@ -8,8 +8,8 @@ from fabric.notifications import Notifications, Notification
 from fabric.utils import invoke_repeater
 from gi.repository import GdkPixbuf
 
-NOTIFICATION_WIDTH = 360
-NOTIFICATION_IMAGE_SIZE = 64
+from utils.constants import NOTIFICATION_WIDTH, NOTIFICATION_IMAGE_SIZE, NOTIFICATION_ACTION_NUMBER
+
 NOTIFICATION_TIMEOUT = 10 * 1000  # 10 seconds
 
 
@@ -102,7 +102,7 @@ class NotificationWidget(Box):
                             label=action.label,
                             on_clicked=lambda *_, action=action: action.invoke(),
                         )
-                        for action in actions
+                        for action in actions[:NOTIFICATION_ACTION_NUMBER]  # Respect max actions
                     ],
                 )
             )
@@ -148,4 +148,3 @@ def create_notification_window() -> WaylandWindow:
     )
 
     return window
-
