@@ -7,6 +7,7 @@ from services.notifications import create_notification_window
 
 from utils import (
     APPLICATION_NAME,
+    widget_config,
 )
 
 def apply_css(app: Application):
@@ -26,7 +27,7 @@ def apply_css(app: Application):
 
 if __name__ == "__main__":
     launcher = AppLauncher()
-    bar = StatusBar()
+    bar = StatusBar(widget_config)
     notifications = create_notification_window()
     app = Application(APPLICATION_NAME, bar, launcher, notifications)
 

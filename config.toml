@@ -1,5 +1,4 @@
 [layout]
-start_container = ["app_launcher"]
+start_container = ["app_launcher", "workspaces"]
 center_container = ["date_time"]
-end_container = ["workspaces"]
-
+end_container = []
