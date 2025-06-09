@@ -1,7 +1,20 @@
 import importlib
 from typing import Literal
+from fabric.widgets.label import Label
 from .icons import icons, text_icons
 
+def text_icon(icon: str, props=None):
+    label_props = {
+        "label": str(icon),
+        "name": "nerd-icon",
+        "h_align": "center",
+        "v_align": "center",
+    }
+
+    if props:
+        label_props.update(props)
+
+    return Label(**label_props)
 
 # Function to get the brightness icons
 def get_brightness_icon_name(level: int) -> dict[Literal["icon_text", "icon"], str]:
