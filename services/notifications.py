@@ -43,24 +43,23 @@ class NotificationWidget(Box):
         text_box = Box(orientation="v", spacing=2, expand=True)
         content_box.add(text_box)
 
-        # Summary text
         summary_label = Label(self._notification.summary, name="summary")
         text_box.add(summary_label)
 
-        # Body text if present
         if self._notification.body:
             body_label = Label(self._notification.body, name="body")
             text_box.add(body_label)
 
-        # Action buttons if any, added below main content box
         actions = self._notification.actions or []
-        if actions:
+        action_labels = actions[1::2]  # labels only
+
+        if action_labels:
             actions_box = Box(orientation="h", spacing=4)
-            for action in actions[:NOTIFICATION_ACTION_NUMBER]:
-                button = Button(label=action)
-                button.connect("clicked", lambda _, a=action: notification.activate_action(a))
+            for idx, label in enumerate(action_labels[:NOTIFICATION_ACTION_NUMBER]):
+                button = Button(label=label)
+                action_key = actions[2 * idx]
+                button.connect("clicked", lambda _, a=action_key: notification.activate_action(a))
                 actions_box.add(button)
-            # Add actions box below main content (full width)
             self.add(actions_box)
 
         # Auto-dismiss logic
@@ -133,9 +132,8 @@ class NotificationPopup(WaylandWindow):
             timeout=self._timeout,
         )
 
-        # Set expand properties on the widget
         widget.hexpand = True
         widget.vexpand = True
 
         self._container.add(widget)
-
+        self._container.show_all()
