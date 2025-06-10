@@ -3,12 +3,9 @@ from fabric import Application
 from fabric.utils import get_relative_path
 from modules.bar import StatusBar
 from modules.launcher import AppLauncher
-from services.notifications import create_notification_window
+from services.notifications import NotificationPopup
+from utils import APPLICATION_NAME, widget_config
 
-from utils import (
-    APPLICATION_NAME,
-    widget_config,
-)
 
 def apply_css(app: Application):
     result = subprocess.run(
@@ -28,10 +25,14 @@ def apply_css(app: Application):
 if __name__ == "__main__":
     launcher = AppLauncher()
     bar = StatusBar(widget_config)
-    notifications = create_notification_window()
-    app = Application(APPLICATION_NAME, bar, launcher, notifications)
+
+    windows = [bar, launcher]
+
+    if widget_config.get("notifications", {}).get("enabled", True):
+        notifications = NotificationPopup(widget_config)
+        windows.append(notifications)
+
+    app = Application(APPLICATION_NAME, *windows)
 
     apply_css(app)
-
     app.run()
-

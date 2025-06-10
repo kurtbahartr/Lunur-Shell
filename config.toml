@@ -2,3 +2,6 @@
 start_container = ["app_launcher", "workspaces"]
 center_container = ["date_time"]
 end_container = []
+
+[notifications]
+enabled = true

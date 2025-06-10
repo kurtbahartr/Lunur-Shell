@@ -9,6 +9,9 @@ DEFAULT_CONFIG = {
     },
     "workspaces": {
     },
+    "notifications": {
+        "enabled": True
+    },
 }
 
 # Other constants

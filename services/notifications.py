@@ -1,9 +1,9 @@
 from typing import cast
 from fabric.widgets.box import Box
+from fabric.widgets.wayland import WaylandWindow
 from fabric.widgets.label import Label
 from fabric.widgets.image import Image
 from fabric.widgets.button import Button
-from fabric.widgets.wayland import WaylandWindow
 from fabric.notifications import Notifications, Notification
 from fabric.utils import invoke_repeater
 from gi.repository import GdkPixbuf
@@ -11,7 +11,6 @@ from gi.repository import GdkPixbuf
 from utils.constants import NOTIFICATION_WIDTH, NOTIFICATION_IMAGE_SIZE, NOTIFICATION_ACTION_NUMBER
 
 NOTIFICATION_TIMEOUT = 10 * 1000  # 10 seconds
-
 
 class NotificationWidget(Box):
     def __init__(self, notification: Notification, **kwargs):
@@ -22,7 +21,6 @@ class NotificationWidget(Box):
             orientation="v",
             **kwargs,
         )
-
         self._notification = notification
 
         body_container = Box(spacing=4, orientation="h")
@@ -102,7 +100,7 @@ class NotificationWidget(Box):
                             label=action.label,
                             on_clicked=lambda *_, action=action: action.invoke(),
                         )
-                        for action in actions[:NOTIFICATION_ACTION_NUMBER]  # Respect max actions
+                        for action in actions[:NOTIFICATION_ACTION_NUMBER]
                     ],
                 )
             )
@@ -122,29 +120,31 @@ class NotificationWidget(Box):
         )
 
 
-def create_notification_window() -> WaylandWindow:
-    container = Box(
-        size=2,
-        spacing=4,
-        orientation="v",
-        name="notifications-container",
-    )
+class NotificationPopup(WaylandWindow):
+    def __init__(self, config: dict, **kwargs):
+        container = Box(
+            size=2,
+            spacing=4,
+            orientation="v",
+            name="notifications-container",
+        )
 
-    window = WaylandWindow(
-        name="notifications",
-        anchor="top right",
-        margin="8px",
-        visible=True,
-        all_visible=True,
-        child=container,
-    )
+        super().__init__(
+            name="notifications",
+            anchor="top right",
+            margin="8px",
+            visible=True,
+            all_visible=True,
+            child=container,
+            **kwargs,
+        )
 
-    Notifications(
-        on_notification_added=lambda service, nid: container.add(
-            NotificationWidget(
-                cast(Notification, service.get_notification_from_id(nid))
+        self._container = container
+
+        Notifications(
+            on_notification_added=lambda service, nid: self._container.add(
+                NotificationWidget(
+                    cast(Notification, service.get_notification_from_id(nid))
+                )
             )
         )
-    )
-
-    return window
