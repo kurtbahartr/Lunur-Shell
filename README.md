@@ -17,7 +17,7 @@ Comming soon!
 Dependencies:
 ```
   sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst
-  yay -S fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp
+  yay -S fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp upower
 ```
 
 ## Roadmap
@@ -26,7 +26,7 @@ Dependencies:
 - [x] Workspaces
 - [ ] Date/Time (in progress)
 - [ ] Calender
-- [ ] Battery
+- [x] Battery
 - [ ] Network Manager
 - [ ] Bluetooth Manager
 - [ ] Clipboard Manager

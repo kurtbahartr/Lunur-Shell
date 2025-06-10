@@ -2,6 +2,8 @@ import importlib
 from typing import Literal
 from fabric.widgets.label import Label
 from .icons import icons, text_icons
+from gi.repository import Gdk, GLib
+from fabric.utils import bulk_connect
 
 # Function to setup cursor hover
 def setup_cursor_hover(

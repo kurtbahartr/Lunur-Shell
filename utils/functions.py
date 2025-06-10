@@ -3,10 +3,11 @@ from gi.repository import GLib
 from .icons import text_icons
 from .thread import run_in_thread
 from fabric.utils import (
+    cooldown,
     get_relative_path,
 )
 import time
-from typing import Dict, List
+from typing import Dict, List, Literal, Optional
 
 def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
     def wrapper(func):
@@ -19,6 +20,42 @@ def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
 # Function to exclude keys from a dictionary        )
 def exclude_keys(d: Dict, keys_to_exclude: List[str]) -> Dict:
     return {k: v for k, v in d.items() if k not in keys_to_exclude}
+
+# Function to format time in hours and minutes
+def format_time(secs: int):
+    mm, _ = divmod(secs, 60)
+    hh, mm = divmod(mm, 60)
+    return "%d h %02d min" % (hh, mm)
+
+# Function to send a notification
+@cooldown(1)
+def send_notification(
+    title: str,
+    body: str,
+    urgency: Literal["low", "normal", "critical"] = "normal",
+    icon: Optional[str] = None,
+    app_name: str = "Application",
+):
+    # Create a notification with the title
+    notification = Gio.Notification.new(title)
+    notification.set_body(body)
+
+    # Set the urgency level if provided
+    if urgency in ["low", "normal", "critical"]:
+        notification.set_urgent(urgency)
+
+    # Set the icon if provided
+    if icon:
+        notification.set_icon(Gio.ThemedIcon.new(icon))
+
+    # Optionally, set the application name
+    notification.set_title(app_name)
+
+    application = Gio.Application.get_default()
+
+    # Send the notification to the application
+    application.send_notification(None, notification)
+    return True
 
 # Merge the parsed data with the default configuration
 def merge_defaults(data: dict, defaults: dict):

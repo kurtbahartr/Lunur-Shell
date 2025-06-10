@@ -25,6 +25,7 @@ class StatusBar(Window):
             "app_launcher": "widgets.applauncher.AppLauncherButton",
             "workspaces": "widgets.workspaces.WorkspacesWidget",
             "date_time": "widgets.datetime_menu.DateTimeWidget",
+            "battery": "widgets.battery.BatteryWidget",
             # Add other widgets here if needed
         }
 
@@ -105,7 +106,12 @@ class StatusBar(Window):
                 else:
                     if widget_name in self.widgets_list:
                         widget_class = lazy_load_widget(widget_name, self.widgets_list)
-                        widget_instance = widget_class()
+                        # widget_instance = widget_class()
+                        try:
+                            widget_instance = widget_class(widget_config)
+                        except TypeError:
+                            widget_instance = widget_class()
+
                         new_layout[section].append(widget_instance)
 
         return new_layout

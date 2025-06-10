@@ -25,9 +25,23 @@ Notifications = TypedDict(
     },
 )
 
+Battery = TypedDict(
+    "Battery",
+    {
+        "label": bool,
+        "tooltip": bool,
+        "orientation": str,
+        "full_battery_level": int,
+        "hide_label_when_full": bool,
+        "icon_size": int,
+        "notifications": Dict,
+    },
+)
+
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
     date_time: DateTimeMenu
     workspaces: Workspaces
     notifications: Notifications
+    battery: Battery
 

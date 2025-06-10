@@ -18,6 +18,25 @@ DEFAULT_CONFIG = {
         "timeout": 3000,
         "max_count": 5,
     },
+    "battery": {
+        "full_battery_level": 100,
+        "hide_label_when_full": True,
+        "label": True,
+        "tooltip": True,
+        "orientation": "vertical",
+        "icon_size": 14,
+        "notifications": {
+            "enabled": True,
+            "discharging": {
+                "title": "Charger Unplugged!",
+                "body": "Battery is at _LEVEL_%",
+            },
+            "charging": {
+                "title": "Charger Plugged In",
+                "body": "Battery is at _LEVEL_%",
+            },
+        },
+    },
 }
 
 # Other constants
