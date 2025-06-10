@@ -1,5 +1,4 @@
-import operator
-from collections.abc import Iterator
+from typing import Iterator
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
 from fabric.widgets.button import Button
@@ -8,6 +7,8 @@ from fabric.widgets.entry import Entry
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import DesktopApp, get_desktop_applications, idle_add, remove_handler
+from gi.repository import GLib
+
 
 class AppLauncher(Window):
     def __init__(self, **kwargs):
@@ -29,7 +30,8 @@ class AppLauncher(Window):
         self.viewport = Box(
             name="app-launcher-viewport",
             spacing=2,
-            orientation="v")
+            orientation="v",
+        )
 
         self.search_entry = Entry(
             placeholder="Search Applications...",
@@ -39,7 +41,7 @@ class AppLauncher(Window):
 
         self.scrolled_window = ScrolledWindow(
             min_content_size=(280, 320),
-            max_content_size=(280 * 2, 320),
+            max_content_size=(560, 320),
             child=self.viewport,
         )
 
@@ -52,64 +54,57 @@ class AppLauncher(Window):
                     Box(
                         spacing=2,
                         orientation="h",
-                        children=[
-                            self.search_entry,
-                        ],
+                        children=[self.search_entry],
                     ),
                     self.scrolled_window,
                 ],
             )
         )
 
-    def on_key_press(self, widget, event):
-        if event.keyval == 65307:  # Escape key
+    def on_key_press(self, widget, event) -> bool:
+        if event.keyval == 65307:  # Escape
             self.hide()
             return True
         return False
 
-    def arrange_viewport(self, query: str = ""):
-        # Cancel any ongoing iteration
+    def arrange_viewport(self, query: str = "") -> bool:
         if self._arranger_handler:
             remove_handler(self._arranger_handler)
+            self._arranger_handler = 0
 
         self.viewport.children = []
 
-        filtered_apps_iter = iter(
-            [
-                app for app in self._all_apps
-                if query.casefold() in (
-                    (app.display_name or "") +
-                    " " + app.name + " " +
-                    (app.generic_name or "")
-                ).casefold()
-            ]
-        )
-
-        should_resize = operator.length_hint(filtered_apps_iter) == len(self._all_apps)
+        filtered_apps = self._filter_apps(query)
+        filtered_iter = iter(filtered_apps)
 
         self._arranger_handler = idle_add(
-            lambda *args: self.add_next_application(*args)
-            or (self.resize_viewport() if should_resize else False),
-            filtered_apps_iter,
+            lambda *args: self.add_next_application(*args),
+            filtered_iter,
             pin=True,
         )
 
-
+        idle_add(self.resize_viewport, priority=GLib.PRIORITY_LOW)
         return False
 
-    def add_next_application(self, apps_iter: Iterator[DesktopApp]):
+    def _filter_apps(self, query: str) -> list[DesktopApp]:
+        query_cf = query.casefold()
+        return [
+            app for app in self._all_apps
+            if query_cf in f"{app.display_name or ''} {app.name} {app.generic_name or ''}".casefold()
+        ]
+
+    def add_next_application(self, apps_iter: Iterator[DesktopApp]) -> bool:
         if not (app := next(apps_iter, None)):
             return False
 
         self.viewport.add(self.bake_application_slot(app))
         return True
 
-    def resize_viewport(self):
+    def resize_viewport(self) -> bool:
         self.scrolled_window.set_min_content_width(
             self.viewport.get_allocation().width  # type: ignore
         )
         return False
-
 
     def bake_application_slot(self, app: DesktopApp, **kwargs) -> Button:
         return Button(
