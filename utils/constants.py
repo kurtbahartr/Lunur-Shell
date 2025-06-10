@@ -1,4 +1,5 @@
 from gi.repository import GLib
+from typing import TypedDict, List
 
 APPLICATION_NAME = "Lunur-Shell"
 
@@ -10,7 +11,12 @@ DEFAULT_CONFIG = {
     "workspaces": {
     },
     "notifications": {
-        "enabled": True
+        "enabled": True,
+        "anchor": "top-right",
+        "auto_dismiss": True,
+        "ignored": [],
+        "timeout": 3000,
+        "max_count": 5,
     },
 }
 

@@ -3,5 +3,9 @@ start_container = ["app_launcher", "workspaces"]
 center_container = ["date_time"]
 end_container = []
 
-[notifications]
-enabled = true
+[notification]
+anchor = "top-right"
+auto_dismiss = true
+ignored = []
+timeout = 3000
+max_count = 5
