@@ -5,6 +5,8 @@ from typing import TypedDict, List, Dict
 DateTimeMenu = TypedDict(
     "DateTimeMenu",
     {
+        "clock_format": str,
+        "format": str,
     },
 )
 

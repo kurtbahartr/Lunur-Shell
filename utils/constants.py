@@ -5,6 +5,8 @@ APPLICATION_NAME = "Lunur-Shell"
 
 DEFAULT_CONFIG = {
     "date_time": {
+        "clock_format": "24h",
+        "format": "%b %d", 
     },
     "app_launcher": {
     },

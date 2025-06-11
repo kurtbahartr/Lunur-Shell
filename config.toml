@@ -15,3 +15,7 @@ full_battery_level = 100
 hide_label_when_full = true
 label = true
 tooltip = true
+
+[date_time]
+clock_format = "24h"  # 24h or "12h"
+format = "%b"
