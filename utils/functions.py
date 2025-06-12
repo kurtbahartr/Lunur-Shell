@@ -137,3 +137,7 @@ def validate_widgets(parsed_data, default_config):
 def get_distro_icon():
     distro_id = GLib.get_os_info("ID")
     return text_icons["distro"].get(distro_id, "")  # Fallback icon
+
+# Function to unique list
+def unique_list(lst) -> List:
+    return list(set(lst))

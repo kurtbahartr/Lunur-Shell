@@ -13,6 +13,13 @@ DateTimeMenu = TypedDict(
 Workspaces = TypedDict(
     "Workspaces",
     {
+        "count": int,
+        "hide_unoccupied": bool,
+        "ignored": List[int],
+        "reverse_scroll": bool,
+        "empty_scroll": bool,
+        "default_label_format": str,
+        "icon_map": Dict[str, str],
     },
 )
 

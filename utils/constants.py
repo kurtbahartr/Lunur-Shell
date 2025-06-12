@@ -1,5 +1,5 @@
 from gi.repository import GLib
-from typing import TypedDict, List
+from typing import TypedDict, List, Dict
 
 APPLICATION_NAME = "Lunur-Shell"
 
@@ -11,6 +11,13 @@ DEFAULT_CONFIG = {
     "app_launcher": {
     },
     "workspaces": {
+        "count": 3,
+        "hide_unoccupied": True,
+        "ignored": [],
+        "reverse_scroll": False,
+        "empty_scroll": False,
+        "default_label_format": "{id}",
+        "icon_map": {},  # Example: {"1": "🌐", "2": "🎨"}
     },
     "notifications": {
         "enabled": True,

@@ -3,6 +3,15 @@ start_container = ["app_launcher", "workspaces"]
 center_container = ["date_time"]
 end_container = ["battery"]
 
+[workspaces]
+count = 3
+hide_unoccupied = true
+ignored = [] # or []
+reverse_scroll = true
+empty_scroll = false
+default_label_format = "{id}"
+icon_map = {}
+
 [notification]
 anchor = "top-right"
 auto_dismiss = true
