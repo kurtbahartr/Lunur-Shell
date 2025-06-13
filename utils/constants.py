@@ -46,6 +46,13 @@ DEFAULT_CONFIG = {
             },
         },
     },
+    "system_tray": {
+        "icon_size": 16,
+        "ignored": [],
+        "hidden": [],
+        "pinned": [],
+        "visible_count": 3,
+    },
 }
 
 # Other constants

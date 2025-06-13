@@ -1,7 +1,7 @@
 [layout]
 start_container = ["app_launcher", "workspaces"]
 center_container = ["date_time"]
-end_container = ["battery"]
+end_container = ["battery", "system_tray"]
 
 [workspaces]
 count = 3
@@ -28,3 +28,7 @@ tooltip = true
 [date_time]
 clock_format = "24h"  # 24h or "12h"
 format = "%b"
+
+[system_tray]
+icon_size = 16
+ignored = [ ]

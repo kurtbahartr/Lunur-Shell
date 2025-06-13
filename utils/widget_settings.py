@@ -47,10 +47,23 @@ Battery = TypedDict(
     },
 )
 
+# SystemTray configuration
+SystemTray = TypedDict(
+    "SystemTray",
+    {
+        "icon_size": int,
+        "ignored": List[str],
+        "pinned": List[str],
+        "hidden": List[str],
+        "visible_count": int,
+    },
+)
+
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
     date_time: DateTimeMenu
     workspaces: Workspaces
     notifications: Notifications
     battery: Battery
+    system_tray: SystemTray
 

@@ -26,6 +26,7 @@ class StatusBar(Window):
             "workspaces": "widgets.workspaces.WorkspacesWidget",
             "date_time": "widgets.datetime_menu.DateTimeWidget",
             "battery": "widgets.battery.BatteryWidget",
+            "system_tray": "widgets.system_tray.SystemTrayWidget", 
             # Add other widgets here if needed
         }
 
