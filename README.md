@@ -33,9 +33,9 @@ Dependencies:
 - [ ] Power Manager
 - [ ] Power Menu
 - [ ] Color Picker
-- [ ] QuickSettings
+- [ ] QuickSettings (in progress)
 - [x] Notifications
-- [ ] System Tray
+- [x] System Tray
 - [ ] Screen Recorder
 - [ ] Screenshots
 - [ ] OCR

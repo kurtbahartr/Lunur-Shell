@@ -8,6 +8,8 @@ DEFAULT_CONFIG = {
         "clock_format": "24h",
         "format": "%b %d", 
     },
+    "quick_settings": {
+    }, 
     "app_launcher": {
     },
     "workspaces": {

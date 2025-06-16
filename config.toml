@@ -1,7 +1,7 @@
 [layout]
 start_container = ["app_launcher", "workspaces"]
 center_container = ["date_time"]
-end_container = ["battery", "system_tray"]
+end_container = ["quick_settings", "battery", "system_tray"]
 
 [workspaces]
 count = 3

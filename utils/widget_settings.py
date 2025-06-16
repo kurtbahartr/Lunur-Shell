@@ -59,6 +59,13 @@ SystemTray = TypedDict(
     },
 )
 
+# Quick Settings
+QuickSettings = TypedDict(
+    "QuickSettings",
+    {
+    },
+)
+    
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
     date_time: DateTimeMenu
@@ -66,4 +73,4 @@ class BarConfig(TypedDict):
     notifications: Notifications
     battery: Battery
     system_tray: SystemTray
-
+    quick_settings: QuickSettings

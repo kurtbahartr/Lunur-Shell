@@ -1,3 +1,4 @@
+import shutil
 from functools import lru_cache
 from gi.repository import GLib
 from .icons import text_icons
@@ -141,3 +142,18 @@ def get_distro_icon():
 # Function to unique list
 def unique_list(lst) -> List:
     return list(set(lst))
+
+# Function to check if an executable exists
+@ttl_lru_cache(600, 10)
+def executable_exists(executable_name):
+    executable_path = shutil.which(executable_name)
+    return bool(executable_path)
+
+# Function to get the percentage of a value
+def convert_to_percent(
+    current: int | float, max: int | float, is_int=True
+) -> int | float:
+    if is_int:
+        return int((current / max) * 100)
+    else:
+        return (current / max) * 100
