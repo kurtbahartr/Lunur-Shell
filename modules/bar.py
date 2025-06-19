@@ -69,8 +69,6 @@ class StatusBar(Window):
             **kwargs,
         )
 
-        self.connect("key-press-event", self.on_key_press)
-
         if options.get("check_updates"):
             self.check_for_bar_updates()
 
@@ -117,10 +115,3 @@ class StatusBar(Window):
                         new_layout[section].append(widget_instance)
 
         return new_layout
-
-    def on_key_press(self, widget, event):
-        # Escape key hides the bar
-        if event.keyval == 65307:
-            self.hide()
-            return True
-        return False
