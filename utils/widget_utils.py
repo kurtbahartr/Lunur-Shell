@@ -96,9 +96,16 @@ def get_audio_icon_name(
 # Function to get the widget class dynamically
 def lazy_load_widget(widget_name: str, widgets_list: dict[str, str]):
     if widget_name in widgets_list:
+        # Get the full module path (e.g., "widgets.BatteryWidget")
         class_path = widgets_list[widget_name]
+
+        # Dynamically import the module
         module_name, class_name = class_path.rsplit(".", 1)
         module = importlib.import_module(module_name)
-        return getattr(module, class_name)
-    raise KeyError(f"Widget {widget_name} not found in the dictionary.")
 
+        # Get the class from the module
+        widget_class = getattr(module, class_name)
+
+        return widget_class
+    else:
+        raise KeyError(f"Widget {widget_name} not found in the dictionary.")

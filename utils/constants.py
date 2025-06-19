@@ -12,6 +12,13 @@ DEFAULT_CONFIG = {
     }, 
     "app_launcher": {
     },
+    "module_groups": [
+        {
+            "widgets": ["quick_settings", "battery"],
+            "spacing": 4,
+            "style_classes": ["bordered"],
+        },
+    ],
     "workspaces": {
         "count": 3,
         "hide_unoccupied": True,

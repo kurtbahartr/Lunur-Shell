@@ -1,7 +1,13 @@
+[[module_groups]]
+widgets = [ "quick_settings", "battery" ]
+spacing = 4
+style_classes = [ "compact" ]
+
 [layout]
 start_container = ["app_launcher", "workspaces"]
 center_container = ["date_time"]
-end_container = ["quick_settings", "battery", "system_tray"]
+# end_container = ["quick_settings", "battery", "system_tray"]
+end_container = ["@group:0", "system_tray"]
 
 [workspaces]
 count = 3
