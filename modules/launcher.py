@@ -83,7 +83,7 @@ class AppLauncher(Window):
             pin=True,
         )
 
-        idle_add(self.resize_viewport, priority=GLib.PRIORITY_LOW)
+        GLib.idle_add(self.resize_viewport, priority=GLib.PRIORITY_LOW)
         return False
 
     def _filter_apps(self, query: str) -> list[DesktopApp]:
