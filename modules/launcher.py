@@ -25,7 +25,7 @@ class AppLauncher(Window):
         self.connect("key-press-event", self.on_key_press)
 
         self._arranger_handler: int = 0
-        self._all_apps = get_desktop_applications()
+        self._all_apps = []
 
         self.viewport = Box(
             name="app-launcher-viewport",
@@ -61,6 +61,13 @@ class AppLauncher(Window):
             )
         )
 
+    def show_all(self):
+        self._all_apps = get_desktop_applications()
+        self.search_entry.set_text("")
+        self.arrange_viewport()
+        super().show_all()
+        GLib.idle_add(self.resize_viewport, priority=GLib.PRIORITY_LOW)
+
     def on_key_press(self, widget, event) -> bool:
         if event.keyval == 65307:  # Escape
             self.hide()
@@ -83,7 +90,6 @@ class AppLauncher(Window):
             pin=True,
         )
 
-        GLib.idle_add(self.resize_viewport, priority=GLib.PRIORITY_LOW)
         return False
 
     def _filter_apps(self, query: str) -> list[DesktopApp]:
