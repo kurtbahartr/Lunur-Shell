@@ -23,7 +23,7 @@ DEFAULT_CONFIG = {
         },
     ],
     "layout": {
-        "left_section": ["app_launcher", "workspaces"]
+        "left_section": ["app_launcher", "workspaces"],
         "middle_section": ["date_time"],
         "right_section": ["@group:0", "system_tray"],
     },
