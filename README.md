@@ -1,5 +1,14 @@
 # Lunur-Shell
 
+
+<div align=center>
+  
+![GitHub last commit](https://img.shields.io/github/last-commit/dianaw353/Lunur-Shell?style=for-the-badge&labelColor=101418&color=9ccbfb)
+![GitHub Repo stars](https://img.shields.io/github/stars/dianaw353/Lunur-Shell?style=for-the-badge&labelColor=101418&color=b9c8da)
+![GitHub repo size](https://img.shields.io/github/repo-size/dianaw353/Lunur-Shell?style=for-the-badge&labelColor=101418&color=d3bfe6)
+
+</div>
+
 > [!WARNING]  
 > This is in active development
 
