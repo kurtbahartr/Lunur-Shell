@@ -7,6 +7,7 @@ from gi.repository import Gtk
 import utils.functions as helpers
 from modules.bar import StatusBar
 from modules.launcher import AppLauncher
+from modules.keybinds import KeybindsWidget
 from utils import APPLICATION_NAME, ExecutableNotFoundError, widget_config
 
 
@@ -30,8 +31,9 @@ def process_and_apply_css(app: Application):
 if __name__ == "__main__":
     launcher = AppLauncher()
     bar = StatusBar(widget_config)
+    keybinds = KeybindsWidget(widget_config)
 
-    windows = [bar, launcher]
+    windows = [bar, launcher, keybinds]
 
     if widget_config.get("notifications", {}).get("enabled", True):
         from services.notifications import NotificationPopup

@@ -9,7 +9,6 @@ from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import DesktopApp, get_desktop_applications, idle_add, remove_handler
 from gi.repository import GLib
 
-
 class AppLauncher(Window):
     def __init__(self, **kwargs):
         super().__init__(
