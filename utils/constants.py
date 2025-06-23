@@ -9,6 +9,9 @@ DEFAULT_CONFIG = {
         "format": "%b %d", 
     },
     "quick_settings": {
+        "icon_size": "16",
+        "ignored": [],
+        "style_classes": [ "compact" ],
     }, 
     "app_launcher": {
     },
@@ -19,9 +22,14 @@ DEFAULT_CONFIG = {
             "style_classes": ["bordered"],
         },
     ],
+    "layout": {
+        "left_section": ["app_launcher", "workspaces"]
+        "middle_section": ["date_time"],
+        "right_section": ["@group:0", "system_tray"],
+    },
     "workspaces": {
         "count": 3,
-        "hide_unoccupied": True,
+        "hide_unoccupied": False,
         "ignored": [],
         "reverse_scroll": False,
         "empty_scroll": False,
@@ -42,24 +50,13 @@ DEFAULT_CONFIG = {
         "label": True,
         "tooltip": True,
         "orientation": "vertical",
-        "icon_size": 14,
-        "notifications": {
-            "enabled": True,
-            "discharging": {
-                "title": "Charger Unplugged!",
-                "body": "Battery is at _LEVEL_%",
-            },
-            "charging": {
-                "title": "Charger Plugged In",
-                "body": "Battery is at _LEVEL_%",
-            },
-        },
+        "icon_size": 16,
     },
     "system_tray": {
         "icon_size": 16,
-        "ignored": [],
-        "hidden": [],
-        "pinned": [],
+        # "ignored": [],
+        # "hidden": [],
+        # "pinned": [],
         "visible_count": 3,
     },
 }

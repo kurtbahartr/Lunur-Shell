@@ -11,7 +11,7 @@ end_container = ["@group:0", "system_tray"]
 
 [workspaces]
 count = 3
-hide_unoccupied = true
+hide_unoccupied = false
 ignored = [] # or []
 reverse_scroll = true
 empty_scroll = false
