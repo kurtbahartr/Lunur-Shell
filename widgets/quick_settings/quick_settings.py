@@ -1,7 +1,5 @@
-import os
 import weakref
 
-from fabric.utils import get_relative_path
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from gi.repository import GLib
@@ -47,15 +45,14 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.network = NetworkService()
         self.brightness_service = Brightness()
 
-        # Timeout ID
         self._timeout_id = None
 
-        # Create icons
+        # Icons
         self.audio_icon = Image(style_classes="panel-icon")
         self.network_icon = Image(style_classes="panel-icon")
         self.brightness_icon = Image(style_classes="panel-icon")
 
-        # Pack icons
+        # Pack icons in container
         self.children = Box(
             children=(
                 self.network_icon,
@@ -64,7 +61,7 @@ class QuickSettingsButtonWidget(ButtonWidget):
             )
         )
 
-        # Initial updates
+        # Initial icon update
         self.update_network_icon()
         self.update_audio_icon()
         self.update_brightness_icon()
@@ -72,7 +69,11 @@ class QuickSettingsButtonWidget(ButtonWidget):
         # Connect signals
         self.audio.connect("notify::speaker", self._on_speaker_changed)
         self.brightness_service.connect("brightness_changed", self._on_brightness_changed)
-        self.network.connect("notify::primary-device", self._on_network_changed)
+        self.network.connect("notify::primary-device", self._on_primary_device_changed)
+        self.network.connect("notify::wifi-device", self._on_wifi_device_changed)
+
+        # Connect device signals
+        self._connect_network_device_signals()
 
     def start_timeout(self):
         self.stop_timeout()
@@ -83,7 +84,28 @@ class QuickSettingsButtonWidget(ButtonWidget):
             GLib.source_remove(self._timeout_id)
             self._timeout_id = None
 
-    def _on_network_changed(self, *_):
+    def _connect_network_device_signals(self):
+        """Connect signals on wifi/ethernet devices to track status changes."""
+
+        if self.network.wifi_device:
+            self.network.wifi_device.connect("notify::signal-strength", self._on_network_device_changed)
+            self.network.wifi_device.connect("notify::state", self._on_network_device_changed)
+
+        if self.network.ethernet_device:
+            self.network.ethernet_device.connect("notify::state", self._on_network_device_changed)
+
+    def _on_primary_device_changed(self, *_):
+        """Primary network device changed: reconnect signals & update icon."""
+        self._connect_network_device_signals()
+        self.update_network_icon()
+
+    def _on_wifi_device_changed(self, *_):
+        """WiFi device changed (added/removed): reconnect signals & update icon."""
+        self._connect_network_device_signals()
+        self.update_network_icon()
+
+    def _on_network_device_changed(self, *_):
+        """A network device's property changed: update icon."""
         self.update_network_icon()
 
     def update_network_icon(self):
