@@ -12,6 +12,7 @@ end_container = ["@group:0", "system_tray"]
 [general]
 layer = "top"
 location = "top"
+margin = "6px 6px 0px 6px" # Spacing that makes the bar float
 
 [workspaces]
 count = 3

@@ -16,6 +16,7 @@ General = TypedDict(
     {
         "location": str,
         "layer": Layer,
+        "margin": str,
     },
 )
 

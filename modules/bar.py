@@ -59,7 +59,7 @@ class StatusBar(Window):
             name="status-bar",
             layer=options["layer"],
             anchor=anchor,
-            margin=options.get("margin", "6px 6px 0px 6px"),
+            margin=options.get("margin"),
             pass_through=False,
             monitor=HyprlandWithMonitors().get_current_gdk_monitor_id(),
             exclusivity="auto",
