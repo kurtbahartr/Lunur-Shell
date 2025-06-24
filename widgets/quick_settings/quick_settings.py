@@ -4,7 +4,7 @@ import weakref
 from fabric.utils import get_relative_path
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
-from gi.repository import GLib, Gtk
+from gi.repository import GLib
 
 import utils.functions as helpers
 from services import Brightness, audio_service
@@ -31,9 +31,6 @@ class QuickSettingsButtonBox(Box):
             **kwargs,
         )
 
-        # Without toggles, just add icons or other widgets directly
-        # You can add widgets here if needed, for example network_icon etc.
-        # But this class currently does not define self.network_icon etc.
 
 class QuickSettingsButtonWidget(ButtonWidget):
     """A button to display the network, audio, and brightness icons."""
@@ -44,29 +41,21 @@ class QuickSettingsButtonWidget(ButtonWidget):
         )
 
         self.panel_icon_size = 16
-        self.audio = audio_service
 
-        self._timeout_id = None
+        # Services
+        self.audio = audio_service
         self.network = NetworkService()
         self.brightness_service = Brightness()
 
-        # Connect signals
-        self.audio.connect("notify::speaker", self.on_speaker_changed)
-        self.brightness_service.connect(
-            "brightness_changed", self.on_brightness_changed
-        )
-        self.network.connect("notify::primary-device", self.get_network_icon)
+        # Timeout ID
+        self._timeout_id = None
 
-        # Create icon images with proper style
+        # Create icons
         self.audio_icon = Image(style_classes="panel-icon")
         self.network_icon = Image(style_classes="panel-icon")
         self.brightness_icon = Image(style_classes="panel-icon")
 
-        # Initialize icons
-        self.update_brightness()
-        self.get_network_icon()
-        self.on_speaker_changed()
-
+        # Pack icons
         self.children = Box(
             children=(
                 self.network_icon,
@@ -74,6 +63,16 @@ class QuickSettingsButtonWidget(ButtonWidget):
                 self.brightness_icon,
             )
         )
+
+        # Initial updates
+        self.update_network_icon()
+        self.update_audio_icon()
+        self.update_brightness_icon()
+
+        # Connect signals
+        self.audio.connect("notify::speaker", self._on_speaker_changed)
+        self.brightness_service.connect("brightness_changed", self._on_brightness_changed)
+        self.network.connect("notify::primary-device", self._on_network_changed)
 
     def start_timeout(self):
         self.stop_timeout()
@@ -84,90 +83,72 @@ class QuickSettingsButtonWidget(ButtonWidget):
             GLib.source_remove(self._timeout_id)
             self._timeout_id = None
 
-    def get_network_icon(self, *_):
-        if self.network.primary_device == "wifi":
-            wifi = self.network.wifi_device
-            if wifi:
-                self.network_icon.set_from_icon_name(
-                    wifi.get_icon_name(),
-                    self.panel_icon_size,
-                )
-            else:
-                self.network_icon.set_from_icon_name(
-                    icons["network"]["wifi"]["disconnected"],
-                    self.panel_icon_size,
-                )
+    def _on_network_changed(self, *_):
+        self.update_network_icon()
+
+    def update_network_icon(self):
+        device_type = self.network.primary_device
+
+        if device_type == "wifi" and self.network.wifi_device:
+            icon_name = self.network.wifi_device.get_icon_name()
+        elif device_type == "ethernet" and self.network.ethernet_device:
+            icon_name = self.network.ethernet_device.get_icon_name()
         else:
-            ethernet = self.network.ethernet_device
-            if ethernet:
-                self.network_icon.set_from_icon_name(
-                    ethernet.get_icon_name(),
-                    self.panel_icon_size,
-                )
-            else:
-                self.network_icon.set_from_icon_name(
-                    icons["network"]["wifi"]["disconnected"],
-                    self.panel_icon_size,
-                )
+            icon_name = icons["network"]["wifi"]["disconnected"]
 
-    def on_speaker_changed(self, *_):
-        if not self.audio.speaker:
-            return
+        self._set_icon(
+            self.network_icon,
+            icon_name,
+            fallback_icon=icons["network"]["wifi"]["disconnected"],
+        )
 
-        self.audio.speaker.connect("notify::volume", self.update_volume)
-        self.update_volume()
+    def _on_speaker_changed(self, *_):
+        speaker = self.audio.speaker
+        if speaker:
+            speaker.connect("notify::volume", self._on_volume_changed)
+            self.update_audio_icon()
 
-    def update_volume(self, *_):
-        if self.audio.speaker:
-            volume = round(self.audio.speaker.volume)
-            self.audio_icon.set_from_icon_name(
-                get_audio_icon_name(volume, self.audio.speaker.muted)["icon"],
-                self.panel_icon_size,
+    def _on_volume_changed(self, *_):
+        self.update_audio_icon()
+
+    def update_audio_icon(self):
+        speaker = self.audio.speaker
+        if speaker:
+            volume = round(speaker.volume)
+            icon_name = get_audio_icon_name(volume, speaker.muted)["icon"]
+
+            self._set_icon(
+                self.audio_icon,
+                icon_name,
+                fallback_icon=icons["audio"].get("muted", ""),
             )
 
-    def on_brightness_changed(self, *_):
-        self.update_brightness()
+    def _on_brightness_changed(self, *_):
+        self.update_brightness_icon()
 
-    def update_brightness(self, *_):
-        """Update the brightness icon."""
+    def update_brightness_icon(self):
         try:
-            # Get the current brightness level
             current_brightness = self.brightness_service.screen_brightness
             normalized_brightness = helpers.convert_to_percent(
-                current_brightness,
-                self.brightness_service.max_screen,
+                current_brightness, self.brightness_service.max_screen
             )
-
-            # Get the icon information based on the brightness level
             icon_info = get_brightness_icon_name(normalized_brightness)
-
-            if icon_info and "icon" in icon_info:
-                icon_name = icon_info["icon"]
-                # Log the chosen icon name to help debug
-                print(f"Setting brightness icon: {icon_name}")
-
-                # Check if the icon name exists in the icon theme
-                if icon_name in icons["brightness"].values():
-                    self.brightness_icon.set_from_icon_name(
-                        icon_name,
-                        self.panel_icon_size,
-                    )
-                else:
-                    print(f"Icon '{icon_name}' not found in icon set, using fallback.")
-                    self.brightness_icon.set_from_icon_name(
-                        icons["brightness"]["indicator"],
-                        self.panel_icon_size,
-                    )
-            else:
-                print("No valid icon info returned by get_brightness_icon_name, using fallback.")
-                self.brightness_icon.set_from_icon_name(
-                    icons["brightness"]["indicator"],
-                    self.panel_icon_size,
-                )
+            icon_name = icon_info.get("icon", icons["brightness"]["indicator"])
         except Exception as e:
-            print(f"Error updating brightness icon: {e}")
-            self.brightness_icon.set_from_icon_name(
-                icons["brightness"]["indicator"],
-                self.panel_icon_size,
-            )
+            print(f"[QuickSettings] Error updating brightness icon: {e}")
+            icon_name = icons["brightness"]["indicator"]
+
+        self._set_icon(
+            self.brightness_icon,
+            icon_name,
+            fallback_icon=icons["brightness"]["indicator"],
+        )
+
+    def _set_icon(self, image_widget: Image, icon_name: str, fallback_icon: str):
+        """Set icon with fallback."""
+        if icon_name:
+            image_widget.set_from_icon_name(icon_name, self.panel_icon_size)
+        else:
+            print(f"[QuickSettings] Missing icon, using fallback.")
+            image_widget.set_from_icon_name(fallback_icon, self.panel_icon_size)
 
