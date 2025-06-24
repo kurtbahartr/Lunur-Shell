@@ -45,6 +45,7 @@ Dependencies:
 - [ ] QuickSettings (in progress)
 - [x] Notifications
 - [x] System Tray
+- [x] Keybind Cheat Sheet
 - [ ] Screen Recorder
 - [ ] Screenshots
 - [ ] OCR
