@@ -1,12 +1,21 @@
 from typing import TypedDict, List, Dict
 
-# Minimal configs for widgets you use
+from .types import Anchor, Layer
 
 DateTimeMenu = TypedDict(
     "DateTimeMenu",
     {
         "clock_format": str,
         "format": str,
+    },
+)
+
+# Bar configuration
+General = TypedDict(
+    "General",
+    {
+        "location": str,
+        "layer": Layer,
     },
 )
 
@@ -74,3 +83,4 @@ class BarConfig(TypedDict):
     battery: Battery
     system_tray: SystemTray
     quick_settings: QuickSettings
+    general: General

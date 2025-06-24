@@ -15,6 +15,10 @@ DEFAULT_CONFIG = {
     }, 
     "app_launcher": {
     },
+    "general": {
+        "layer": "top",
+        "location":"top",  
+    },
     "module_groups": [
         {
             "widgets": ["quick_settings", "battery"],

@@ -31,7 +31,7 @@ class StatusBar(Window):
             # Add other widgets here if needed
         }
 
-        options = config.get("general", {})
+        options = config["general"]
         layout = self.make_layout(config)
 
         self.box = CenterBox(
@@ -53,11 +53,11 @@ class StatusBar(Window):
             ),
         )
 
-        anchor = f"left {options.get('location', 'top')} right"
+        anchor = f"left {options['location']} right"
 
         super().__init__(
             name="status-bar",
-            layer=options.get("layer", "top"),
+            layer=options["layer"],
             anchor=anchor,
             margin=options.get("margin", "6px 6px 0px 6px"),
             pass_through=False,

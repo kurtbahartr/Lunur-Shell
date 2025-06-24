@@ -9,6 +9,10 @@ center_container = ["date_time"]
 # end_container = ["quick_settings", "battery", "system_tray"]
 end_container = ["@group:0", "system_tray"]
 
+[general]
+layer = "top"
+location = "top"
+
 [workspaces]
 count = 3
 hide_unoccupied = false
