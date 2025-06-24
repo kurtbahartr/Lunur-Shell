@@ -25,8 +25,8 @@ Comming soon!
 
 Dependencies:
 ```
-  sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst
-  yay -S fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp upower gray-git
+  yay -S fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp upower gray-git networkmanager bluez bluez-utils
+  sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst 
 ```
 
 ## Roadmap
