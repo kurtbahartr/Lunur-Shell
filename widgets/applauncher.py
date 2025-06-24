@@ -13,7 +13,6 @@ class AppLauncherButton(Button):
         super().__init__(
             name="arch-button",
             child=text_icon(get_distro_icon(), {
-                "style": "font-family: 'Nerd Font', monospace; font-size: 18px; padding: 4px 8px;"
             }),
         )
         self.connect("clicked", self.on_clicked)
