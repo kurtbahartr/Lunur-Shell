@@ -19,6 +19,10 @@ icon_size = 16 # Bar button icon
 app_icon_size = 48 # Size of app icons in launcher
 show_descriptions = false
 
+[keybinds]
+enabled = true
+path = "~/.config/hypr/hyprbinds.conf"
+
 [workspaces]
 count = 3
 hide_unoccupied = false

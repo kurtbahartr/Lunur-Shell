@@ -12,7 +12,11 @@ DEFAULT_CONFIG = {
         "icon_size": "16",
         "ignored": [],
         "style_classes": [ "compact" ],
-    }, 
+    },
+    "keybinds": {
+        "enabled": True,
+        "path": "~/.config/hypr/hyprbinds.conf",  
+    },
     "app_launcher": {
         "icon_size": 16,
         "app_icon_size": 48,

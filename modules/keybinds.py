@@ -1,4 +1,3 @@
-
 from typing import Iterator
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
@@ -13,13 +12,16 @@ import os
 import re
 
 class KeybindLoader:
-    def __init__(self, config_path: str):
-        self.config_path = os.path.expanduser(config_path)
+    def __init__(self, config_path: str | None):
+        if config_path:
+            self.config_path = os.path.expanduser(config_path)
+        else:
+            self.config_path = None
         self.variables = {}
         self.keybinds = []
 
     def load_keybinds(self):
-        if not os.path.isfile(self.config_path):
+        if not self.config_path or not os.path.isfile(self.config_path):
             self.keybinds = []
             return
 
@@ -89,8 +91,11 @@ class KeybindLoader:
         )
 
 class KeybindsWidget(Window):
-    def __init__(self, widget_config: dict, **kwargs):
-        config_path = widget_config.get("keybinds", "~/.config/hypr/hyprbinds.conf")
+    def __init__(self, config: dict, **kwargs):
+        keybinds_cfg = config.get("keybinds")
+
+        config_path = keybinds_cfg.get("path")
+        search_placeholder = keybinds_cfg.get("search_placeholder", "Search Keybinds...")
 
         super().__init__(
             name="keybind-viewer",
@@ -113,7 +118,7 @@ class KeybindsWidget(Window):
         )
 
         self.search_entry = Entry(
-            placeholder="Search Keybinds...",
+            placeholder=search_placeholder,
             h_expand=True,
             notify_text=lambda entry, *_: self.arrange_viewport(entry.get_text()),
         )
@@ -214,4 +219,3 @@ class KeybindsWidget(Window):
         self.scrolled_window.set_min_content_width(
             self.viewport.get_allocation().width  # type: ignore
         )
-        return False

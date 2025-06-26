@@ -85,6 +85,14 @@ QuickSettings = TypedDict(
     {
     },
 )
+
+Keybinds = TypedDict(
+    "Keybinds",
+    {
+        "enabled": bool,
+        "path": str, 
+    },
+)
     
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
@@ -96,3 +104,4 @@ class BarConfig(TypedDict):
     quick_settings: QuickSettings
     general: General
     app_launcher: AppLauncher
+    keybinds: Keybinds
