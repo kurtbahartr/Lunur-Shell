@@ -36,7 +36,7 @@ if __name__ == "__main__":
     windows = [bar, launcher, keybinds]
 
     if widget_config["notification"]["enabled"]:
-        from modules import NotificationPopup
+        from services.notifications import NotificationPopup
 
         notifications = NotificationPopup(widget_config)
         windows.append(notifications)
