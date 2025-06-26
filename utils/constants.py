@@ -14,6 +14,8 @@ DEFAULT_CONFIG = {
         "style_classes": [ "compact" ],
     }, 
     "app_launcher": {
+        "icon_size": 16,
+        "app_icon_size": 48,
     },
     "general": {
         "layer": "top",

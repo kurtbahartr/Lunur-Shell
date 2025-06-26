@@ -20,6 +20,14 @@ General = TypedDict(
     },
 )
 
+AppLauncher = TypedDict(
+    "AppLauncher",
+    {
+        "icon_size": int,
+        "app_icon_size": int,  
+    },
+)
+
 Workspaces = TypedDict(
     "Workspaces",
     {
@@ -85,3 +93,4 @@ class BarConfig(TypedDict):
     system_tray: SystemTray
     quick_settings: QuickSettings
     general: General
+    app_launcher: AppLauncher

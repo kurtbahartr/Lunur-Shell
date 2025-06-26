@@ -7,10 +7,16 @@ from fabric.widgets.entry import Entry
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import DesktopApp, get_desktop_applications, idle_add, remove_handler
-from gi.repository import GLib
+from gi.repository import GLib, GdkPixbuf
+from utils.config import widget_config
 
 class AppLauncher(Window):
-    def __init__(self, **kwargs):
+    def __init__(self, app_icon_size: int = None, **kwargs):
+        # Use config default if no size provided
+        if app_icon_size is None:
+            app_icon_size = widget_config["app_launcher"]["app_icon_size"]
+        self.app_icon_size = app_icon_size
+
         super().__init__(
             name="app-launcher",
             layer="top",
@@ -112,12 +118,26 @@ class AppLauncher(Window):
         return False
 
     def bake_application_slot(self, app: DesktopApp, **kwargs) -> Button:
+        spacing = max(4, self.app_icon_size // 4)
+
+        pixbuf = app.get_icon_pixbuf()
+        if pixbuf is not None:
+            pixbuf = pixbuf.scale_simple(
+                self.app_icon_size,
+                self.app_icon_size,
+                GdkPixbuf.InterpType.BILINEAR,
+            )
+
         return Button(
             child=Box(
                 orientation="h",
                 spacing=12,
                 children=[
-                    Image(pixbuf=app.get_icon_pixbuf(), h_align="start", size=32),
+                    Image(
+                        pixbuf=pixbuf,
+                        h_align="start",
+                        size=self.app_icon_size,
+                    ),
                     Label(
                         label=app.display_name or "Unknown",
                         v_align="center",

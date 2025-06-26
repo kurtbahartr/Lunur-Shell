@@ -14,6 +14,10 @@ layer = "top"
 location = "top"
 margin = "6px 6px 0px 6px" # Spacing that makes the bar float
 
+[app_launcher]
+icon_size = 16 # Bar button icon
+app_icon_size = 48 # Size of app icons in launcher
+
 [workspaces]
 count = 3
 hide_unoccupied = false
