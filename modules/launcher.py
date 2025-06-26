@@ -10,12 +10,17 @@ from fabric.utils import DesktopApp, get_desktop_applications, idle_add, remove_
 from gi.repository import GLib, GdkPixbuf
 from utils.config import widget_config
 
+
 class AppLauncher(Window):
-    def __init__(self, app_icon_size: int = None, **kwargs):
-        # Use config default if no size provided
-        if app_icon_size is None:
-            app_icon_size = widget_config["app_launcher"]["app_icon_size"]
-        self.app_icon_size = app_icon_size
+    def __init__(self, app_icon_size: int = None, show_descriptions: bool = None, **kwargs):
+        config = widget_config["app_launcher"]
+
+        self.app_icon_size = (
+            app_icon_size if app_icon_size is not None else config.get("app_icon_size", 48)
+        )
+        self.show_descriptions = (
+            show_descriptions if show_descriptions is not None else config.get("show_descriptions", True)
+        )
 
         super().__init__(
             name="app-launcher",
@@ -30,7 +35,7 @@ class AppLauncher(Window):
         self.connect("key-press-event", self.on_key_press)
 
         self._arranger_handler: int = 0
-        self._all_apps = []
+        self._all_apps: list[DesktopApp] = []
 
         self.viewport = Box(
             name="app-launcher-viewport",
@@ -67,7 +72,13 @@ class AppLauncher(Window):
         )
 
     def show_all(self):
-        self._all_apps = get_desktop_applications()
+        apps = get_desktop_applications()
+        # Optional optimization: strip descriptions if not used
+        if not self.show_descriptions:
+            for app in apps:
+                app.description = ""  # or None if your type allows it
+        self._all_apps = apps
+
         self.search_entry.set_text("")
         self.arrange_viewport()
         super().show_all()
@@ -128,6 +139,24 @@ class AppLauncher(Window):
                 GdkPixbuf.InterpType.BILINEAR,
             )
 
+        label_box = [
+            Label(
+                label=app.display_name or "Unknown",
+                h_align="start",
+                v_align="start",
+            )
+        ]
+
+        if self.show_descriptions and app.description:
+            label_box.append(
+                Label(
+                    label=app.description,
+                    h_align="start",
+                    v_align="start",
+                    style="font-size: 10px; color: #888;",
+                )
+            )
+
         return Button(
             child=Box(
                 orientation="h",
@@ -138,14 +167,15 @@ class AppLauncher(Window):
                         h_align="start",
                         size=self.app_icon_size,
                     ),
-                    Label(
-                        label=app.display_name or "Unknown",
+                    Box(
+                        orientation="v",
+                        spacing=2,
                         v_align="center",
-                        h_align="center",
+                        children=label_box,
                     ),
                 ],
             ),
-            tooltip_text=app.description,
+            tooltip_text=app.description if self.show_descriptions else None,
             on_clicked=lambda *_: (app.launch(), self.hide()),
             **kwargs,
         )

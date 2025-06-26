@@ -16,6 +16,7 @@ DEFAULT_CONFIG = {
     "app_launcher": {
         "icon_size": 16,
         "app_icon_size": 48,
+        "show_descriptions": False,
     },
     "general": {
         "layer": "top",

@@ -24,7 +24,8 @@ AppLauncher = TypedDict(
     "AppLauncher",
     {
         "icon_size": int,
-        "app_icon_size": int,  
+        "app_icon_size": int,
+        "show_descriptions": bool,  
     },
 )
 
