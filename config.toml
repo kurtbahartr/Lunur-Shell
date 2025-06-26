@@ -29,6 +29,7 @@ default_label_format = "{id}"
 icon_map = {}
 
 [notification]
+enabled = true
 anchor = "top-right"
 auto_dismiss = true
 ignored = []

@@ -45,6 +45,7 @@ Workspaces = TypedDict(
 Notifications = TypedDict(
     "Notifications",
     {
+        "enabled": bool,
         "anchor": str,
         "auto_dismiss": bool,
         "ignored": List[str],
