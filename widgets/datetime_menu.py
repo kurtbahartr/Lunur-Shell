@@ -1,5 +1,6 @@
 from fabric.widgets.datetime import DateTime
 from utils.config import widget_config
+import time
 
 class DateTimeWidget(DateTime):
     def __init__(self):
@@ -21,3 +22,8 @@ class DateTimeWidget(DateTime):
             name="date-time",
             formatters=formatters,
         )
+
+    def do_format(self):
+        # Override to ensure local time is used correctly
+        fmt = self._formatters[self._current_index]
+        return time.strftime(fmt, time.localtime())
