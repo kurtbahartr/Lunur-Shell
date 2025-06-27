@@ -55,4 +55,4 @@ icon_size = 16
 ignored = [ ]
 
 [quick_settings]
-bar_icons = ["network","audio", "brightness"] # quick setting buttons to display on the bar
+bar_icons = ["network","audio", "bluetooth","brightness"] # quick setting buttons to display on the bar

@@ -4,9 +4,13 @@ from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from gi.repository import GLib
 
+from fabric.bluetooth.service import BluetoothClient, BluetoothDevice
+from fabric.utils import bulk_connect
+
 import utils.functions as helpers
 from services import Brightness, audio_service
 from services.network import NetworkService
+from services import bluetooth_service
 from shared import ButtonWidget
 from utils import BarConfig
 from utils.icons import icons
@@ -29,17 +33,19 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.audio = audio_service
         self.network = NetworkService()
         self.brightness_service = Brightness()
+        self.bluetooth = bluetooth_service
 
         # Icon widgets
         self.audio_icon = Image(style_classes="panel-icon")
         self.network_icon = Image(style_classes="panel-icon")
         self.brightness_icon = Image(style_classes="panel-icon")
+        self.bluetooth_icon = Image(style_classes="panel-icon")
 
-        # Box to hold icons in configured order
         icons_map = {
             "audio": self.audio_icon,
             "network": self.network_icon,
             "brightness": self.brightness_icon,
+            "bluetooth": self.bluetooth_icon,
         }
 
         bar_icons = self.config.get("bar_icons")
@@ -47,13 +53,20 @@ class QuickSettingsButtonWidget(ButtonWidget):
 
         self.children = Box(children=ordered_icons)
 
-        # Initial updates
+        # Initialize timers and polling ids
+        self._timeout_id = None
+        self._bluetooth_poll_id = None
+
+        # Initial icon updates
         if "network" in bar_icons:
             self.update_network_icon()
         if "audio" in bar_icons:
             self.update_audio_icon()
         if "brightness" in bar_icons:
             self.update_brightness_icon()
+        if "bluetooth" in bar_icons:
+            self.update_bluetooth_icon()
+            self._start_bluetooth_polling()
 
         # Connect service signals
         if "audio" in bar_icons:
@@ -67,7 +80,11 @@ class QuickSettingsButtonWidget(ButtonWidget):
             self.network.connect("notify::wifi-device", self._on_wifi_device_changed)
             self._connect_network_device_signals()
 
-        self._timeout_id = None
+        if "bluetooth" in bar_icons:
+            self.bluetooth.connect("notify::enabled", self._on_bluetooth_enabled_changed)
+            self.bluetooth.connect("device-added", self._on_bluetooth_device_changed)
+            self.bluetooth.connect("device-removed", self._on_bluetooth_device_changed)
+            self.bluetooth.connect("changed", self._on_bluetooth_device_changed)
 
     def start_timeout(self):
         self.stop_timeout()
@@ -155,6 +172,46 @@ class QuickSettingsButtonWidget(ButtonWidget):
             fallback_icon=icons["brightness"]["indicator"],
         )
 
+    def _on_bluetooth_enabled_changed(self, *_):
+        self.update_bluetooth_icon()
+
+    def _on_bluetooth_device_changed(self, *_):
+        self.update_bluetooth_icon()
+
+    def update_bluetooth_icon(self):
+        # Determine icon based on Bluetooth enabled state and connected devices
+        if not self.bluetooth.enabled:
+            icon_name = icons["bluetooth"]["disabled"]
+        else:
+            icon_name = icons["bluetooth"]["enabled"]
+            # connected_devices = self.bluetooth.connected_devices
+            # if connected_devices:
+            #     # Use the first connected device's icon or default enabled icon
+            #     icon_name = connected_devices[0].icon_name + "-symbolic" if connected_devices[0].icon_name else icons["bluetooth"]["enabled"]
+            # else:
+            #     icon_name = icons["bluetooth"]["enabled"]
+
+        self._set_icon(
+            self.bluetooth_icon,
+            icon_name,
+            fallback_icon=icons["bluetooth"]["disabled"],
+        )
+
+    # Poll Bluetooth devices periodically in case signals don't catch all changes
+    def _start_bluetooth_polling(self):
+        self._stop_bluetooth_polling()
+        self._bluetooth_poll_id = GLib.timeout_add_seconds(5, self._poll_bluetooth)
+
+    def _stop_bluetooth_polling(self):
+        if self._bluetooth_poll_id is not None:
+            GLib.source_remove(self._bluetooth_poll_id)
+            self._bluetooth_poll_id = None
+
+    def _poll_bluetooth(self):
+        self.update_bluetooth_icon()
+        return True  # Continue polling
+
+    # Helper to set icon on Image widget
     def _set_icon(self, image_widget: Image, icon_name: str, fallback_icon: str):
         if icon_name:
             image_widget.set_from_icon_name(icon_name, self.panel_icon_size)
