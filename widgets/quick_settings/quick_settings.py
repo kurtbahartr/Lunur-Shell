@@ -1,4 +1,4 @@
-import weakref
+# widgets/quick_settings/quick_settings.py
 
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
@@ -15,29 +15,14 @@ from utils.widget_utils import (
     get_brightness_icon_name,
 )
 
-class QuickSettingsButtonBox(Box):
-    """A box to display the quick settings buttons."""
-
-    def __init__(self, **kwargs):
-        super().__init__(
-            orientation="v",
-            name="quick-settings-button-box",
-            spacing=4,
-            h_align="start",
-            v_align="start",
-            v_expand=True,
-            **kwargs,
-        )
-
 
 class QuickSettingsButtonWidget(ButtonWidget):
-    """A button to display the network, audio, and brightness icons."""
-
     def __init__(self, widget_config: BarConfig, **kwargs):
         super().__init__(
             widget_config["quick_settings"], name="quick_settings", **kwargs
         )
 
+        self.config = widget_config["quick_settings"]
         self.panel_icon_size = 16
 
         # Services
@@ -45,35 +30,44 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.network = NetworkService()
         self.brightness_service = Brightness()
 
-        self._timeout_id = None
-
-        # Icons
+        # Icon widgets
         self.audio_icon = Image(style_classes="panel-icon")
         self.network_icon = Image(style_classes="panel-icon")
         self.brightness_icon = Image(style_classes="panel-icon")
 
-        # Pack icons in container
-        self.children = Box(
-            children=(
-                self.network_icon,
-                self.audio_icon,
-                self.brightness_icon,
-            )
-        )
+        # Box to hold icons in configured order
+        icons_map = {
+            "audio": self.audio_icon,
+            "network": self.network_icon,
+            "brightness": self.brightness_icon,
+        }
 
-        # Initial icon update
-        self.update_network_icon()
-        self.update_audio_icon()
-        self.update_brightness_icon()
+        bar_icons = self.config.get("bar_icons")
+        ordered_icons = [icons_map[name] for name in bar_icons if name in icons_map]
 
-        # Connect signals
-        self.audio.connect("notify::speaker", self._on_speaker_changed)
-        self.brightness_service.connect("brightness_changed", self._on_brightness_changed)
-        self.network.connect("notify::primary-device", self._on_primary_device_changed)
-        self.network.connect("notify::wifi-device", self._on_wifi_device_changed)
+        self.children = Box(children=ordered_icons)
 
-        # Connect device signals
-        self._connect_network_device_signals()
+        # Initial updates
+        if "network" in bar_icons:
+            self.update_network_icon()
+        if "audio" in bar_icons:
+            self.update_audio_icon()
+        if "brightness" in bar_icons:
+            self.update_brightness_icon()
+
+        # Connect service signals
+        if "audio" in bar_icons:
+            self.audio.connect("notify::speaker", self._on_speaker_changed)
+
+        if "brightness" in bar_icons:
+            self.brightness_service.connect("brightness_changed", self._on_brightness_changed)
+
+        if "network" in bar_icons:
+            self.network.connect("notify::primary-device", self._on_primary_device_changed)
+            self.network.connect("notify::wifi-device", self._on_wifi_device_changed)
+            self._connect_network_device_signals()
+
+        self._timeout_id = None
 
     def start_timeout(self):
         self.stop_timeout()
@@ -85,8 +79,6 @@ class QuickSettingsButtonWidget(ButtonWidget):
             self._timeout_id = None
 
     def _connect_network_device_signals(self):
-        """Connect signals on wifi/ethernet devices to track status changes."""
-
         if self.network.wifi_device:
             self.network.wifi_device.connect("notify::signal-strength", self._on_network_device_changed)
             self.network.wifi_device.connect("notify::state", self._on_network_device_changed)
@@ -95,17 +87,14 @@ class QuickSettingsButtonWidget(ButtonWidget):
             self.network.ethernet_device.connect("notify::state", self._on_network_device_changed)
 
     def _on_primary_device_changed(self, *_):
-        """Primary network device changed: reconnect signals & update icon."""
         self._connect_network_device_signals()
         self.update_network_icon()
 
     def _on_wifi_device_changed(self, *_):
-        """WiFi device changed (added/removed): reconnect signals & update icon."""
         self._connect_network_device_signals()
         self.update_network_icon()
 
     def _on_network_device_changed(self, *_):
-        """A network device's property changed: update icon."""
         self.update_network_icon()
 
     def update_network_icon(self):
@@ -167,10 +156,8 @@ class QuickSettingsButtonWidget(ButtonWidget):
         )
 
     def _set_icon(self, image_widget: Image, icon_name: str, fallback_icon: str):
-        """Set icon with fallback."""
         if icon_name:
             image_widget.set_from_icon_name(icon_name, self.panel_icon_size)
         else:
             print(f"[QuickSettings] Missing icon, using fallback.")
             image_widget.set_from_icon_name(fallback_icon, self.panel_icon_size)
-

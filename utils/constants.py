@@ -11,6 +11,7 @@ DEFAULT_CONFIG = {
     "quick_settings": {
         "icon_size": "16",
         "ignored": [],
+        "bar_icons": ["network", "audio", "brightness"],
         "style_classes": [ "compact" ],
     },
     "keybinds": {

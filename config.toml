@@ -53,3 +53,6 @@ format = "%b"
 [system_tray]
 icon_size = 16
 ignored = [ ]
+
+[quick_settings]
+bar_icons = ["network","audio", "brightness"] # quick setting buttons to display on the bar

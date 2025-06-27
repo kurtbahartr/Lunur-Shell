@@ -83,6 +83,7 @@ SystemTray = TypedDict(
 QuickSettings = TypedDict(
     "QuickSettings",
     {
+        "bar_icons": List[str],
     },
 )
 
