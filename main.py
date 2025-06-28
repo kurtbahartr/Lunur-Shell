@@ -47,6 +47,8 @@ if __name__ == "__main__":
 
     app = Application(APPLICATION_NAME, windows=windows)
 
+    helpers.copy_theme(widget_config["theme"]["name"])
+
     icon_theme = Gtk.IconTheme.get_default()
     icons_dir = get_relative_path("./assets/icons/svg/gtk")
     icon_theme.append_search_path(icons_dir)

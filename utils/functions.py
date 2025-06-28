@@ -1,3 +1,4 @@
+import os
 import shutil
 from functools import lru_cache
 from gi.repository import GLib
@@ -9,6 +10,7 @@ from fabric.utils import (
 )
 import time
 from typing import Dict, List, Literal, Optional
+from loguru import logger
 
 def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
     def wrapper(func):
@@ -69,7 +71,7 @@ def copy_theme(theme: str):
 
     if not os.path.exists(source_file):
         logger.warning(
-            f"{Colors.WARNING}Warning: The theme file '{theme}.scss' was not found. Using default theme."  # noqa: E501
+            "Warning: The theme file '{theme}.scss' was not found. Using default theme."  # noqa: E501
         )
         source_file = get_relative_path("../styles/themes/catpuccin-mocha.scss")
 
@@ -78,7 +80,7 @@ def copy_theme(theme: str):
 
     except FileNotFoundError:
         logger.error(
-            f"{Colors.ERROR}Error: The theme file '{source_file}' was not found."
+            "Error: The theme file '{source_file}' was not found."
         )
         exit(1)
 

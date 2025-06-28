@@ -94,6 +94,10 @@ Keybinds = TypedDict(
         "path": str, 
     },
 )
+
+
+# Theme configuration
+Theme = TypedDict("Theme", {"name": str})
     
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
@@ -106,3 +110,4 @@ class BarConfig(TypedDict):
     general: General
     app_launcher: AppLauncher
     keybinds: Keybinds
+    theme: Theme
