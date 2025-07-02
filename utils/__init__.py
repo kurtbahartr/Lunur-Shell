@@ -4,3 +4,4 @@ from .exceptions import *
 from .thread import *
 from .widget_settings import *
 from .monitors import *
+from .gen_keybinds import *
