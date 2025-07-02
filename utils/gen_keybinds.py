@@ -42,7 +42,7 @@ class KeybindLoader:
             description = bind.get('description', '').strip()
             dispatcher = bind.get('dispatcher', '').strip()
             arg = bind.get('arg', '').strip()
-            cmd = f"{dispatcher} {arg}".strip()
+            cmd = f"{dispatcher}: {arg}".strip()
             self.keybinds.append((key_combo.strip(), description, cmd))
 
     def filter_keybinds(self, query: str = "") -> Iterator[tuple]:
