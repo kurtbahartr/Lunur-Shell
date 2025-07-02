@@ -32,7 +32,11 @@ class KeybindLoader:
 
         self.keybinds.clear()
         for bind in binds:
-            key_combo = f"{modmask_to_key(bind['modmask'])} + {bind['key']}:"
+            mod_keys = modmask_to_key(bind['modmask'])
+            if mod_keys:
+                key_combo = f"{mod_keys} + {bind['key']}:"
+            else:
+                key_combo = f"{bind['key']}:"
             description = bind.get('description', '').strip()
             dispatcher = bind.get('dispatcher', '').strip()
             arg = bind.get('arg', '').strip()
