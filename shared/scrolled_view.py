@@ -6,6 +6,7 @@ from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import idle_add, remove_handler
 from gi.repository import GLib
 
+
 class ScrolledView(Window):
     def __init__(
         self,
@@ -24,25 +25,31 @@ class ScrolledView(Window):
         self._arranger_handler: int = 0
 
         self.min_content_size = min_content_size
+        self.set_size_request(560, 320)
 
-        self.viewport = Box(spacing=2, orientation="v")
+        self.scrolledwindow = Box(spacing=2, orientation="v")
+        self.scrolledwindow.set_name("scrolledwindow")
 
         self.search_entry = Entry(
             placeholder=placeholder,
             h_expand=True,
             notify_text=lambda entry, *_: self.arrange_viewport(entry.get_text()),
         )
+        self.search_entry.set_name("entry")
+        self.scrolledwindow.add(self.search_entry)
 
-        self.viewport.add(self.search_entry)
+        self.viewport = Box(spacing=2, orientation="v")
+        self.viewport.set_name("viewport")
 
-        self.scrolled_window = ScrolledWindow(
+        self.displayitems = ScrolledWindow(
             min_content_size=min_content_size,
             max_content_size=max_content_size,
             child=self.viewport,
         )
+        self.displayitems.set_name("displayitems")
+        self.scrolledwindow.add(self.displayitems)
 
-        self.add(self.scrolled_window)
-
+        self.add(self.scrolledwindow)
         self.connect("key-press-event", self.on_key_press)
 
     def show_all(self):
@@ -51,7 +58,7 @@ class ScrolledView(Window):
         super().show_all()
 
     def on_key_press(self, widget, event) -> bool:
-        if event.keyval == 65307:  # Escape key
+        if event.keyval == 65307:
             self.hide()
             return True
         return False
@@ -61,8 +68,7 @@ class ScrolledView(Window):
             remove_handler(self._arranger_handler)
             self._arranger_handler = 0
 
-        children = list(self.viewport.get_children())
-        for child in children[1:]:
+        for child in self.viewport.get_children():
             self.viewport.remove(child)
 
         filtered_iter = self.arrange_func(query)
@@ -81,4 +87,3 @@ class ScrolledView(Window):
         widget = self.add_item_func(item)
         self.viewport.add(widget)
         return True
-

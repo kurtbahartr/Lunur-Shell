@@ -189,25 +189,28 @@ separator {
   background-color: theme.$surface-disabled;
 }
 
-scrolledwindow {
+/* scrollable window config*/
+#scrolledwindow {
+  padding: 8px;
   background-color: theme.$background-dark;
   border-radius: variable.$radius;
-  padding: 12px;
+}
 
-  entry {
-    background-color: theme.$background-alt;
-    border-radius: variable.$radius;
-    border: 1px solid theme.$surface-disabled;
-    padding: 6px;
-    min-width: 2em;
-    margin: 0em 0em .5em 0em;
+entry {
+  background-color: theme.$background-alt;
+  border-radius: variable.$radius;
+  border: 1px solid theme.$surface-disabled;
+  padding: 6px;
+  min-width: 2em;
+  margin-bottom: 1em;
 
-    &:focus,
-    &:focus-visible {
-      border-color: theme.$accent-light;
-    }
+  &:focus,
+  &:focus-visible {
+    border-color: theme.$accent-light;
   }
+}
 
+scrolledwindow {
   scrollbar {
     background-color: theme.$surface-disabled;
     border-radius: 10px;
@@ -226,6 +229,7 @@ scrolledwindow {
     padding: 6px;
     background-color: theme.$background-alt;
     border-radius: variable.$radius;
+    color: theme.$text-main;
     transition: background-color 150ms ease, box-shadow 150ms ease;
     border: none;
 
@@ -243,7 +247,6 @@ scrolledwindow {
     }
 
     label {
-      
       &:nth-child(2) {
         font-size: 10px;
         color: #888;
@@ -251,3 +254,4 @@ scrolledwindow {
     }
   }
 }
+
