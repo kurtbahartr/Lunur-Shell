@@ -150,6 +150,7 @@ class SystemTrayWidget(ButtonWidget):
 
         # Create main tray box and toggle icon
         self.tray_box = Box(
+            spacing=4,
             name="system-tray-box",
             orientation="horizontal",
         )
