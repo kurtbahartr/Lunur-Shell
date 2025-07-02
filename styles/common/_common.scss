@@ -215,7 +215,7 @@ scrolledwindow {
     background-color: theme.$surface-disabled;
     border-radius: 10px;
     padding: 2px;
-    margin-left: 6px;
+    margin-left: 0.5em;
   }
 
   slider {
@@ -232,6 +232,7 @@ scrolledwindow {
     color: theme.$text-main;
     transition: background-color 150ms ease, box-shadow 150ms ease;
     border: none;
+    margin-bottom: .5em;
 
     &:focus {
       background-color: theme.$surface-highlight;
