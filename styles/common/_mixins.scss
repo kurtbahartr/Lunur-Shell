@@ -9,10 +9,25 @@
   box-shadow: none;
 }
 
+%clear_icon {
+  -gtk-icon-transform: scale(1.05);
+  -gtk-icon-effect: highlight;
+}
+
 %label {
   @extend %unset;
   color: theme.$text-main;
   font-weight: variable.$font-weight;
+}
+
+%heading {
+  font-weight: 700;
+  font-size: 14.6px;
+}
+
+%caption_heading {
+  font-weight: 700;
+  font-size: 13px;
 }
 
 %widget_hover {

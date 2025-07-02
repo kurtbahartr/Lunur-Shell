@@ -1,7 +1,8 @@
+import json
 import os
 import shutil
 from functools import lru_cache
-from gi.repository import GLib
+from gi.repository import GLib, Gio
 from .icons import text_icons
 from .thread import run_in_thread
 from fabric.utils import (
@@ -19,6 +20,10 @@ def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
             return func(*args, **kwargs)
         return lambda *args, **kwargs: inner(time.time() // seconds_to_live, *args, **kwargs)
     return wrapper
+
+# Function to escape the markup
+def parse_markup(text):
+    return text.replace("\n", " ")
 
 # Function to exclude keys from a dictionary        )
 def exclude_keys(d: Dict, keys_to_exclude: List[str]) -> Dict:
@@ -150,6 +155,42 @@ def unique_list(lst) -> List:
 def executable_exists(executable_name):
     executable_path = shutil.which(executable_name)
     return bool(executable_path)
+
+@run_in_thread
+def write_json_file(data: Dict, path: str):
+    try:
+        with open(path, "w") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"Failed to write json: {e}")
+
+
+# Function to ensure the file exists
+@run_in_thread
+def ensure_file(path: str) -> None:
+    file = Gio.File.new_for_path(path)
+    parent = file.get_parent()
+
+    try:
+        if parent and not parent.query_exists(None):
+            parent.make_directory_with_parents(None)
+
+        if not file.query_exists(None):
+            file.create(Gio.FileCreateFlags.NONE, None)
+    except GLib.Error as e:
+        print(f"Failed to ensure file '{path}': {e.message}")
+
+
+# Function to ensure the directory exists
+
+
+@run_in_thread
+def ensure_directory(path: str) -> None:
+    if not GLib.file_test(path, GLib.FileTest.EXISTS):
+        try:
+            Gio.File.new_for_path(path).make_directory_with_parents(None)
+        except GLib.Error as e:
+            print(f"Failed to create directory {path}: {e.message}")
 
 # Function to get the percentage of a value
 def convert_to_percent(

@@ -3,12 +3,128 @@
 @use "variable";
 @use "common";
 
-#notifications {
-  background-color: theme.$background-dark;
+$hover-transition: background .15s ease-in-out;
+
+/* notification widget*/
+
+%notification_widget {
   padding: variable.$modules-notification-padding_y variable.$modules-notification-padding_x;
-  margin: variable.$modules-notification-margin_y variable.$modules-notification-margin_x;
+  opacity: variable.$modules-notification-opacity * .01;
+  color: theme.$text-main;
   border-radius: variable.$modules-notification-border-radius;
-  border: 1px solid theme.$accent-light;
-  /* TODO: improve styling */
+  background-color: theme.$background-alt;
+  border: if(variable.$modules-notification-border-enabled, variable.$border, none);
+  border-width: variable.$modules-notification-border-width;
+  transition: border 100ms ease-in-out;
+
+
+  $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+    variable.$modules-notification-shadow-offset variable.$modules-notification-shadow-blur variable.$modules-notification-shadow-spread color.adjust(theme.$shadow-color,
+      $alpha: calc(variable.$modules-notification-shadow-opacity - 1));
+
+  box-shadow: if(variable.$modules-notification-shadow-enabled, $shadow, none);
+
+  .notification-header {
+    padding: common.toEm(5);
+
+    .app-icon {
+      /* Notification app icon (only visible when the primary image is set) */
+      -gtk-icon-effect: none;
+      -gtk-icon-shadow: 0 1px 4px black;
+      margin: common.toEm(6);
+    }
+
+    .summary {
+      @extend %heading;
+      text-shadow: none;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      font-weight: 700;
+      text-shadow: none;
+      margin-right: 10px;
+    }
+  }
+
+  .notification-body {
+    .body {
+      @extend %caption_heading;
+      background-color: transparent;
+      text-shadow: none;
+      padding: common.toEm(5);
+    }
+
+    .image {
+      -gtk-icon-effect: none;
+      border-radius: common.toEm(15);
+    }
+  }
+
+  .close-button {
+    border-radius: variable.$radius-large;
+
+
+    .close-icon {
+      font-weight: 900;
+      font-size: 12px;
+      padding: 2px 4px;
+    }
+
+    &:hover {
+      box-shadow: none;
+      border: 0;
+      background-color: color.mix(theme.$text-main, transparent, 20%);
+      transition: $hover-transition;
+      .close-icon {
+        @extend %clear_icon;
+      }
+    }
+  }
+
+  #notification-action-box {
+    button {
+      padding: common.toEm(4);
+      margin: 0;
+      font-weight: 600;
+      border-radius: 3rem;
+      box-shadow: none;
+      background-color: transparent;
+      transition: $hover-transition;
+
+      &.start-action {
+        margin-left: 0;
+      }
+
+      &.end-action {
+        margin-right: 0;
+      }
+
+      &:hover {
+        background-color: theme.$background;
+      }
+    }
+  }
+
+  #notification-circular-progress-bar {
+    border: solid 0 rgb(151, 151, 177);
+    color: transparent;
+  }
+
+  .critical {
+    box-shadow: inset 0 0 .15em 0 theme.$accent-red;
+  }
 }
 
+#notification-eventbox {
+  #notification {
+    @extend %notification_widget;
+  }
+}
+
+
+#datemenu-notification-box {
+
+  @extend %notification_widget;
+
+}

@@ -42,15 +42,22 @@ Workspaces = TypedDict(
     },
 )
 
-Notifications = TypedDict(
-    "Notifications",
+
+# Notification configuration
+Notification = TypedDict(
+    "Notification",
     {
         "enabled": bool,
-        "anchor": str,
-        "auto_dismiss": bool,
         "ignored": List[str],
         "timeout": int,
+        "anchor": Anchor,
+        "auto_dismiss": bool,
+        "play_sound": bool,
+        "sound_file": str,
         "max_count": int,
+        "dismiss_on_hover": bool,
+        "max_actions": int,
+        "per_app_limits": Dict[str, int],
     },
 )
 
@@ -103,7 +110,7 @@ Theme = TypedDict("Theme", {"name": str})
 class BarConfig(TypedDict):
     date_time: DateTimeMenu
     workspaces: Workspaces
-    notifications: Notifications
+    notifications: Notification
     battery: Battery
     system_tray: SystemTray
     quick_settings: QuickSettings

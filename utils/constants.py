@@ -2,6 +2,11 @@ from gi.repository import GLib
 from typing import TypedDict, List, Dict
 
 APPLICATION_NAME = "Lunur-Shell"
+SYSTEM_CACHE_DIR = GLib.get_user_cache_dir()
+APP_CACHE_DIRECTORY = f"{SYSTEM_CACHE_DIR}/{APPLICATION_NAME}"
+
+
+NOTIFICATION_CACHE_FILE = f"{APP_CACHE_DIRECTORY}/notifications.json"
 
 DEFAULT_CONFIG = {
     "date_time": {
@@ -49,13 +54,20 @@ DEFAULT_CONFIG = {
         "default_label_format": "{id}",
         "icon_map": {},  # Example: {"1": "🌐", "2": "🎨"}
     },
-    "notifications": {
+    "notification": {
         "enabled": True,
         "anchor": "top-right",
         "auto_dismiss": True,
         "ignored": [],
         "timeout": 3000,
-        "max_count": 5,
+        "max_count": 200,
+        "transition_type": "slide-left",
+        "transition_duration": 350,
+        "per_app_limits": {},
+        "play_sound": False,
+        "max_actions": 5,
+        "dismiss_on_hover": False,
+        "sound_file": "notification4",
     },
     "battery": {
         "full_battery_level": 100,

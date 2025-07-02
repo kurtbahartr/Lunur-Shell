@@ -11,6 +11,20 @@ common_text_icons = {
 
 
 text_icons = {
+    "ui": {
+        "window_close": "",
+        "question": "",
+        "headset": "󰋎",
+        "headphones": "󰋋",
+        "phone": "󰏲",
+        "watch": "",
+        "keyboard": "",
+        "mouse": "",
+        "tv": "",
+        "printer": "󰐪",
+        "camera": "",
+        "speakers": "󰓃",
+    },
     "volume": {
         "overamplified": "󰕾",
         "high": "󰕾",

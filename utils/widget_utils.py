@@ -4,6 +4,7 @@ from fabric.widgets.label import Label
 from .icons import icons, text_icons
 from gi.repository import Gdk, GLib
 from fabric.utils import bulk_connect
+from fabric.widgets.image import Image
 
 # Function to setup cursor hover
 def setup_cursor_hover(
@@ -26,6 +27,54 @@ def setup_cursor_hover(
             "leave-notify-event": on_leave_notify_event,
         },
     )
+
+# Function to get the system stats using
+def get_icon(app_icon, size=25) -> Image:
+    icon_size = size - 5
+    try:
+        match app_icon:
+            case str(x) if "file://" in x:
+                return Image(
+                    name="app-icon",
+                    pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_size(
+                        app_icon[7:], size, size
+                    ),
+                    size=size,
+                )
+            case str(x) if len(x) > 0 and x[0] == "/":
+                return Image(
+                    name="app-icon",
+                    pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_size(app_icon, size, size),
+                    size=size,
+                )
+            case _:
+                return Image(
+                    name="app-icon",
+                    icon_name=app_icon
+                    if app_icon
+                    else icons["fallback"]["notification"],
+                    icon_size=icon_size,
+                )
+    except GLib.GError:
+        return Image(
+            name="app-icon",
+            icon_name=icons["fallback"]["notification"],
+            icon_size=icon_size,
+        )
+
+# Function to create a text icon label
+def nerd_font_icon(icon: str, props=None, name="nerd-icon") -> Label:
+    label_props = {
+        "label": str(icon),  # Directly use the provided icon name
+        "name": name,
+        "h_align": "center",  # Align horizontally
+        "v_align": "center",  # Align vertically
+    }
+
+    if props:
+        label_props.update(props)
+
+    return Label(**label_props)
 
 def text_icon(icon: str, props=None):
     label_props = {

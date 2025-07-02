@@ -7,7 +7,7 @@ from gi.repository import Gtk
 import utils.functions as helpers
 from modules.bar import StatusBar
 from modules.launcher import AppLauncher
-from utils import APPLICATION_NAME, ExecutableNotFoundError, widget_config
+from utils import APPLICATION_NAME, APP_CACHE_DIRECTORY, ExecutableNotFoundError, widget_config
 
 
 @cooldown(2)
@@ -28,6 +28,7 @@ def process_and_apply_css(app: Application):
 
 
 if __name__ == "__main__":
+    helpers.ensure_directory(APP_CACHE_DIRECTORY)
     launcher = AppLauncher()
     bar = StatusBar(widget_config)
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
         windows.append(keybinds)
 
     if widget_config["notification"]["enabled"]:
-        from services.notifications import NotificationPopup
+        from modules.notification import NotificationPopup
 
         notifications = NotificationPopup(widget_config)
         windows.append(notifications)
