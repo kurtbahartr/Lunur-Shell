@@ -1,0 +1,57 @@
+@use "theme";
+@use "common";
+@use "variable";
+
+$workspace-transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+  background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+/** workspace switcher widget */
+
+#workspaces {
+  font-weight: 700;
+  padding: .19em 1em;
+  border-radius: variable.$bar-widgets-workspaces-border-radius;
+  border: if(variable.$bar-widgets-workspaces-border-enabled, variable.$border, none);
+  border-width: variable.$bar-widgets-workspaces-border-width;
+
+  &>button {
+    padding: variable.$bar-widgets-workspaces-pill-height variable.$bar-widgets-workspaces-pill-width;
+    transition: $workspace-transition;
+    border-radius: variable.$radius-large;
+    background-color: theme.$background;
+
+    label {
+      color: theme.$text-main;
+      transition: inherit;
+    }
+
+    &:hover {
+      background-color: theme.$ws-hover;
+
+      label {
+        color: theme.$background-dark;
+      }
+    }
+
+    &.active {
+      font-weight: 600;
+      min-width: 1.4rem;
+      transition: $workspace-transition;
+      padding-left: variable.$bar-widgets-workspaces-pill-active_width;
+      padding-right: variable.$bar-widgets-workspaces-pill-active_width;
+      background-color: theme.$ws-active;
+
+      &>label {
+        color: theme.$background-dark;
+      }
+    }
+
+    &.unoccupied {
+      opacity: .5;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+}

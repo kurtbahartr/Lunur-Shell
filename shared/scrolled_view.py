@@ -23,6 +23,8 @@ class ScrolledView(Window):
         self.add_item_func = add_item_func
         self._arranger_handler: int = 0
 
+        self.min_content_size = min_content_size
+
         self.viewport = Box(spacing=2, orientation="v")
 
         self.search_entry = Entry(
@@ -31,23 +33,15 @@ class ScrolledView(Window):
             notify_text=lambda entry, *_: self.arrange_viewport(entry.get_text()),
         )
 
+        self.viewport.add(self.search_entry)
+
         self.scrolled_window = ScrolledWindow(
             min_content_size=min_content_size,
             max_content_size=max_content_size,
             child=self.viewport,
         )
 
-        self.add(
-            Box(
-                spacing=2,
-                orientation="v",
-                style="margin: 2px",
-                children=[
-                    Box(spacing=2, orientation="h", children=[self.search_entry]),
-                    self.scrolled_window,
-                ],
-            )
-        )
+        self.add(self.scrolled_window)
 
         self.connect("key-press-event", self.on_key_press)
 
@@ -55,10 +49,9 @@ class ScrolledView(Window):
         self.search_entry.set_text("")
         self.arrange_viewport()
         super().show_all()
-        GLib.idle_add(self.resize_viewport, priority=GLib.PRIORITY_LOW)
 
     def on_key_press(self, widget, event) -> bool:
-        if event.keyval == 65307:
+        if event.keyval == 65307:  # Escape key
             self.hide()
             return True
         return False
@@ -68,7 +61,9 @@ class ScrolledView(Window):
             remove_handler(self._arranger_handler)
             self._arranger_handler = 0
 
-        self.viewport.children = []
+        children = list(self.viewport.get_children())
+        for child in children[1:]:
+            self.viewport.remove(child)
 
         filtered_iter = self.arrange_func(query)
 
@@ -86,8 +81,4 @@ class ScrolledView(Window):
         widget = self.add_item_func(item)
         self.viewport.add(widget)
         return True
-
-    def resize_viewport(self) -> bool:
-        self.scrolled_window.set_min_content_width(self.viewport.get_allocation().width)  # type: ignore
-        return False
 

@@ -17,7 +17,7 @@ margin = "6px 6px 0px 6px" # Spacing that makes the bar float
 [app_launcher]
 icon_size = 16 # Bar button icon
 app_icon_size = 48 # Size of app icons in launcher
-show_descriptions = false
+show_descriptions = true
 
 [keybinds]
 enabled = true
@@ -58,4 +58,4 @@ ignored = [ ]
 bar_icons = ["network","audio", "bluetooth","brightness"] # quick setting buttons to display on the bar
 
 [theme]
-name = "default"
+name = "matugen"

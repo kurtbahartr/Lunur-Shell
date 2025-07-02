@@ -25,38 +25,36 @@ class AppLauncher(ScrolledView):
 
         def add_item_func(app: DesktopApp) -> Button:
             pixbuf = app.get_icon_pixbuf()
-            if pixbuf:
+            if pixbuf is not None:
                 pixbuf = pixbuf.scale_simple(
                     self.app_icon_size,
                     self.app_icon_size,
                     GdkPixbuf.InterpType.BILINEAR,
                 )
 
-            # Labels for app name and optional description
-            labels = [Label(label=app.display_name or "Unknown", h_align="start", v_align="start")]
+            label_widgets = [
+                Label(label=app.display_name or "Unknown", h_align="start", v_align="start")
+            ]
             if self.show_descriptions and app.description:
-                labels.append(
+                label_widgets.append(
                     Label(
                         label=app.description,
                         h_align="start",
                         v_align="start",
-                        # style="font-size: 10px; color: #888;",
+                        style="font-size: 10px; color: #888;",
                     )
                 )
 
-            # Compose the button child: horizontal box with icon and vertical labels box
-            content_box = Box(
-                orientation="h",
-                spacing=12,
-                children=[
-                    Image(pixbuf=pixbuf, h_align="start", size=self.app_icon_size),
-                    Box(orientation="v", spacing=2, v_align="center", children=labels),
-                ],
-            )
-
-            # Return the button widget
+            # The Button itself is the top-level widget returned here
             return Button(
-                child=content_box,
+                child=Box(
+                    orientation="h",
+                    spacing=12,
+                    children=[
+                        Image(pixbuf=pixbuf, h_align="start", size=self.app_icon_size),
+                        Box(orientation="v", spacing=2, v_align="center", children=label_widgets),
+                    ],
+                ),
                 tooltip_text=app.description if self.show_descriptions else None,
                 on_clicked=lambda *_: (app.launch(), self.hide()),
             )
@@ -80,8 +78,8 @@ class AppLauncher(ScrolledView):
     def show_all(self):
         apps = get_desktop_applications()
         if not self.show_descriptions:
-            # Clear descriptions if disabled in config
             for app in apps:
                 app.description = ""
         self._all_apps = apps
         super().show_all()
+

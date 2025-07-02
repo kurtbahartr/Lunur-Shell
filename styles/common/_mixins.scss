@@ -1,0 +1,135 @@
+@use "sass:color";
+@use "../theme";
+@use "../variable";
+
+/* General */
+%unset {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+
+%label {
+  @extend %unset;
+  color: theme.$text-main;
+  font-weight: variable.$font-weight;
+}
+
+%widget_hover {
+  background-color: theme.$background;
+  transition: border-color 400ms ease-in-out;
+}
+
+%widget {
+  transition: 200ms;
+  border-radius: variable.$radius;
+  color: theme.$text-main;
+  background-color: theme.$background-alt;
+  border: variable.$border;
+}
+
+@mixin slider($height: 11px,
+  $highlight-color: white,
+  $slider: false,
+  $radius: variable.$radius,
+  $slider-color: theme.$background-dark,
+  $min-length: "",
+
+) {
+  trough {
+    transition: 200ms;
+    border-radius: $radius;
+    border: variable.$border;
+    background-color: $slider-color;
+    min-height: $height;
+    min-width: $height;
+
+    highlight,
+    progress {
+      border-radius: max($radius - variable.$border-width, 0);
+      background-color: $highlight-color;
+      min-height: $height;
+
+      &:hover {
+        background-color: color.mix($highlight-color,
+            black, 80%);
+      }
+    }
+  }
+
+  @if $min-length !="" {
+    scale {
+      min-width: $min-length;
+    }
+  }
+
+  @if $slider {
+    slider {
+      background-color: theme.$text-main;
+      border-color: variable.$border-color;
+      box-shadow: 0 0 3px 0 theme.$shadow-color;
+      border: variable.$border-width solid transparent;
+      transition: 200ms;
+      border-radius: variable.$radius-large;
+      min-height: $height;
+      min-width: $height;
+      margin: -0.5em;
+
+      &:hover {
+        background-color: color.mix(theme.$text-main,
+            black, 90%);
+      }
+    }
+  }
+
+  &:disabled {
+
+    highlight,
+    progress {
+      background-color: color.mix(theme.$text-main, transparent, 60%);
+      background-image: none;
+    }
+  }
+}
+
+@mixin floating-widget($radius: variable.$bar-menus-popover-border-radius) {
+
+  $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+    variable.$bar-menus-popover-shadow-offset variable.$bar-menus-popover-shadow-blur variable.$bar-menus-popover-shadow-spread color.adjust(theme.$shadow-color,
+      $alpha: calc(variable.$bar-menus-popover-shadow-opacity - 1));
+
+  box-shadow: if(variable.$bar-menus-popover-shadow-enabled, $shadow, none);
+  margin: max(variable.$spacing, 8px);
+  border: if(variable.$bar-menus-popover-border-enabled, variable.$bar-menus-popover-border-width solid variable.$popover-border-color, none);
+  background-color: theme.$background-dark;
+  color: theme.$text-main;
+  border-radius: $radius;
+  padding: variable.$bar-menus-popover-padding_x variable.$bar-menus-popover-padding_y;
+}
+
+@mixin widget_style($type) {
+  @if $type ==flat {
+    @extend .flat;
+  }
+
+
+  @else if $type ==shadow {
+    @extend .shadow;
+  }
+
+  @else if $type ==bordered {
+    @extend .bordered;
+  }
+
+  @else if $type ==wave1 {
+    @extend .wave1;
+  }
+
+  @else if $type ==wave2 {
+    @extend .wave2;
+  }
+
+  @else {
+    @extend .default;
+  }
+}

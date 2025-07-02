@@ -1,0 +1,14 @@
+@use "sass:color";
+@use "theme";
+@use "variable";
+@use "common";
+
+#notifications {
+  background-color: theme.$background-dark;
+  padding: variable.$modules-notification-padding_y variable.$modules-notification-padding_x;
+  margin: variable.$modules-notification-margin_y variable.$modules-notification-margin_x;
+  border-radius: variable.$modules-notification-border-radius;
+  border: 1px solid theme.$accent-light;
+  #TODO: improve styling
+}
+

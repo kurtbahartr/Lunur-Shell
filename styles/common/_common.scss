@@ -1,0 +1,253 @@
+@use "sass:color";
+
+@use "functions";
+@use "mixins";
+@use "../theme.scss";
+@use "../variable.scss";
+
+.flat {
+  border-radius: 4px;
+}
+
+
+.shadow {
+  @extend .flat;
+  box-shadow: color.mix(theme.$background-dark, black, 15%) 0 4px;
+}
+
+.bordered {
+  border: 1.5px solid theme.$surface-disabled;
+}
+
+.leaf {
+  border-radius: 24px 10px;
+}
+
+.leaf-inverse {
+  border-radius: 10px 24px;
+}
+
+.default {
+  border-radius: variable.$radius-large;
+}
+
+#panel {
+  &-inner {
+    $bar-opacity-ratio: variable.$bar-opacity * .01;
+    $transparency-value: (
+      1 - $bar-opacity-ratio) * 100%;
+    background-color: color.mix(theme.$bar-background, transparent, $transparency-value
+    );
+
+  padding: variable.$bar-padding_y variable.$bar-padding_x;
+  $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+    variable.$bar-shadow-offset variable.$bar-shadow-blur variable.$bar-shadow-spread color.adjust(theme.$shadow-color,
+      $alpha: calc(variable.$bar-shadow-opacity - 1));
+
+  box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
+
+  @if (variable.$bar-style-panel ==floating) {
+    margin: 1rem 1.5rem 0rem 1.5rem;
+    border-color: theme.$surface-disabled;
+  }
+
+  @else if (variable.$bar-style-panel ==scoop) {
+    margin: 0rem 4.5rem;
+    border-radius: 0 0 variable.$radius * 2.2 variable.$radius * 2.2;
+  }
+
+  @else {
+    border: none;
+
+  }
+}
+}
+
+.floating {
+  margin: 1rem 1.5rem 0rem 1.5rem;
+  border-color: theme.$surface-disabled;
+}
+
+.panel-box,
+.panel-button {
+  background-color: theme.$background-dark;
+
+  @extend %label;
+}
+
+
+.panel-box {
+  border-radius: variable.$radius-large;
+  padding: .1em .9em;
+  color: theme.$text-main;
+}
+
+.panel-button {
+  padding: variable.$bar-buttons-padding-x variable.$bar-buttons-padding-y;
+  opacity: variable.$bar-buttons-opacity * .01;
+
+  $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+    variable.$bar-buttons-shadow-offset variable.$bar-buttons-shadow-blur variable.$bar-buttons-shadow-spread color.adjust(theme.$shadow-color,
+      $alpha: calc(variable.$bar-buttons-shadow-opacity - 1));
+
+  box-shadow: if(variable.$bar-buttons-shadow-enabled, $shadow, none);
+
+  @include mixins.widget_style(variable.$bar-style-widget);
+
+  &:hover {
+    @extend %widget_hover;
+    opacity: variable.$bar-buttons-hover-opacity * .01;
+  }
+}
+
+tooltip {
+  @extend %unset;
+  opacity: variable.$bar-menus-tooltip-opacity * .01;
+  background-color: theme.$background-dark;
+  border-radius: variable.$bar-menus-tooltip-border-radius;
+
+  animation: tooltipShow .25s cubic-bezier(.5, .25, 0, 1);
+  border: if(variable.$bar-menus-tooltip-border-enabled, variable.$border, none);
+
+
+  $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+    variable.$bar-menus-tooltip-shadow-offset variable.$bar-menus-tooltip-shadow-blur variable.$bar-menus-tooltip-shadow-spread color.adjust(theme.$shadow-color,
+      $alpha: calc(variable.$bar-menus-tooltip-shadow-opacity - 1));
+
+  box-shadow: if(variable.$bar-menus-tooltip-shadow-enabled, $shadow, none);
+
+  label {
+    @extend %unset;
+    color: theme.$text-main;
+    font-weight: variable.$bar-menus-tooltip-font-weight;
+  }
+}
+
+tooltip>* {
+  padding: variable.$bar-menus-tooltip-padding-y variable.$bar-menus-tooltip-padding-x;
+}
+
+menu {
+  margin: functions.toEm(6);
+  padding: functions.toEm(6);
+  background-color: theme.$background-alt;
+  background-clip: border-box;
+  border-radius: 12px;
+  border: variable.$border;
+}
+
+
+menuitem {
+  transition: background-color 75ms cubic-bezier(0, 0, .2, 1);
+  min-height: 30px;
+  min-width: 40px;
+  background-clip: border-box;
+  border-radius: variable.$radius;
+
+  arrow {
+    min-height: 16px;
+    min-width: 16px;
+    -gtk-icon-source: -gtk-icontheme("pan-end-symbolic");
+    margin-left: 8px;
+  }
+
+  separator {
+    min-height: 1px;
+    margin: functions.toEm(4) 0;
+    background-color: theme.$background;
+  }
+}
+
+menu>menuitem:hover {
+  background-color: theme.$surface-highlight;
+}
+
+
+menu>arrow {
+  min-height: 16px;
+  min-width: 16px;
+  padding: functions.toEm(4);
+  color: theme.$background-alt;
+}
+
+menu>arrow.top {
+  margin-top: 0;
+  border-radius: 6px;
+  -gtk-icon-source: -gtk-icontheme("pan-up-symbolic");
+}
+
+menu>arrow.bottom {
+  margin-top: 8px;
+  margin-bottom: -12px;
+  border-radius: 6px;
+  -gtk-icon-source: -gtk-icontheme("pan-down-symbolic");
+}
+
+separator {
+  min-width: 1px;
+  min-height: 1px;
+  background-color: theme.$surface-disabled;
+}
+
+scrolledwindow {
+  background-color: theme.$background-dark;
+  border-radius: variable.$radius;
+  padding: 12px;
+
+  entry {
+    background-color: theme.$background-alt;
+    border-radius: variable.$radius;
+    border: 1px solid theme.$surface-disabled;
+    padding: 6px;
+    min-width: 2em;
+    margin: 0em 0em .5em 0em;
+
+    &:focus,
+    &:focus-visible {
+      border-color: theme.$accent-light;
+    }
+  }
+
+  scrollbar {
+    background-color: theme.$surface-disabled;
+    border-radius: 10px;
+    padding: 2px;
+    margin-left: 6px;
+  }
+
+  slider {
+    border-radius: 8px;
+    min-width: 6px;
+    min-height: 6px;
+    background-color: theme.$background;
+  }
+
+  button {
+    padding: 6px;
+    background-color: theme.$background-alt;
+    border-radius: variable.$radius;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+    border: none;
+
+    &:focus {
+      background-color: theme.$surface-highlight;
+      border: 1px solid theme.$accent-light;
+    }
+
+    &:hover {
+      background-color: theme.$surface-highlight;
+    }
+
+    &:focus label {
+      color: theme.$text-main;
+    }
+
+    label {
+      
+      &:nth-child(2) {
+        font-size: 10px;
+        color: #888;
+      }
+    }
+  }
+}

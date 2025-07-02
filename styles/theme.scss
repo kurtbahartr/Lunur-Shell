@@ -1,0 +1,40 @@
+/* ---------------------------- */
+/* Base Colors                  */
+/* ---------------------------- */
+$background: #241f17; // Main background
+$background-alt: #201b13; // Secondary background
+$background-dark: #120d07; // Darkest background
+
+/* Text Colors */
+$text-main: #ede1d4; // Primary text color
+$text-secondary: #d2c4b4; // Secondary text color
+$text-muted: #4f4539; // Tertiary text, muted
+
+/* Surface Colors */
+$surface-disabled: #4f4539; // Background for disabled items
+$surface-neutral: #18130b; // Neutral surface for cards, panels
+$surface-highlight: #3f382f; // Selection and highlights
+
+/* Accent Colors */
+$accent-light: #ffddb0; // Lightest accent (Rosewater-like)
+$accent-pink: #dcc3a1; // Pink accent
+$accent-purple: #b6cea3; // Mauve accent
+$accent-red: #ffb4ab; // Red for errors and warnings
+$accent-orange: #55442a; // Orange for warnings and alerts
+$accent-yellow: #394c2b; // Yellow for highlights
+$accent-green: #7e570f; // Green for success
+$accent-teal: #18130b; // Teal for information
+$accent-blue: #f2be6e; // Blue for links and actions
+$accent-light-blue: #614000; // Sky blue accent
+$accent-lavender: #ffddb0; // Lavender for subtle highlights
+
+/* Overlay Colors */
+$text-disabled: #d2c4b4; // Text for disabled elements
+$text-muted-light: #4f4539; // Light-muted text for hints
+$text-muted-dark: #9b8f80; // Dark-muted text
+
+$bar-background: rgba(36, 31, 23, 0.1);
+$shadow-color: rgba(0, 0, 0, 1.0);
+$ws-active: #4f4539;
+$ws-hover: #dcc3a1;
+

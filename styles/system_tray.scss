@@ -1,0 +1,60 @@
+@use "theme";
+@use "variable";
+@use "common";
+
+/* system tray widget*/
+#system-tray-menu {
+  padding: 0.5em 0.25em;
+  color: theme.$text-main;
+  border-radius: variable.$radius;
+  min-width: 200px;
+  min-height: 50px;
+  background-color: theme.$background-dark;
+
+  grid {
+    &>button {
+      margin: 0 0.1em;
+      padding: 0 0.15em;
+      border-radius: variable.$radius-large;
+
+      &:hover {
+        background-color: theme.$surface-disabled;
+      }
+
+      &:active {
+        background-color: theme.$text-main;
+      }
+    }
+  }
+
+
+}
+
+/* system tray widget*/
+#system_tray {
+
+  border-radius: variable.$bar-widgets-system_tray-border-radius;
+  border: if(variable.$bar-widgets-system_tray-border-enabled, variable.$border, none);
+  border-width: variable.$bar-widgets-system_tray-border-width;
+
+  &-box {
+    margin: 0 variable.$bar-widgets-system_tray-spacing;
+  }
+
+  .toggle-icon,
+  .panel-font-icon {
+    margin: 0;
+    padding: 0;
+
+    &.active {
+      background-color: theme.$background-alt;
+    }
+  }
+
+  separator {
+    background-color: variable.$border-color;
+    border-radius: variable.$radius;
+    margin: 8px 4px;
+    min-width: 1.2px;
+  }
+}

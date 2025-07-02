@@ -1,0 +1,15 @@
+@use "common";
+@use "variable";
+@use "system_tray.scss";
+@use "notification.scss";
+@use "workspace.scss";
+
+/* unset so we can style everything from the ground up. */
+
+* {
+  all: unset;
+  font-size: variable.$font-size;
+  font-family: variable.$font-name;
+  font-family: variable.$font-name;
+  font-style: variable.$font-style;
+}

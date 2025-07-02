@@ -1,0 +1,46 @@
+@use "theme";
+@use "sass:color";
+@use "variable";
+
+#app-launcher {
+  background-color: theme.$background-dark;
+  border-radius: variable.$radius-large;
+  /* paborder-radius: variable.$radius-small;dding: 12px; */
+
+  entry {
+    background-color: theme.$background-alt;
+    /* border-radius: variable.$radius; */
+    border: 1.5px solid theme.$surface-disabled;
+    padding: 0.4em 0.6em;
+    color: theme.$text-main;
+
+    &:focus {
+      border-color: theme.$surface-highlight;
+      background-color: theme.$background;
+    }
+  }
+
+  button {
+    /* background-color: transparent; */
+    border: none;
+    padding: 6px 8px;
+    /* border-radius: variable.$radius; */
+    transition: background-color 150ms ease-in-out;
+
+    &:hover {
+      background-color: theme.$surface-highlight;
+    }
+
+    &:focus {
+      outline: 2px solid theme.$accent-light;
+    }
+    box {
+      background-color: theme.$background-alt;
+      border-radius: variable.$radius;
+    }
+  }
+  box {
+    background-color: theme.$background-alt;
+  }
+}
+
