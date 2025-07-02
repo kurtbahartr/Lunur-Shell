@@ -51,7 +51,10 @@ class QuickSettingsButtonWidget(ButtonWidget):
         bar_icons = self.config.get("bar_icons")
         ordered_icons = [icons_map[name] for name in bar_icons if name in icons_map]
 
-        self.children = Box(children=ordered_icons)
+        self.children = Box(
+            spacing = 4,
+            children=ordered_icons
+        )
 
         # Initialize timers and polling ids
         self._timeout_id = None
