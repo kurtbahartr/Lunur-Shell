@@ -206,7 +206,7 @@ entry {
 
   &:focus,
   &:focus-visible {
-    border-color: theme.$accent-light;
+    border-color: theme.$primary;
   }
 }
 
@@ -236,7 +236,7 @@ scrolledwindow {
 
     &:focus {
       background-color: theme.$surface-highlight;
-      border: 1px solid theme.$accent-light;
+      border: 1px solid theme.$primary;
     }
 
     &:hover {

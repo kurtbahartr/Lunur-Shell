@@ -112,7 +112,7 @@ $hover-transition: background .15s ease-in-out;
   }
 
   .critical {
-    box-shadow: inset 0 0 .15em 0 theme.$accent-red;
+    box-shadow: inset 0 0 .15em 0 theme.$error;
   }
 }
 

@@ -1,7 +1,7 @@
 /* ---------------------------- */
 /* Base Colors                  */
 /* ---------------------------- */
-$background: #1f1f25; // Main background
+$background: #121318; // Main background
 $background-alt: #1b1b21; // Secondary background
 $background-dark: #0d0e13; // Darkest background
 
@@ -16,17 +16,8 @@ $surface-neutral: #121318; // Neutral surface for cards, panels
 $surface-highlight: #39393f; // Selection and highlights
 
 /* Accent Colors */
-$accent-light: #dee0ff; // Lightest accent (Rosewater-like)
-$accent-pink: #c3c5dd; // Pink accent
-$accent-purple: #e5bad8; // Mauve accent
-$accent-red: #ffb4ab; // Red for errors and warnings
-$accent-orange: #434659; // Orange for warnings and alerts
-$accent-yellow: #5d3c55; // Yellow for highlights
-$accent-green: #515b92; // Green for success
-$accent-teal: #121318; // Teal for information
-$accent-blue: #bac3ff; // Blue for links and actions
-$accent-light-blue: #394379; // Sky blue accent
-$accent-lavender: #dee0ff; // Lavender for subtle highlights
+$primary: #bac3ff;
+$error: #ffb4ab;
 
 /* Overlay Colors */
 $text-disabled: #c6c5d0; // Text for disabled elements
@@ -35,6 +26,6 @@ $text-muted-dark: #90909a; // Dark-muted text
 
 $bar-background: rgba(31, 31, 37, 0.1);
 $shadow-color: rgba(0, 0, 0, 1.0);
-$ws-active: #46464f;
-$ws-hover: #c3c5dd;
+/* $ws-active: #46464f; */
+/* $ws-hover: #c3c5dd; */
 

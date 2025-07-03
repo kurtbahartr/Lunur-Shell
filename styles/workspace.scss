@@ -26,7 +26,7 @@ $workspace-transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     }
 
     &:hover {
-      background-color: theme.$ws-hover;
+      background-color: theme.$primary;
 
       label {
         color: theme.$background-dark;
@@ -39,7 +39,7 @@ $workspace-transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       transition: $workspace-transition;
       padding-left: variable.$bar-widgets-workspaces-pill-active_width;
       padding-right: variable.$bar-widgets-workspaces-pill-active_width;
-      background-color: theme.$ws-active;
+      background-color: theme.$primary;
 
       &>label {
         color: theme.$background-dark;

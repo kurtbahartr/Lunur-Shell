@@ -23,6 +23,7 @@ class ScrolledView(Window):
         self.arrange_func = arrange_func
         self.add_item_func = add_item_func
         self._arranger_handler: int = 0
+        self._resized_once = False
 
         self.min_content_size = min_content_size
         self.set_size_request(560, 320)
@@ -83,8 +84,9 @@ class ScrolledView(Window):
     def add_next_item(self, items_iter: Iterator[Any]) -> bool:
         item = next(items_iter, None)
         if not item:
-            # All items added; adjust size
-            GLib.idle_add(self._resize_to_contents)
+            if not self._resized_once:
+                GLib.idle_add(self._resize_to_contents)
+                self._resized_once = True
             return False
 
         widget = self.add_item_func(item)
@@ -98,8 +100,6 @@ class ScrolledView(Window):
             _, nat_width = child.get_preferred_width()
             max_width = max(max_width, nat_width)
 
-        # Add some padding for margins or scrollbars
         max_width += 40
-
         _, current_height = self.get_size()
         self.set_size_request(max_width, current_height)
