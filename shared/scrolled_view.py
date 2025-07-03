@@ -33,12 +33,12 @@ class ScrolledView(Window):
         self.scrolledwindow = Box(spacing=2, orientation="v")
         self.scrolledwindow.set_name("scrolledwindow")
 
-        # Create Entry widget without notify_text callback first
         self.search_entry = Entry(
             placeholder=placeholder,
             h_expand=True,
         )
         self.search_entry.set_name("entry")
+        self.search_entry.connect("notify::text", lambda entry, *_: self.arrange_viewport(entry.get_text()))
 
         self.viewport = Box(spacing=2, orientation="v")
         self.viewport.set_name("viewport")
@@ -54,9 +54,6 @@ class ScrolledView(Window):
         self.scrolledwindow.add(self.search_entry)
         self.scrolledwindow.add(self.displayitems)
         self.add(self.scrolledwindow)
-
-        # Now assign notify_text callback — after viewport is ready!
-        self.search_entry.notify_text = lambda entry, *_: self.arrange_viewport(entry.get_text())
 
         self.connect("key-press-event", self.on_key_press)
 
