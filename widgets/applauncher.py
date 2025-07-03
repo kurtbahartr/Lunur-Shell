@@ -19,17 +19,17 @@ launcher.hide()
 class AppLauncherButton(ButtonWidget):
     def __init__(self, widget_config: BarConfig, **kwargs):
         self.icon_widget = text_icon(get_distro_icon(), {"size": icon_size})
-        
+
         super().__init__(
-            widget_config["app_launcher"],
+            config=widget_config["app_launcher"],
             name="app-launcher-button",
             child=self.icon_widget,
             **kwargs,
         )
-        
-        self.box.children = (self.icon_widget)
+
+        self.box.children = (self.icon_widget,)
         self.icon_widget.show_all()
-        
+
         self.connect("clicked", self.on_clicked)
 
     def on_clicked(self, *args):

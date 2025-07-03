@@ -31,7 +31,6 @@ DEFAULT_CONFIG = {
     "general": {
         "layer": "top",
         "location":"top",
-        "margin": "6px 6px 0px 6px",  
     },
     "module_groups": [
         {
