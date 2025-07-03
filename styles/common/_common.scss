@@ -191,7 +191,7 @@ separator {
 
 /* scrollable window config*/
 #scrolledwindow {
-  padding: 8px;
+  padding: .5em;
   background-color: theme.$background-dark;
   border-radius: variable.$radius;
 }
@@ -202,7 +202,7 @@ entry {
   border: 1px solid theme.$surface-disabled;
   padding: 6px;
   min-width: 2em;
-  margin-bottom: 1em;
+  margin-bottom: .5em;
 
   &:focus,
   &:focus-visible {
@@ -249,7 +249,7 @@ scrolledwindow {
 
     label {
       &:nth-child(2) {
-        font-size: 10px;
+        font-size: .8em;
         color: #888;
       }
     }
