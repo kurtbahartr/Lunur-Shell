@@ -9,7 +9,6 @@
   border-radius: 4px;
 }
 
-
 .shadow {
   @extend .flat;
   box-shadow: color.mix(theme.$background-dark, black, 15%) 0 4px;
@@ -33,34 +32,62 @@
 
 #panel {
   &-inner {
-    $bar-opacity-ratio: variable.$bar-opacity * .01;
-    $transparency-value: (
-      1 - $bar-opacity-ratio) * 100%;
-    background-color: color.mix(theme.$bar-background, transparent, $transparency-value
-    );
+    @if (variable.$bar-style-panel == floating) or (variable.$bar-style-panel == scoop) or (variable.$bar-style-panel == default) {
+      $bar-opacity-ratio: variable.$bar-opacity * .01;
+      $transparency-value: (1 - $bar-opacity-ratio) * 100%;
+      background-color: color.mix(theme.$bar-background, transparent, $transparency-value);
 
-  padding: variable.$bar-padding_y variable.$bar-padding_x;
-  $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
-    variable.$bar-shadow-offset variable.$bar-shadow-blur variable.$bar-shadow-spread color.adjust(theme.$shadow-color,
-      $alpha: calc(variable.$bar-shadow-opacity - 1));
+      padding: variable.$bar-padding_y variable.$bar-padding_x;
 
-  box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
+      $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+        variable.$bar-shadow-offset variable.$bar-shadow-blur variable.$bar-shadow-spread color.adjust(theme.$shadow-color,
+          $alpha: calc(variable.$bar-shadow-opacity - 1));
 
-  @if (variable.$bar-style-panel ==floating) {
-    margin: 1rem 1.5rem 0rem 1.5rem;
-    border-color: theme.$surface-disabled;
+      box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
+
+      @if (variable.$bar-style-panel == floating) {
+        border-radius: variable.$radius;
+        margin: .5rem 1rem 0rem 1rem;
+        border-color: theme.$surface-disabled;
+      }
+
+      @else if (variable.$bar-style-panel == scoop) {
+        margin: 0rem 4.5rem;
+        border-radius: 0 0 variable.$radius * 2.2 variable.$radius * 2.2;
+      }
+
+      @else {
+        border: none;
+      }
+    }
+    @else if (variable.$bar-style-panel == cave) {
+      #start,
+      #center,
+      #end {
+        $bar-opacity-ratio: variable.$bar-opacity * .01;
+        $transparency-value: (
+          1 - $bar-opacity-ratio) * 100%;
+        background-color: color.mix(theme.$bar-background, transparent, $transparency-value
+        );
+
+        padding: variable.$bar-padding_y variable.$bar-padding_x;
+        $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+          variable.$bar-shadow-offset variable.$bar-shadow-blur variable.$bar-shadow-spread color.adjust(theme.$shadow-color,
+            $alpha: calc(variable.$bar-shadow-opacity - 1));
+
+        box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
+      }
+      #start {
+        border-radius: 0em 0em variable.$radius 0em;
+      }
+      #center {
+        border-radius: 0em 0em variable.$radius variable.$radius;
+      }
+      #end {
+        border-radius: 0em 0em 0em variable.$radius;
+      }
+    }
   }
-
-  @else if (variable.$bar-style-panel ==scoop) {
-    margin: 0rem 4.5rem;
-    border-radius: 0 0 variable.$radius * 2.2 variable.$radius * 2.2;
-  }
-
-  @else {
-    border: none;
-
-  }
-}
 }
 
 .floating {
@@ -74,7 +101,6 @@
 
   @extend %label;
 }
-
 
 .panel-box {
   border-radius: variable.$radius-large;
@@ -109,7 +135,6 @@ tooltip {
   animation: tooltipShow .25s cubic-bezier(.5, .25, 0, 1);
   border: if(variable.$bar-menus-tooltip-border-enabled, variable.$border, none);
 
-
   $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
     variable.$bar-menus-tooltip-shadow-offset variable.$bar-menus-tooltip-shadow-blur variable.$bar-menus-tooltip-shadow-spread color.adjust(theme.$shadow-color,
       $alpha: calc(variable.$bar-menus-tooltip-shadow-opacity - 1));
@@ -123,7 +148,7 @@ tooltip {
   }
 }
 
-tooltip>* {
+tooltip > * {
   padding: variable.$bar-menus-tooltip-padding-y variable.$bar-menus-tooltip-padding-x;
 }
 
@@ -135,7 +160,6 @@ menu {
   border-radius: 12px;
   border: variable.$border;
 }
-
 
 menuitem {
   transition: background-color 75ms cubic-bezier(0, 0, .2, 1);
@@ -158,25 +182,24 @@ menuitem {
   }
 }
 
-menu>menuitem:hover {
+menu > menuitem:hover {
   background-color: theme.$surface-highlight;
 }
 
-
-menu>arrow {
+menu > arrow {
   min-height: 16px;
   min-width: 16px;
   padding: functions.toEm(4);
   color: theme.$background-alt;
 }
 
-menu>arrow.top {
+menu > arrow.top {
   margin-top: 0;
   border-radius: 6px;
   -gtk-icon-source: -gtk-icontheme("pan-up-symbolic");
 }
 
-menu>arrow.bottom {
+menu > arrow.bottom {
   margin-top: 8px;
   margin-bottom: -12px;
   border-radius: 6px;
@@ -255,4 +278,3 @@ scrolledwindow {
     }
   }
 }
-

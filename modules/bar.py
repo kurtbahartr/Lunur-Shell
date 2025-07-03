@@ -37,16 +37,19 @@ class StatusBar(Window, ToggleableWidget):
         self.box = CenterBox(
             name="panel-inner",
             start_children=Box(
+                name="start",
                 spacing=4,
                 orientation="h",
                 children=layout["left_section"],
             ),
             center_children=Box(
+                name="center",
                 spacing=4,
                 orientation="h",
                 children=layout["middle_section"],
             ),
             end_children=Box(
+                name="end",
                 spacing=4,
                 orientation="h",
                 children=layout["right_section"],
