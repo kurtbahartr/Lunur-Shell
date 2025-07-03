@@ -18,6 +18,8 @@ DEFAULT_CONFIG = {
         "ignored": [],
         "bar_icons": ["network", "audio", "bluetooth", "brightness"],
         "show_ssid": False,
+        "show_audio_percent": False,
+        "show_brightness_percent": False,
         "style_classes": [ "compact" ],
     },
     "keybinds": {

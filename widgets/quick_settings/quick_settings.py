@@ -30,6 +30,8 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.config = widget_config["quick_settings"]
         self.panel_icon_size = 16
         self.show_network_name = self.config.get("show_network_name")
+        self.show_audio_percent = self.config.get("show_audio_percent")
+        self.show_brightness_percent = self.config.get("show_brightness_percent")
 
         # Services
         self.audio = audio_service
@@ -43,11 +45,21 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.brightness_icon = Image(style_classes="panel-icon")
         self.bluetooth_icon = Image(style_classes="panel-icon")
 
-        # Create label for SSID if enabled
+        # Create labels if enabled
         if self.show_network_name:
             self.network_ssid_label = Label()
         else:
             self.network_ssid_label = None
+
+        if self.show_audio_percent:
+            self.audio_percent_label = Label()
+        else:
+            self.audio_percent_label = None
+
+        if self.show_brightness_percent:
+            self.brightness_percent_label = Label()
+        else:
+            self.brightness_percent_label = None
 
         icons_map = {
             "audio": self.audio_icon,
@@ -63,6 +75,10 @@ class QuickSettingsButtonWidget(ButtonWidget):
                 ordered_icons.append(icons_map[name])
                 if name == "network" and self.show_network_name:
                     ordered_icons.append(self.network_ssid_label)
+                elif name == "audio" and self.show_audio_percent:
+                    ordered_icons.append(self.audio_percent_label)
+                elif name == "brightness" and self.show_brightness_percent:
+                    ordered_icons.append(self.brightness_percent_label)
 
         self.children = Box(
             spacing=4,
@@ -173,6 +189,9 @@ class QuickSettingsButtonWidget(ButtonWidget):
                 fallback_icon=icons["audio"].get("muted", ""),
             )
 
+            if self.show_audio_percent and self.audio_percent_label:
+                self.audio_percent_label.set_text(f"{volume}%")
+
     def _on_brightness_changed(self, *_):
         self.update_brightness_icon()
 
@@ -187,12 +206,16 @@ class QuickSettingsButtonWidget(ButtonWidget):
         except Exception as e:
             print(f"[QuickSettings] Error updating brightness icon: {e}")
             icon_name = icons["brightness"]["indicator"]
+            normalized_brightness = 0
 
         self._set_icon(
             self.brightness_icon,
             icon_name,
             fallback_icon=icons["brightness"]["indicator"],
         )
+
+        if self.show_brightness_percent and self.brightness_percent_label:
+            self.brightness_percent_label.set_text(f"{normalized_brightness}%")
 
     def _on_bluetooth_enabled_changed(self, *_):
         self.update_bluetooth_icon()

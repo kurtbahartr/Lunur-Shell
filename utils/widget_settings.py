@@ -91,6 +91,8 @@ QuickSettings = TypedDict(
     {
         "bar_icons": List[str],
         "show_ssid": bool,
+        "show_audio_percent": bool,
+        "show_brightness_percent": bool,
     },
 )
 
