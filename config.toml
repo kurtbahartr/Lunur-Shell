@@ -13,6 +13,10 @@ end_container = ["@group:0", "system_tray"]
 layer = "top"
 location = "top"
 
+  [general.screen_corners]
+  enabled = false
+  size = 20
+
 [app_launcher]
 icon_size = 16 # Bar button icon
 app_icon_size = 48 # Size of app icons in launcher

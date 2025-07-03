@@ -10,10 +10,20 @@ DateTimeMenu = TypedDict(
     },
 )
 
+# ScreenCorners configuration
+ScreenCorners = TypedDict(
+    "ScreenCorners",
+    {
+        "enabled": bool,
+        "size": int,
+    },
+)
+
 # Bar configuration
 General = TypedDict(
     "General",
     {
+        "screen_corners": ScreenCorners,
         "location": str,
         "layer": Layer,
     },

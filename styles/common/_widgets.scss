@@ -1,0 +1,15 @@
+@use "mixins";
+@use "../variable.scss";
+@use "../theme.scss";
+@use "functions";
+
+
+#corner-container {
+  min-width: 20px;
+  min-height: 20px;
+
+  #corner {
+    background-color: theme.$bar-background;
+    border-radius: 0;
+  }
+}

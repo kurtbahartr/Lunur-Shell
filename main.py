@@ -46,6 +46,13 @@ if __name__ == "__main__":
         notifications = NotificationPopup(widget_config)
         windows.append(notifications)
 
+    if widget_config["general"]["screen_corners"]["enabled"]:
+        from modules.corners import ScreenCorners
+
+        screen_corners = ScreenCorners(widget_config)
+
+        windows.append(screen_corners)
+
     app = Application(APPLICATION_NAME, windows=windows)
 
     helpers.copy_theme(widget_config["theme"]["name"])

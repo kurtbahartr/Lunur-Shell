@@ -35,6 +35,10 @@ DEFAULT_CONFIG = {
         "layer": "top",
         "location":"top",
     },
+    "screen_corners": {
+        "enabled": False,
+        "size": 20,
+    },
     "module_groups": [
         {
             "widgets": ["quick_settings", "battery"],
