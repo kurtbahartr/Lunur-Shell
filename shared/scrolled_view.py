@@ -6,6 +6,8 @@ from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import idle_add, remove_handler
 from gi.repository import GLib
 
+_current_scrolled_view = None  # Global singleton instance tracker
+
 
 class ScrolledView(Window):
     def __init__(
@@ -31,13 +33,12 @@ class ScrolledView(Window):
         self.scrolledwindow = Box(spacing=2, orientation="v")
         self.scrolledwindow.set_name("scrolledwindow")
 
+        # Create Entry widget without notify_text callback first
         self.search_entry = Entry(
             placeholder=placeholder,
             h_expand=True,
-            notify_text=lambda entry, *_: self.arrange_viewport(entry.get_text()),
         )
         self.search_entry.set_name("entry")
-        self.scrolledwindow.add(self.search_entry)
 
         self.viewport = Box(spacing=2, orientation="v")
         self.viewport.set_name("viewport")
@@ -48,15 +49,31 @@ class ScrolledView(Window):
             child=self.viewport,
         )
         self.displayitems.set_name("displayitems")
-        self.scrolledwindow.add(self.displayitems)
 
+        # Pack widgets
+        self.scrolledwindow.add(self.search_entry)
+        self.scrolledwindow.add(self.displayitems)
         self.add(self.scrolledwindow)
+
+        # Now assign notify_text callback — after viewport is ready!
+        self.search_entry.notify_text = lambda entry, *_: self.arrange_viewport(entry.get_text())
+
         self.connect("key-press-event", self.on_key_press)
 
     def show_all(self):
+        global _current_scrolled_view
+        if _current_scrolled_view and _current_scrolled_view is not self:
+            _current_scrolled_view.hide()
+        _current_scrolled_view = self
         self.search_entry.set_text("")
         self.arrange_viewport()
         super().show_all()
+
+    def hide(self):
+        global _current_scrolled_view
+        if _current_scrolled_view is self:
+            _current_scrolled_view = None
+        super().hide()
 
     def on_key_press(self, widget, event) -> bool:
         if event.keyval == 65307:
@@ -69,6 +86,7 @@ class ScrolledView(Window):
             remove_handler(self._arranger_handler)
             self._arranger_handler = 0
 
+        # Clear old children safely
         for child in self.viewport.get_children():
             self.viewport.remove(child)
 
