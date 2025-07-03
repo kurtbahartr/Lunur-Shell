@@ -90,6 +90,7 @@ QuickSettings = TypedDict(
     "QuickSettings",
     {
         "bar_icons": List[str],
+        "show_ssid": bool,
     },
 )
 

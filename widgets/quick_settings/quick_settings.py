@@ -2,6 +2,7 @@
 
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
+from fabric.widgets.label import Label
 from gi.repository import GLib
 
 from fabric.bluetooth.service import BluetoothClient, BluetoothDevice
@@ -28,6 +29,7 @@ class QuickSettingsButtonWidget(ButtonWidget):
 
         self.config = widget_config["quick_settings"]
         self.panel_icon_size = 16
+        self.show_network_name = self.config.get("show_network_name")
 
         # Services
         self.audio = audio_service
@@ -41,6 +43,12 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.brightness_icon = Image(style_classes="panel-icon")
         self.bluetooth_icon = Image(style_classes="panel-icon")
 
+        # Create label for SSID if enabled
+        if self.show_network_name:
+            self.network_ssid_label = Label()
+        else:
+            self.network_ssid_label = None
+
         icons_map = {
             "audio": self.audio_icon,
             "network": self.network_icon,
@@ -49,10 +57,15 @@ class QuickSettingsButtonWidget(ButtonWidget):
         }
 
         bar_icons = self.config.get("bar_icons")
-        ordered_icons = [icons_map[name] for name in bar_icons if name in icons_map]
+        ordered_icons = []
+        for name in bar_icons:
+            if name in icons_map:
+                ordered_icons.append(icons_map[name])
+                if name == "network" and self.show_network_name:
+                    ordered_icons.append(self.network_ssid_label)
 
         self.children = Box(
-            spacing = 4,
+            spacing=4,
             children=ordered_icons
         )
 
@@ -122,16 +135,22 @@ class QuickSettingsButtonWidget(ButtonWidget):
 
         if device_type == "wifi" and self.network.wifi_device:
             icon_name = self.network.wifi_device.get_icon_name()
+            ssid = self.network.wifi_device.get_ssid() if self.show_network_name else None
         elif device_type == "ethernet" and self.network.ethernet_device:
             icon_name = self.network.ethernet_device.get_icon_name()
+            ssid = None
         else:
             icon_name = icons["network"]["wifi"]["disconnected"]
+            ssid = None
 
         self._set_icon(
             self.network_icon,
             icon_name,
             fallback_icon=icons["network"]["wifi"]["disconnected"],
         )
+
+        if self.show_network_name and self.network_ssid_label:
+            self.network_ssid_label.set_text(ssid or "")
 
     def _on_speaker_changed(self, *_):
         speaker = self.audio.speaker

@@ -17,6 +17,7 @@ DEFAULT_CONFIG = {
         "icon_size": "16",
         "ignored": [],
         "bar_icons": ["network", "audio", "bluetooth", "brightness"],
+        "show_ssid": False,
         "style_classes": [ "compact" ],
     },
     "keybinds": {
