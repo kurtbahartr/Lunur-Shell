@@ -15,7 +15,13 @@
 
 ## Screenshots
 
-Comming soon!
+<table align="center">
+  <tr>
+    <td colspan="4"><img src="assets/screenshots/main.png"></td>
+  </tr>
+</table>
+
+As of 7/3/25
 
 ## Installation
 
