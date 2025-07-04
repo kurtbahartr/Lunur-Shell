@@ -14,7 +14,7 @@ layer = "top"
 location = "top"
 
   [general.screen_corners]
-  enabled = false
+  enabled = true
   size = 20
 
 [app_launcher]

@@ -7,6 +7,7 @@ from shared import ToggleableWidget, ModuleGroup
 from utils import HyprlandWithMonitors
 from utils.functions import run_in_thread
 from utils.widget_utils import lazy_load_widget
+from modules.corners import SideCorner
 
 
 class StatusBar(Window, ToggleableWidget):
@@ -28,31 +29,87 @@ class StatusBar(Window, ToggleableWidget):
             "battery": "widgets.battery.BatteryWidget",
             "system_tray": "widgets.system_tray.SystemTrayWidget",
             "quick_settings": "widgets.quick_settings.quick_settings.QuickSettingsButtonWidget",
-            # Add other widgets here if needed
         }
 
         options = config["general"]
         layout = self.make_layout(config)
 
+        # Helpers to create corners
+        def corner_left():
+            return Box(
+                name="corner-left",
+                orientation="v",
+                h_align="start",
+                children=[
+                    SideCorner("top-right", 20),
+                    Box(),
+                ],
+            )
+
+        def corner_right():
+            return Box(
+                name="corner-right",
+                orientation="v",
+                h_align="end",
+                children=[
+                    SideCorner("top-left", 20),
+                    Box(),
+                ],
+            )
+
+        # Center uses shared names
+        self.center_corner_left = corner_left()
+        self.center_corner_right = corner_right()
+
+        # Other sections with clear labels
+        self.start_corner_right = corner_right()
+        self.end_corner_left = corner_left()
+
+        # Assemble layout
         self.box = CenterBox(
             name="panel-inner",
             start_children=Box(
-                name="start",
+                name="start-wrapper",
                 spacing=4,
                 orientation="h",
-                children=layout["left_section"],
+                children=[
+                    Box(
+                        name="start",
+                        spacing=4,
+                        orientation="h",
+                        children=layout["left_section"],
+                    ),
+                    self.start_corner_right,
+                ],
             ),
             center_children=Box(
-                name="center",
+                name="center-wrapper",
                 spacing=4,
                 orientation="h",
-                children=layout["middle_section"],
+                children=[
+                    self.center_corner_left,
+                    Box(
+                        name="center",
+                        spacing=4,
+                        orientation="h",
+                        children=layout["middle_section"],
+                    ),
+                    self.center_corner_right,
+                ],
             ),
             end_children=Box(
-                name="end",
+                name="end-wrapper",
                 spacing=4,
                 orientation="h",
-                children=layout["right_section"],
+                children=[
+                    self.end_corner_left,
+                    Box(
+                        name="end",
+                        spacing=4,
+                        orientation="h",
+                        children=layout["right_section"],
+                    ),
+                ],
             ),
         )
 
@@ -75,8 +132,6 @@ class StatusBar(Window, ToggleableWidget):
             self.check_for_bar_updates()
 
     def make_layout(self, widget_config):
-        """Assign widgets to left, middle, right sections based on config."""
-
         layout = {
             "left_section": widget_config.get("layout", {}).get("start_container", []),
             "middle_section": widget_config.get("layout", {}).get("center_container", []),
@@ -108,12 +163,10 @@ class StatusBar(Window, ToggleableWidget):
                 else:
                     if widget_name in self.widgets_list:
                         widget_class = lazy_load_widget(widget_name, self.widgets_list)
-                        # widget_instance = widget_class()
                         try:
                             widget_instance = widget_class(widget_config)
                         except TypeError:
                             widget_instance = widget_class()
-
                         new_layout[section].append(widget_instance)
 
         return new_layout

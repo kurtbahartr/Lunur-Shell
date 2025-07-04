@@ -45,6 +45,27 @@
 
       box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
 
+      #corner-left, 
+      #corner-right {
+        #corner-container {
+          min-width: 20px;
+          min-height: 20px;
+
+          #corner {
+            background-color: transparent;
+            border-radius: 0;
+          }
+        }
+      }
+
+      #corner-left {
+        margin-right: -4px;
+      }
+
+      #corner-right {
+        margin-left: -4px;
+      }
+
       @if (variable.$bar-style-panel == floating) {
         border-radius: variable.$radius;
         margin: .5rem 1rem 0rem 1rem;
@@ -61,6 +82,26 @@
       }
     }
     @else if (variable.$bar-style-panel == cave) {
+      #corner-left, 
+      #corner-right {
+        #corner-container {
+          min-width: 20px;
+          min-height: 20px;
+
+          #corner {
+            background-color: theme.$bar-background;
+            border-radius: 0;
+          }
+        }
+      }
+
+      #corner-left {
+        margin-right: -4px;
+      }
+
+      #corner-right {
+        margin-left: -4px;
+      }
       #start,
       #center,
       #end {
@@ -78,13 +119,13 @@
         box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
       }
       #start {
-        border-radius: 0em 0em variable.$radius 0em;
+        border-radius: 0 0 20px 0px;
       }
       #center {
-        border-radius: 0em 0em variable.$radius variable.$radius;
+        border-radius: 0 0 20px 20px;
       }
       #end {
-        border-radius: 0em 0em 0em variable.$radius;
+        border-radius: 0 0 0 20px;
       }
     }
   }
