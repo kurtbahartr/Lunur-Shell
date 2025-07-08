@@ -15,7 +15,7 @@
 }
 
 .bordered {
-  border: 1.5px solid theme.$surface-disabled;
+  border: 1.5px solid theme.$primary;
 }
 
 .leaf {
@@ -276,7 +276,7 @@ separator {
 
 /* scrollable window config*/
 #scrolledwindow {
-  padding: .5em;
+  padding: .75em;
   background-color: theme.$background-dark;
   border-radius: variable.$radius;
 }
