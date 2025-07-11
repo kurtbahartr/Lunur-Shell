@@ -3,6 +3,8 @@ $font-size: 1rem;
 $font-weight: 600;
 $font-style: normal;
 $border-radius: 10px;
+$padding: 7pt;
+$spacing: 12pt;
 $border-width: 1px;
 
 $modules-app_launcher-scaling: 100;
@@ -57,6 +59,11 @@ $bar-buttons-shadow-offset: 0;
 $bar-buttons-shadow-blur: 0;
 $bar-buttons-shadow-spread: 0;
 $bar-buttons-shadow-opacity: 100;
+
+$bar-widgets-date_time-spacing: .125em;
+$bar-widgets-date_time-border-enabled: false;
+$bar-widgets-date_time-border-width: 1px;
+$bar-widgets-date_time-border-radius: 16px;
 
 $bar-widgets-system_tray-spacing: .125em;
 $bar-widgets-system_tray-border-enabled: false;

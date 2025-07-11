@@ -122,6 +122,60 @@
   padding: variable.$bar-menus-popover-padding_x variable.$bar-menus-popover-padding_y;
 }
 
+@mixin spacing($multiplier: 1, $spacing: variable.$spacing, $rec: false) {
+  &.horizontal>* {
+    margin: 0 calc($spacing * $multiplier / 2);
+
+    &:first-child {
+      margin-left: 0;
+    }
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+
+  &.vertical>* {
+    margin: calc($spacing * $multiplier / 2) 0;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  @if $rec {
+    box {
+      &.horizontal>* {
+        margin: 0 $spacing * $multiplier / 2;
+
+        &:first-child {
+          margin-left: 0;
+        }
+
+        &:last-child {
+          margin-right: 0;
+        }
+      }
+
+      &.vertical>* {
+        margin: $spacing * $multiplier / 2 0;
+
+        &:first-child {
+          margin-top: 0;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
 @mixin widget_style($type) {
   @if $type ==flat {
     @extend .flat;

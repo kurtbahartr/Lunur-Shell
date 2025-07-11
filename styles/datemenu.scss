@@ -1,0 +1,70 @@
+@use "sass:color";
+@use "theme";
+@use "variable";
+@use "common";
+
+/* Popover container for date and calendar */
+#date-menu {
+  @include common.floating-widget;
+  @include common.spacing;
+
+  background-color: theme.$background;
+  border-radius: variable.$radius;
+  padding: variable.$padding * 2;
+  min-width: 250px;
+}
+
+/* Clock label styling */
+#popover-time {
+  padding: variable.$padding;
+  label {
+    font-size: 2.8em;
+    font-weight: 600;
+    color: theme.$text-main;
+  }
+}
+
+/* Calendar container styling */
+#popover-calendar {
+  @extend %widget;
+  background-color: theme.$background-alt;
+  border-radius: variable.$radius;
+  margin-top: variable.$spacing;
+}
+
+/* Calendar internal node (if matched) */
+#popover-calendar calendar {
+  all: unset;
+  font-size: 1em;
+  padding: variable.$padding variable.$padding 0;
+  background-color: theme.$background-alt;
+  color: theme.$text-main;
+
+  &.button {
+    border-radius: variable.$radius;
+    transition: 150ms;
+  }
+
+  &:hover {
+    color: theme.$primary;
+  }
+
+  &:selected {
+    box-shadow:
+      inset 0 -4px 0 0 theme.$text-muted,
+      inset 0 0 0 1px theme.$text-muted;
+    border-radius: variable.$radius * 0.6;
+  }
+
+  &.header {
+    color: theme.$primary;
+  }
+
+  &.highlight {
+    color: theme.$primary;
+  }
+
+  &:indeterminate {
+    color: color.mix(theme.$text-main, transparent, 10%);
+  }
+}
