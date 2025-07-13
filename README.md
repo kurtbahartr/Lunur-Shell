@@ -40,8 +40,8 @@ Dependencies:
 
 - [x] App Launcher
 - [x] Workspaces
-- [ ] Date/Time (in progress)
-- [ ] Calender
+- [x] Date/Time
+- [x] Calender
 - [x] Battery
 - [ ] Network Manager
 - [ ] Bluetooth Manager
@@ -58,7 +58,7 @@ Dependencies:
 - [ ] OCR
 - [ ] OSD
 - [ ] Emoji Picker
-- [ ] Matugen theme
+- [ ] Matugen theme (in progress)
 
 ## Sister Projects
 
