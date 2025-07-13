@@ -62,7 +62,15 @@ if __name__ == "__main__":
     icon_theme.append_search_path(icons_dir)
 
     style_monitor = monitor_file(get_relative_path("./styles"))
-    style_monitor.connect("changed", lambda *args: process_and_apply_css(app))
+    watch_matugen = monitor_file(get_relative_path("./styles/themes/matugen.scss"))
+    watch_matugen.connect(
+        "changed",
+        lambda *args: (
+            helpers.copy_theme(widget_config["theme"]["name"]),
+            process_and_apply_css(app)
+        )
+    )
+    style_monitor.connect("changed", lambda *args: process_and_apply_css(app)) 
     process_and_apply_css(app)
 
     setproctitle.setproctitle(APPLICATION_NAME)
