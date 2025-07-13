@@ -31,33 +31,35 @@ class DateTimeWidget(ButtonWidget):
         return time.strftime(fmt, time.localtime())
 
     def show_popover(self, *_):
-        if self.popup is None:
-            # Create a vertical box container for popover content
-            content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-            content_box.set_name("date-menu")  # for styling
+        if self.popup:
+            self.popup.destroy()
+            self.popup = None
 
-            # Create time widget with simpler time format
-            clock_format = self.dt_config.get("clock_format", "24h")
-            time_fmt = "%I:%M %p" if clock_format == "12h" else "%H:%M"
-            time_widget = DateTime(
-                formatters=[time_fmt],
-                name="popover-time"
-            )
+        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        content_box.set_name("date-menu")
 
-            # Create calendar widget
-            calendar = Gtk.Calendar()
-            calendar.set_name("popover-calendar")
+        clock_format = self.dt_config.get("clock_format", "24h")
+        time_fmt = "%I:%M %p" if clock_format == "12h" else "%H:%M"
+        time_widget = DateTime(
+            formatters=[time_fmt],
+            name="popover-time"
+        )
 
-            # Add widgets to container
-            content_box.pack_start(time_widget, False, False, 0)
-            content_box.pack_start(calendar, True, True, 0)
+        # Wrapper box around calendar widget for styling separation
+        calendar_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        calendar_container.set_name("popover-calendar")
 
-            content_box.show_all()
+        calendar = Gtk.Calendar()
+        calendar.set_name("calendar-widget")
 
-            # Create popover pointing to this widget
-            self.popup = Popover(
-                content=content_box,
-                point_to=self,
-            )
+        calendar_container.pack_start(calendar, True, True, 0)
+
+        content_box.pack_start(time_widget, False, False, 0)
+        content_box.pack_start(calendar_container, True, True, 0)
+        content_box.show_all()
+
+        self.popup = Popover(
+            content=content_box,
+            point_to=self,
+        )
         self.popup.open()
-

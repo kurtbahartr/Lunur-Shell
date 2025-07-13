@@ -30,22 +30,24 @@
   background-color: theme.$background-alt;
   border-radius: variable.$radius;
   margin-top: variable.$spacing;
+  padding: 1em;
 }
 
 /* Calendar internal node (if matched) */
 #popover-calendar calendar {
-  all: unset;
   font-size: 1em;
   padding: variable.$padding variable.$padding 0;
   background-color: theme.$background-alt;
   color: theme.$text-main;
+  border-radius: variable.$radius;
 
   &.button {
     border-radius: variable.$radius;
     transition: 150ms;
   }
 
-  &:hover {
+  &.button:hover {
+    background-color: theme.$surface-highlight;
     color: theme.$primary;
   }
 
