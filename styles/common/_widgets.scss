@@ -13,3 +13,15 @@
     border-radius: 0;
   }
 }
+
+
+#window_title {
+  border-radius: variable.$bar-widgets-window_title-border-radius;
+  border: if(variable.$bar-widgets-window_title-border-enabled, variable.$border, none);
+  border-width: variable.$bar-widgets-window_title-border-width;
+
+  #nerd-icon.panel-font-icon {
+    font-size: variable.$bar-widgets-window_title-icon_size;
+    margin-right: variable.$bar-widgets-window_title-spacing;
+  }
+}

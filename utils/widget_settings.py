@@ -114,6 +114,17 @@ Keybinds = TypedDict(
     },
 )
 
+# WindowTitle configuration
+WindowTitle = TypedDict(
+    "WindowTitle",
+    {
+        "icon": bool,
+        "truncation": bool,
+        "truncation_size": int,
+        "hide_when_zero": bool,
+        "title_map": List[Dict[str, str]],
+    },
+)
 
 # Theme configuration
 Theme = TypedDict("Theme", {"name": str})
@@ -130,3 +141,4 @@ class BarConfig(TypedDict):
     app_launcher: AppLauncher
     keybinds: Keybinds
     theme: Theme
+    window_title: WindowTitle

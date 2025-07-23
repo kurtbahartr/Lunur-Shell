@@ -29,6 +29,7 @@ class StatusBar(Window, ToggleableWidget):
             "battery": "widgets.battery.BatteryWidget",
             "system_tray": "widgets.system_tray.SystemTrayWidget",
             "quick_settings": "widgets.quick_settings.quick_settings.QuickSettingsButtonWidget",
+            "window_title": "widgets.window_title.WindowTitleWidget",
         }
 
         options = config["general"]

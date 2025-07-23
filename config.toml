@@ -4,7 +4,7 @@ spacing = 4
 style_classes = [ "compact" ]
 
 [layout]
-start_container = ["app_launcher", "workspaces"]
+start_container = ["app_launcher", "workspaces", "window_title"]
 center_container = ["date_time"]
 # end_container = ["quick_settings", "battery", "system_tray"]
 end_container = ["@group:0", "system_tray"]
