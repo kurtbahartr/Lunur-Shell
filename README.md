@@ -40,6 +40,7 @@ Dependencies:
 
 - [x] App Launcher
 - [x] Workspaces
+- [x] Window Title
 - [x] Date/Time
 - [x] Calender
 - [x] Battery
