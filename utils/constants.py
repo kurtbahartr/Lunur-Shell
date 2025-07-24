@@ -48,7 +48,7 @@ DEFAULT_CONFIG = {
     ],
     "layout": {
         "left_section": ["app_launcher", "workspaces"],
-        "middle_section": ["date_time"],
+        "middle_section": ["date_time", "power_profiles"],
         "right_section": ["@group:0", "system_tray"],
     },
     "window_title": {
@@ -99,6 +99,9 @@ DEFAULT_CONFIG = {
     "hyprpicker": {
         "icon_size": 16,
         "tooltip": True,
+    },
+    "power_profiles": {
+        "icon_size": 16,
     }
 }
 

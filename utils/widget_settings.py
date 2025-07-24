@@ -126,6 +126,13 @@ WindowTitle = TypedDict(
     },
 )
 
+PowerProfiles = TypedDict(
+    "PowerProfiles",
+    {
+        "icon_size": int,
+    }
+)
+
 Hyprpicker = TypedDict(
     "Hyprpicker",
     {
@@ -151,3 +158,4 @@ class BarConfig(TypedDict):
     theme: Theme
     window_title: WindowTitle
     hyprpicker: Hyprpicker
+    power_profiles: PowerProfiles

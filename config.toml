@@ -5,7 +5,7 @@ style_classes = [ "compact" ]
 
 [layout]
 start_container = ["app_launcher", "workspaces", "window_title"]
-center_container = ["date_time"]
+center_container = ["date_time", "power_profiles"]
 # end_container = ["quick_settings", "battery", "system_tray"]
 end_container = ["@group:0", "system_tray"]
 
@@ -66,6 +66,9 @@ show_brightness_percent = false
 [hyprpicker]
 icon_size = 16
 tooltip = true
+
+[power_profiles]
+icon_size = 16
 
 [theme]
 name = "matugen"
