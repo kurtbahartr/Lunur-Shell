@@ -21,7 +21,7 @@
   </tr>
 </table>
 
-As of 7/3/25
+As of 7/23/25
 
 ## Installation
 
@@ -46,9 +46,9 @@ Dependencies:
 - [ ] Network Manager
 - [ ] Bluetooth Manager
 - [ ] Clipboard Manager
-- [ ] Power Manager
+- [x] Power Manager
 - [ ] Power Menu
-- [ ] Color Picker
+- [x] Color Picker
 - [ ] QuickSettings (in progress)
 - [x] Notifications
 - [x] System Tray
