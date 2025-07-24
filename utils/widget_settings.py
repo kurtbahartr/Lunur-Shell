@@ -126,6 +126,14 @@ WindowTitle = TypedDict(
     },
 )
 
+Hyprpicker = TypedDict(
+    "Hyprpicker",
+    {
+        "icon_size": int,
+        "tooltip": bool,
+    }
+)
+
 # Theme configuration
 Theme = TypedDict("Theme", {"name": str})
     
@@ -142,3 +150,4 @@ class BarConfig(TypedDict):
     keybinds: Keybinds
     theme: Theme
     window_title: WindowTitle
+    hyprpicker: Hyprpicker

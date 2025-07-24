@@ -30,6 +30,7 @@ class StatusBar(Window, ToggleableWidget):
             "system_tray": "widgets.system_tray.SystemTrayWidget",
             "quick_settings": "widgets.quick_settings.quick_settings.QuickSettingsButtonWidget",
             "window_title": "widgets.window_title.WindowTitleWidget",
+            "hyprpicker": "widgets.hyprpicker.HyprPickerButton",
         }
 
         options = config["general"]

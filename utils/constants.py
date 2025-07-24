@@ -41,7 +41,7 @@ DEFAULT_CONFIG = {
     },
     "module_groups": [
         {
-            "widgets": ["quick_settings", "battery"],
+            "widgets": ["hyprpicker", "quick_settings", "battery"],
             "spacing": 4,
             "style_classes": ["bordered"],
         },
@@ -96,6 +96,10 @@ DEFAULT_CONFIG = {
         # "pinned": [],
         "visible_count": 3,
     },
+    "hyprpicker": {
+        "icon_size": 16,
+        "tooltip": True,
+    }
 }
 
 WINDOW_TITLE_MAP = [

@@ -24,6 +24,7 @@ text_icons = {
         "printer": "󰐪",
         "camera": "",
         "speakers": "󰓃",
+        "hyprpicker": "",
     },
     "volume": {
         "overamplified": "󰕾",

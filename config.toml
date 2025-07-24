@@ -1,5 +1,5 @@
 [[module_groups]]
-widgets = [ "quick_settings", "battery" ]
+widgets = [ "hyprpicker", "quick_settings", "battery" ]
 spacing = 4
 style_classes = [ "compact" ]
 
@@ -62,6 +62,10 @@ bar_icons = ["network","audio", "bluetooth","brightness"] # quick setting button
 show_network_name = true
 show_audio_percent = false
 show_brightness_percent = false
+
+[hyprpicker]
+icon_size = 16
+tooltip = true
 
 [theme]
 name = "matugen"
