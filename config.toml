@@ -1,5 +1,5 @@
 [[module_groups]]
-widgets = [ "hyprpicker", "quick_settings", "battery" ]
+widgets = ["quick_settings", "battery" ]
 spacing = 4
 style_classes = [ "compact" ]
 
@@ -7,7 +7,7 @@ style_classes = [ "compact" ]
 start_container = ["app_launcher", "workspaces", "window_title"]
 center_container = ["date_time", "power_profiles"]
 # end_container = ["quick_settings", "battery", "system_tray"]
-end_container = ["@group:0", "system_tray"]
+end_container = ["system_tray", "hyprpicker", "@group:0"]
 
 [general]
 layer = "top"
