@@ -58,7 +58,7 @@ Dependencies:
 - [ ] Screenshots
 - [ ] OCR
 - [ ] OSD
-- [ ] Emoji Picker
+- [x] Emoji Picker
 - [ ] Matugen theme (in progress)
 
 ## Sister Projects
