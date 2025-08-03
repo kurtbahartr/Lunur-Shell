@@ -1,5 +1,5 @@
 [[module_groups]]
-widgets = ["hyprpicker", "emoji_picker" ]
+widgets = ["hyprpicker", "emoji_picker", "cliphist" ]
 spacing = 4
 style_classes = [ "compact" ]
 
@@ -29,6 +29,11 @@ show_descriptions = true
 
 [emoji_picker]
 icon = ""
+label = false
+tooltip = true
+
+[cliphist]
+icon = ""
 label = false
 tooltip = true
 

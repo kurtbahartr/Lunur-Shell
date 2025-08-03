@@ -32,7 +32,7 @@ As of 7/23/25
 
 Dependencies:
 ```
-  yay -S fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp upower gray-git networkmanager bluez bluez-utils tela-circle-icon-theme-standard hyprpicker wl-clipboard noto-fonts-emoji
+  yay -S fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp upower gray-git networkmanager bluez bluez-utils tela-circle-icon-theme-standard hyprpicker wl-clipboard cliphist noto-fonts-emoji
   sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst 
 ```
 
@@ -46,7 +46,7 @@ Dependencies:
 - [x] Battery
 - [ ] Network Manager
 - [ ] Bluetooth Manager
-- [ ] Clipboard Manager
+- [x] Clipboard Manager
 - [x] Power Manager
 - [ ] Power Menu
 - [x] Color Picker

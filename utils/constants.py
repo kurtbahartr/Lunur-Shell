@@ -31,6 +31,11 @@ DEFAULT_CONFIG = {
         "app_icon_size": 48,
         "show_descriptions": False,
     },
+    "cliphist": {
+        "icon": "",
+        "label": False,
+        "tooltip": True,
+    },
     "emoji_picker": {
         "icon": "",
         "label": False,
