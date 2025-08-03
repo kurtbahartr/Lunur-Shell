@@ -127,7 +127,7 @@ class EmojiPickerMenu(Box):
         if query.strip() != "" and self.get_all_emoji_buttons():
             self.update_selection(0)
 
-     def load_page(self, page_index):
+    def load_page(self, page_index):
          self.update_selection(-1)
 
          if page_index in self._page_cache:
