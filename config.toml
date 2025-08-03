@@ -1,4 +1,9 @@
 [[module_groups]]
+widgets = ["hyprpicker", "emoji_picker" ]
+spacing = 4
+style_classes = [ "compact" ]
+
+[[module_groups]]
 widgets = ["quick_settings", "battery" ]
 spacing = 4
 style_classes = [ "compact" ]
@@ -7,7 +12,7 @@ style_classes = [ "compact" ]
 start_container = ["app_launcher", "workspaces", "window_title"]
 center_container = ["date_time", "power_profiles"]
 # end_container = ["quick_settings", "battery", "system_tray"]
-end_container = ["system_tray", "hyprpicker", "@group:0"]
+end_container = ["system_tray", "@group:0","@group:1"]
 
 [general]
 layer = "top"
@@ -21,6 +26,11 @@ location = "top"
 icon_size = 16 # Bar button icon
 app_icon_size = 48 # Size of app icons in launcher
 show_descriptions = true
+
+[emoji_picker]
+icon = ""
+label = false
+tooltip = true
 
 [keybinds]
 enabled = true

@@ -32,6 +32,7 @@ class StatusBar(Window, ToggleableWidget):
             "window_title": "widgets.window_title.WindowTitleWidget",
             "hyprpicker": "widgets.hyprpicker.HyprPickerButton",
             "power_profiles": "widgets.power_profile.PowerProfileButton",
+            "emoji_picker": "widgets.emoji_picker.EmojiPickerWidget",
         }
 
         options = config["general"]

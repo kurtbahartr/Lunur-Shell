@@ -31,6 +31,13 @@ DEFAULT_CONFIG = {
         "app_icon_size": 48,
         "show_descriptions": False,
     },
+    "emoji_picker": {
+        "icon": "",
+        "label": False,
+        "tooltip": True,
+        "per_row": 9,
+        "per_column": 4,
+    },
     "general": {
         "layer": "top",
         "location":"top",

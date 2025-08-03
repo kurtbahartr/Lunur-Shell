@@ -2,6 +2,9 @@ from typing import TypedDict, List, Dict
 
 from .types import Anchor, Layer
 
+# Common configuration fields that will be reused
+BaseConfig = TypedDict("BaseConfig", {"label": bool, "tooltip": bool})
+
 DateTimeMenu = TypedDict(
     "DateTimeMenu",
     {
@@ -139,6 +142,11 @@ Hyprpicker = TypedDict(
         "icon_size": int,
         "tooltip": bool,
     }
+)
+
+EmojiPicker = TypedDict(
+    "emoji_picker",
+    {"icon": str, **BaseConfig.__annotations__, "per_row": int, "per_column": int},
 )
 
 # Theme configuration
