@@ -36,7 +36,7 @@ Dependencies:
   sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst 
 ```
 > [!NOTE]
-> It's required to add python-gobject package to the IgnorePkg variable on /etc/pacman.conf. Failure to do so will crash the shell upon upgrading the said package until the downgrade is performed again.
+> It's required to add `python-gobject` package to the `IgnorePkg` variable on `/etc/pacman.conf`. Failure to do so will crash the shell upon upgrading the said package until the downgrade is performed again.
 
 ## Roadmap
 
