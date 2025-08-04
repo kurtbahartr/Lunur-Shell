@@ -14,7 +14,7 @@ echo "Checking if a supported AUR helper (yay/paru/aura) is installed..."
 if ! command -v yay paru aura > /dev/null; then
   echo "No AUR helper found. Installing yay..."
   cd ~
-  git clone https://aur.archlinux.org/yay yay-aur
+  git clone https://aur.archlinux.org/yay-bin yay-aur
   cd yay-aur
   sudo pacman -S --noconfirm --needed base-devel
   makepkg -siC
