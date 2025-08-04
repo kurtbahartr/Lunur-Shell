@@ -61,6 +61,18 @@ jobs:
         env:
           tag_name: ${{ env.TAG_NAME }}
 
+      - name: Determine whether if we're dealing with a pre-release
+        id: is_prerelease
+        if: ${{ env.NEW_RELEASE == '1' }}
+        run: |
+          if echo "$tag_name" | grep '\-rc\|-b'; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+          fi
+        env:
+          tag_name: ${{ env.TAG_NAME }}
+
       - name: Output release notes
         id: output_release_notes
         if: ${{ env.NEW_RELEASE == '1' }}
@@ -77,6 +89,6 @@ jobs:
           release_name: ${{ env.PROPER_RELEASE_TITLE }} # No "Release" prefix here
           body: ${{ env.RELEASE_NOTES }}
           draft: false
-          prerelease: false
+          prerelease: ${{ env.IS_PRERELEASE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
