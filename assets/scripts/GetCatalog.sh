@@ -5,7 +5,7 @@ VERSION=$(sed 's/^v//' assets/VERSION)
 VERSION_HEADER="Version $VERSION"
 
 # Define the path to the CHANGELOG.md file
-CHANGELOG_FILE="assets/CHANGELOG.mkdn"
+CHANGELOG_FILE="assets/CHANGELOG.md"
 
 # Get the remote origin URL from git
 REMOTE_URL=$(gh repo view -q '.url' --json url)
