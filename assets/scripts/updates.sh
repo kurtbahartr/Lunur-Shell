@@ -12,7 +12,6 @@ REPO_URL="https://github.com/$REPO.git"
 MODE="stable"
 REPO_BRANCH="main"
 
-# Relative path inside Lunur-Shell repo where package lists are stored
 lunur_shell_packages="assets/packages/arch"
 
 REMOTE_PKG_TMPDIR=""
@@ -144,7 +143,6 @@ arch_install_missing_packages_remote() {
                 [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
                 if ! pacman -Q "$pkg" &>/dev/null; then
                     any_missing=1
-                    echo "    → Installing $pkg ($type)..."
                     $pkg_cmd "$pkg"
                 fi
             done < "$full_path"
@@ -209,7 +207,6 @@ apply_updates() {
     fetch_remote_package_list "$target_ref" "$lunur_shell_packages/packages_python.txt" "$REMOTE_PKG_TMPDIR/packages_python.txt"
 
     print_remote_package_check_summary
-
     missing_count=$(count_missing_packages)
 
     if (( system_official_updates > 0 || system_aur_updates > 0 || repo_updates_available == 1 || missing_count > 0 )); then
@@ -230,30 +227,40 @@ apply_updates() {
             echo ""
             echo "Applying updates..."
 
-            arch_apply_system_updates
-
-            # Apply Lunur-Shell update now, after confirmation
-            if [[ "$MODE" == "stable" ]]; then
-                echo "Updating Lunur-Shell to latest stable release..."
-                tmp_dir=$(mktemp -d)
-                curl -sL "https://github.com/$REPO/archive/refs/tags/$target_ref.tar.gz" | tar xz -C "$tmp_dir"
-                rm -rf "$SHELL_DIR"
-                mv "$tmp_dir"/"$REPO"-"$target_ref" "$SHELL_DIR"
-                echo "$target_ref" > "$SHELL_DIR/.latest_release"
+            if (( system_official_updates > 0 || system_aur_updates > 0 )); then
+                arch_apply_system_updates
             else
-                echo "Updating Lunur-Shell rolling branch..."
-                cd "$SHELL_DIR"
-                git reset --hard HEAD
-                git pull origin "$REPO_BRANCH"
+                echo "[System] No system updates to apply."
+                echo ""
+            fi
+
+            if (( repo_updates_available == 1 )); then
+                if [[ "$MODE" == "stable" ]]; then
+                    echo "Updating Lunur-Shell to latest stable release..."
+                    tmp_dir=$(mktemp -d)
+                    curl -sL "https://github.com/$REPO/archive/refs/tags/$target_ref.tar.gz" | tar xz -C "$tmp_dir"
+                    rm -rf "$SHELL_DIR"
+                    mv "$tmp_dir"/"$REPO"-"$target_ref" "$SHELL_DIR"
+                    echo "$target_ref" > "$SHELL_DIR/.latest_release"
+                else
+                    echo "Updating Lunur-Shell rolling branch..."
+                    cd "$SHELL_DIR"
+                    git reset --hard HEAD
+                    git pull origin "$REPO_BRANCH"
+                fi
+            else
+                echo "[Shell] Lunur-Shell is already up to date."
+                echo ""
             fi
 
             if (( missing_count > 0 )); then
                 arch_install_missing_packages_remote
             else
-                echo "No new packages to install."
+                echo "[Packages] No missing packages to install."
+                echo ""
             fi
 
-            echo "All updates applied."
+            echo "All applicable updates have been applied."
             ;;
         *)
             echo "Update canceled by user."
@@ -323,7 +330,6 @@ EOF
 
 USE_NEW_TERMINAL=0
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         stable)
