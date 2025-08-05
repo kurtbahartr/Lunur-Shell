@@ -28,15 +28,45 @@ As of 8/3/25
 > [!NOTE]
 > You need a functioning Hyprland installation.
 
-### Arch Linux
+Clone the repo:
 
-Dependencies:
 ```
-  yay -S fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp upower gray-git networkmanager bluez bluez-utils tela-circle-icon-theme-standard hyprpicker wl-clipboard cliphist noto-fonts-emoji gnome-bluetooth-3.0 python-ijson tela-circle-icon-theme-standard figlet playerctl
+  git clone https://github.com/dianaw353/Lunur-Shell.git ~/.config/Lunur-Shell
+  cd ~/.config/Lunur-Shell/
+```
+### Option 1: Automated Installation
+
+#### Step 1: Run the script
+
+Run the following script
+
+```
+  ./install_requirements.sh
+```
+
+#### Step 2: Run the python program
+
+```
+  python main.py
+```
+
+### Option 2: Manual Installation
+
+#### Step 1: Install Dependencies - Arch Linux
+
+Run the following command to install the required system packages:
+```
+  yay -S --noconfirm --needed fabric-cli-git python-fabric-git dart-sass libnotify python-pyjson5 python-pytomlpp upower gray-git networkmanager bluez bluez-utils tela-circle-icon-theme-standard hyprpicker wl-clipboard cliphist noto-fonts-emoji gnome-bluetooth-3.0 python-ijson tela-circle-icon-theme-standard figlet playerctl
   sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst 
 ```
 > [!NOTE]
 > It's required to add `python-gobject` package to the `IgnorePkg` variable on `/etc/pacman.conf`. Failure to do so will crash the shell upon upgrading the said package until the downgrade is performed again.
+
+#### Step 2: Run the python program
+
+```
+  python main.py
+```
 
 ## Roadmap
 
