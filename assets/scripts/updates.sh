@@ -208,6 +208,7 @@ apply_updates() {
 
     print_remote_package_check_summary
     missing_count=$(count_missing_packages)
+    echo "Number of new packages to install: $missing_count"
 
     if (( system_official_updates > 0 || system_aur_updates > 0 || repo_updates_available == 1 || missing_count > 0 )); then
         updates_available=1
