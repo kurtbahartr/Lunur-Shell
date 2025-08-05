@@ -52,4 +52,7 @@ sudo pacman -S --needed --noconfirm $(cat $SCRIPT_DIR/assets/packages/arch/packa
 echo "Installing requirements listed for AUR using $AUR_HELPER..."
 $AUR_HELPER $AUR_PARAM --needed --noconfirm $(cat $SCRIPT_DIR/assets/packages/arch/packages_aur.txt) $(cat $SCRIPT_DIR/assets/packages/arch/packages_python.txt | sed '/ijson/d' )
 
+echo "Installing python requirements linsted in python using $AUR_HELPER"
+$AUR_HELPER $AUR_PARAM --needed --noconfirm $(cat $SCRIPT_DIR/assets/packages/arch/packages_python.txt) $(cat $SCRIPT_DIR/assets/packages/arch/packages_python.txt | sed '/ijson/d' ) 
+
 echo "All done!"
