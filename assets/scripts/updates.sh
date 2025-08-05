@@ -17,6 +17,9 @@ lunur_shell_packages="assets/packages/arch"
 
 REMOTE_PKG_TMPDIR=""
 
+system_official_updates=0
+system_aur_updates=0
+
 detect_distro() {
     if [[ -f /etc/os-release ]]; then
         source /etc/os-release
@@ -38,15 +41,15 @@ check_arch_updates() {
     echo "Scanning for updates..."
     echo ""
 
-    official=$(checkupdates 2>/dev/null | wc -l)
-    aur=$($aur_helper -Qum 2>/dev/null | wc -l)
+    system_official_updates=$(checkupdates 2>/dev/null | wc -l)
+    system_aur_updates=$($aur_helper -Qum 2>/dev/null | wc -l)
 
     echo ""
-    echo "Official updates available: $official"
-    echo "AUR updates available: $aur"
+    echo "Official updates available: $system_official_updates"
+    echo "AUR updates available: $system_aur_updates"
     echo ""
 
-    total=$((official + aur))
+    local total=$((system_official_updates + system_aur_updates))
     if (( total == 0 )); then
         echo "No updates available."
     else
@@ -118,8 +121,8 @@ count_missing_packages() {
         fi
     done
 
-    echo "Number of new packages to install: $count"
-    return $count
+    echo "$count"
+    return 0
 }
 
 arch_install_missing_packages_remote() {
@@ -162,19 +165,23 @@ arch_install_missing_packages_remote() {
 }
 
 apply_updates() {
+    local updates_available=0
     local target_ref=""
+    local local_version=""
+    local repo_updates_available=0
+
     if [[ "$MODE" == "stable" ]]; then
         echo ""
         echo "Checking for latest stable release..."
         target_ref=$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
         local_version_file=".latest_release"
-        local_version=""
         if [[ -f "$local_version_file" ]]; then
             local_version=$(cat "$local_version_file")
         fi
 
         if [[ "$local_version" != "$target_ref" ]]; then
             echo "New stable release available: $target_ref"
+            repo_updates_available=1
         else
             echo "Already up to date (release $local_version)."
         fi
@@ -182,7 +189,6 @@ apply_updates() {
         target_ref="$REPO_BRANCH"
         echo ""
         echo "Checking rolling branch ($target_ref) for updates..."
-        # Fetch remote info but don't update local repo yet
         git fetch origin "$target_ref"
         LOCAL_HASH=$(git rev-parse HEAD)
         REMOTE_HASH=$(git rev-parse origin/"$target_ref")
@@ -190,13 +196,13 @@ apply_updates() {
             echo "Lunur-Shell is up to date (branch $target_ref)."
         else
             echo "Updates available on branch $target_ref."
+            repo_updates_available=1
         fi
     else
         echo "Invalid mode: $MODE"
         exit 1
     fi
 
-    # Prepare temp dir and fetch remote package lists
     REMOTE_PKG_TMPDIR=$(mktemp -d)
     fetch_remote_package_list "$target_ref" "$lunur_shell_packages/packages_official.txt" "$REMOTE_PKG_TMPDIR/packages_official.txt"
     fetch_remote_package_list "$target_ref" "$lunur_shell_packages/packages_aur.txt" "$REMOTE_PKG_TMPDIR/packages_aur.txt"
@@ -204,8 +210,17 @@ apply_updates() {
 
     print_remote_package_check_summary
 
-    count_missing_packages
-    missing_count=$?
+    missing_count=$(count_missing_packages)
+
+    if (( system_official_updates > 0 || system_aur_updates > 0 || repo_updates_available == 1 || missing_count > 0 )); then
+        updates_available=1
+    fi
+
+    if (( updates_available == 0 )); then
+        echo "No updates available. System packages and/or shell packages are up to date."
+        rm -rf "$REMOTE_PKG_TMPDIR"
+        return 0
+    fi
 
     echo "Would you like to apply these updates? [y/N]"
     read -r -p "> " confirm
