@@ -29,7 +29,7 @@ class MprisWidget(ButtonWidget):
         self.mpris_manager = MprisPlayerManager()
 
         icon_name = icons["mpris"]["music"]
-        self.icon_widget = get_icon(icon_name, size=self.config.get("icon_size", 20))
+        self.icon_widget = get_icon(icon_name, size=self.config.get("icon_size"))
 
         self.label = Label(label="", style_classes="panel-text")
 

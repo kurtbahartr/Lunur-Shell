@@ -148,7 +148,7 @@ Cliphist = TypedDict("Cliphist", {"icon": str, **BaseConfig.__annotations__})
 
 
 # Mpris configuration
-Mpris = TypedDict("Mpris", {**BaseConfig.__annotations__, "transition_duration": int})
+Mpris = TypedDict("Mpris", {**BaseConfig.__annotations__, "transition_duration": int, "icon_size": int})
 
 EmojiPicker = TypedDict(
     "emoji_picker",

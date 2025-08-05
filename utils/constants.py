@@ -37,6 +37,7 @@ DEFAULT_CONFIG = {
         "tooltip": True,
     },
     "mpris": {
+        "icon_size": 16,
         "transition_duration": 300,
         "tooltip": True,
     },
