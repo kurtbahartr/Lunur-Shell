@@ -10,8 +10,8 @@ else
 fi
 
 # Install an AUR helper if there's none installed.
-echo "Checking if a supported AUR helper (yay/paru/aura) is installed..."
-if ! command -v yay paru aura > /dev/null; then
+echo "Checking if a supported AUR helper (yay/paru) is installed..."
+if ! command -v yay paru> /dev/null; then
   echo "No AUR helper found. Installing yay..."
   cd ~
   git clone https://aur.archlinux.org/yay-bin yay-aur
@@ -36,11 +36,6 @@ elif command -v paru > /dev/null; then
   AUR_HELPER="paru"
   echo "paru is known to use -S for AUR packages."
   AUR_PARAM="-S"
-elif command -v aura > /dev/null; then
-  echo "Detected helper: aura"
-  AUR_HELPER="aura"
-  echo "aura is known to use -A for AUR packages."
-  AUR_PARAM="-A"
 fi
 
 # Find where the script is located.
