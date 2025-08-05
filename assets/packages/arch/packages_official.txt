@@ -11,3 +11,4 @@ cliphist
 noto-fonts-emoji
 gnome-bluetooth-3.0
 figlet
+playerctl

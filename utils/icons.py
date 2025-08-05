@@ -216,6 +216,7 @@ icons = {
         "stopped": "media-playback-start-symbolic",
         "prev": "media-skip-backward-symbolic",
         "next": "media-skip-forward-symbolic",
+        "music": "emblem-music-symbolic",
     },
     "system": {
         "cpu": "org.gnome.SystemMonitor-symbolic",

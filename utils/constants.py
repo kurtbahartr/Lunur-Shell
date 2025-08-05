@@ -36,6 +36,10 @@ DEFAULT_CONFIG = {
         "label": False,
         "tooltip": True,
     },
+    "mpris": {
+        "transition_duration": 300,
+        "tooltip": True,
+    },
     "emoji_picker": {
         "icon": "",
         "label": False,

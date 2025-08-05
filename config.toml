@@ -10,7 +10,7 @@ style_classes = [ "compact" ]
 
 [layout]
 start_container = ["app_launcher", "workspaces", "window_title"]
-center_container = ["date_time", "power_profiles"]
+center_container = ["date_time", "power_profiles", "mpris"]
 # end_container = ["quick_settings", "battery", "system_tray"]
 end_container = ["system_tray", "@group:0","@group:1"]
 
@@ -30,6 +30,10 @@ show_descriptions = true
 [emoji_picker]
 icon = ""
 label = false
+tooltip = true
+
+[mpris]
+transition_duration = 300
 tooltip = true
 
 [cliphist]

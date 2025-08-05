@@ -5,3 +5,13 @@ class ExecutableNotFoundError(ImportError):
         super().__init__(
             f"Executable '{executable_name}' not found. Please install it using your package manager."
         )
+
+
+class PlayerctlImportError(ImportError):
+    """An error to raise when playerctl is not installed."""
+
+    def __init__(self, *args):
+        super().__init__(
+            "Playerctl is not installed, please install it first",
+            *args,
+        )

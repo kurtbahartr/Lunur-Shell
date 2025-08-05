@@ -146,6 +146,10 @@ Hyprpicker = TypedDict(
 
 Cliphist = TypedDict("Cliphist", {"icon": str, **BaseConfig.__annotations__})
 
+
+# Mpris configuration
+Mpris = TypedDict("Mpris", {**BaseConfig.__annotations__, "transition_duration": int})
+
 EmojiPicker = TypedDict(
     "emoji_picker",
     {"icon": str, **BaseConfig.__annotations__, "per_row": int, "per_column": int},
@@ -170,3 +174,4 @@ class BarConfig(TypedDict):
     hyprpicker: Hyprpicker
     power_profiles: PowerProfiles
     cliphist: Cliphist
+    mpris: Mpris

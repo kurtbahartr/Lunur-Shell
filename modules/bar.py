@@ -34,6 +34,7 @@ class StatusBar(Window, ToggleableWidget):
             "power_profiles": "widgets.power_profile.PowerProfileButton",
             "emoji_picker": "widgets.emoji_picker.EmojiPickerWidget",
             "cliphist": "widgets.cliphist.ClipHistoryWidget",
+            "mpris": "widgets.mpris.MprisWidget",
         }
 
         options = config["general"]
