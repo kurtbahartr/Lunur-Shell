@@ -170,6 +170,7 @@ class SystemTrayWidget(ButtonWidget):
             content_factory=lambda: self.popup_menu,
             point_to=self,
         )
+        self.popup.connect("popover-closed", self.on_popup_closed)
 
         # Initialize watcher
         self.watcher = Gray.Watcher()
@@ -181,6 +182,13 @@ class SystemTrayWidget(ButtonWidget):
 
         # Connect click handler
         self.connect("clicked", self.handle_click)
+
+    def on_popup_closed(self, *_):
+        self.toggle_icon.set_from_icon_name(
+            icons["ui"]["arrow"]["down"], self.config["icon_size"]
+        )
+        self.toggle_icon.get_style_context().remove_class("active")
+
 
     # show or hide the popup menu
     def handle_click(self, *_):
