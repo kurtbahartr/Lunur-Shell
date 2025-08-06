@@ -235,6 +235,9 @@ apply_updates() {
                 echo ""
             fi
 
+            echo "To safely update the shell it is required to temporarily kill the shell."
+            pkill Lunur-Shell
+             
             if (( repo_updates_available == 1 )); then
                 if [[ "$MODE" == "stable" ]]; then
                     echo "Updating Lunur-Shell to latest stable release..."
