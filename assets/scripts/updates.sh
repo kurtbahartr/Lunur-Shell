@@ -243,7 +243,6 @@ apply_updates() {
                     rm -rf "$SHELL_DIR"
                     mv "$tmp_dir"/"$(echo "$REPO" | sed 's/.*\///')"-"$(echo "$target_ref" | sed 's/^v//')" "$SHELL_DIR"
                     echo "$target_ref" > "$SHELL_DIR/.latest_release"
-                    echo "[Shell] Remember to reload the shell! If you're using Lunur-Dots, the keybind is Super+R."
                 else
                     echo "Updating Lunur-Shell rolling branch..."
                     cd "$SHELL_DIR"
@@ -262,6 +261,7 @@ apply_updates() {
                 echo ""
             fi
 
+            echo "[Shell] Remember to reload the shell! If you're using Lunur-Dots, the keybind is Super+R."
             echo "All applicable updates have been applied."
             ;;
         *)
