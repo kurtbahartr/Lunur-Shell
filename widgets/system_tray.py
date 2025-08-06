@@ -93,14 +93,12 @@ class SystemTrayMenu(Box):
     def add_item(self, item):
         button = self.do_bake_item_button(item)
 
-        # Connect signals
+        # Correctly pass a dict of signals to callbacks, not a set
         bulk_connect(
             item,
             {
-                "removed",
-                lambda *args: button.destroy(),
-                "icon-changed",
-                lambda icon_item: self.do_update_item_button(icon_item, button),
+                "removed": lambda *args: button.destroy(),
+                "icon-changed": lambda icon_item: self.do_update_item_button(icon_item, button),
             },
         )
 
@@ -142,13 +140,15 @@ class SystemTrayMenu(Box):
                 item.context_menu(event.x, event.y)
 
 
+
 class SystemTrayWidget(ButtonWidget):
     """A widget to display the system tray items."""
+
+    MAX_VISIBLE_ICONS = 3
 
     def __init__(self, widget_config: BarConfig, **kwargs):
         super().__init__(widget_config["system_tray"], name="system_tray", **kwargs)
 
-        # Create main tray box and toggle icon
         self.tray_box = Box(
             spacing=4,
             name="system-tray-box",
@@ -160,10 +160,8 @@ class SystemTrayWidget(ButtonWidget):
             style_classes=["panel-icon", "toggle-icon"],
         )
 
-        # Set children directly in Box to avoid double styling
         self.box.children = (self.tray_box, Separator(), self.toggle_icon)
 
-        # Create popup menu for hidden items
         self.popup_menu = SystemTrayMenu(config=self.config)
 
         self.popup = Popover(
@@ -172,15 +170,12 @@ class SystemTrayWidget(ButtonWidget):
         )
         self.popup.connect("popover-closed", self.on_popup_closed)
 
-        # Initialize watcher
         self.watcher = Gray.Watcher()
         self.watcher.connect("item-added", self.on_item_added)
 
-        # Load existing items
         for item_id in self.watcher.get_items():
             self.on_item_added(self.watcher, item_id)
 
-        # Connect click handler
         self.connect("clicked", self.handle_click)
 
     def on_popup_closed(self, *_):
@@ -189,8 +184,6 @@ class SystemTrayWidget(ButtonWidget):
         )
         self.toggle_icon.get_style_context().remove_class("active")
 
-
-    # show or hide the popup menu
     def handle_click(self, *_):
         visible = self.popup.get_visible()
         if visible:
@@ -200,6 +193,9 @@ class SystemTrayWidget(ButtonWidget):
             )
             self.toggle_icon.get_style_context().remove_class("active")
         else:
+            # Refresh popover content to catch new icons
+            self.popup.set_content_factory(lambda: self.popup_menu)
+            self.popup._content = None  # reset cached content
             self.popup.open()
             self.toggle_icon.set_from_icon_name(
                 icons["ui"]["arrow"]["up"], self.config["icon_size"]
@@ -211,46 +207,50 @@ class SystemTrayWidget(ButtonWidget):
         if not item:
             return
 
-        # Get item title for matching
         title = item.get_property("title") or ""
 
-        # Check if item should be ignored completely
         ignored_list = self.config.get("ignored", [])
-
         if any(x.lower() in title.lower() for x in ignored_list):
             return
 
-        # Check if item should be hidden in popover
         hidden_list = self.config.get("hidden", [])
         is_hidden = any(x.lower() in title.lower() for x in hidden_list)
 
-        # Add to appropriate container
         if is_hidden:
             self.popup_menu.add_item(item)
+            self.popup_menu.show_all()
         else:
-            button = HoverButton(
-                style_classes="flat", tooltip_text=title, margin_start=2, margin_end=2
-            )
-            button.connect(
-                "button-press-event",
-                lambda button, event: self.popup_menu.on_button_click(
-                    button, item, event
-                ),
-            )
+            visible_count = len(self.tray_box.get_children())
 
-            pixbuf = resolve_icon(
-                item=item,
-            )
-            button.set_image(Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"]))
+            if visible_count < self.MAX_VISIBLE_ICONS:
+                button = HoverButton(
+                    style_classes="flat",
+                    tooltip_text=title,
+                    margin_start=2,
+                    margin_end=2,
+                )
+                button.connect(
+                    "button-press-event",
+                    lambda button, event: self.popup_menu.on_button_click(
+                        button, item, event
+                    ),
+                )
 
-            # Connect signals
-            item.connect("removed", lambda *args: button.destroy())
-            item.connect(
-                "icon-changed",
-                lambda icon_item: self.popup_menu.do_update_item_button(
-                    icon_item, button
-                ),
-            )
+                pixbuf = resolve_icon(item=item)
+                button.set_image(
+                    Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"])
+                )
 
-            button.show_all()
-            self.tray_box.pack_start(button, False, False, 0)
+                item.connect("removed", lambda *args: button.destroy())
+                item.connect(
+                    "icon-changed",
+                    lambda icon_item: self.popup_menu.do_update_item_button(
+                        icon_item, button
+                    ),
+                )
+
+                button.show_all()
+                self.tray_box.pack_start(button, False, False, 0)
+            else:
+                self.popup_menu.add_item(item)
+                self.popup_menu.show_all()

@@ -4,16 +4,16 @@
 
 /* system tray widget*/
 #system-tray-menu {
-  padding: 0.5em 0.25em;
+  padding: 0.5em 0.35em;
   color: theme.$text-main;
   border-radius: variable.$radius;
-  min-width: 200px;
-  min-height: 50px;
+  min-width: 100px;
+  min-height: 80px;
   background-color: theme.$background-dark;
 
   grid {
     &>button {
-      margin: 0 0.1em;
+      margin: 0.5em 0.5em;
       padding: 0 0.15em;
       border-radius: variable.$radius-large;
 
