@@ -34,6 +34,7 @@ tooltip = true
 
 [mpris]
 icon_size = 16
+slide_direction = "right" # right or left
 transition_duration = 300
 tooltip = true
 

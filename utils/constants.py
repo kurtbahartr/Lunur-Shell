@@ -38,6 +38,7 @@ DEFAULT_CONFIG = {
     },
     "mpris": {
         "icon_size": 16,
+        "slide_direction": "right",
         "transition_duration": 300,
         "tooltip": True,
     },

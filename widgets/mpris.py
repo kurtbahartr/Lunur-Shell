@@ -3,7 +3,6 @@ from gi.repository import GObject, GLib
 from fabric.widgets.label import Label
 from fabric.widgets.box import Box
 from fabric.widgets.revealer import Revealer
-from loguru import logger
 
 from services.mpris import MprisPlayer, MprisPlayerManager
 from shared.widget_container import ButtonWidget
@@ -30,26 +29,38 @@ class MprisWidget(ButtonWidget):
 
         icon_name = icons["mpris"]["music"]
         self.icon_widget = get_icon(icon_name, size=self.config.get("icon_size"))
-
         self.label = Label(label="", style_classes="panel-text")
+
+        # Require explicit valid slide_direction: "left" or "right"
+        direction = self.config.get("slide_direction")
+        if direction == "left":
+            gtk_direction = "slide_left"
+        elif direction == "right":
+            gtk_direction = "slide_right"
+        else:
+            raise ValueError(
+                f"[MPRIS] Invalid or missing 'slide_direction'. Expected 'left' or 'right', got '{direction}'"
+            )
 
         self.revealer = Revealer(
             child=self.label,
             transition_duration=self.config.get("transition_duration"),
-            transition_type="slide_right",
+            transition_type=gtk_direction,
             reveal_child=False,
         )
 
-        self.box.set_spacing(4)
-        self.box.add(self.icon_widget)
-        self.box.add(self.revealer)
+        if direction == "right":
+            self.box.add(self.icon_widget)    # Icon on the left
+            self.box.add(self.revealer)       # Label on the right
+        else:
+            self.box.add(self.revealer)       # Label on the left
+            self.box.add(self.icon_widget)    # Icon on the right
 
         self.icon_widget.show()
         self.label.show()
         self.box.show_all()
 
         self._set_player_from_manager()
-
         GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_players)
 
         self.connect("enter-notify-event", self.on_mouse_enter)
@@ -58,11 +69,9 @@ class MprisWidget(ButtonWidget):
     def _poll_players(self):
         current_players = self.mpris_manager.players
         if not current_players and self.player is not None:
-            logger.info("[MPRIS] No players detected during poll, clearing player.")
             self._clear_player()
         elif current_players:
             if not self.player or self.player._player not in current_players:
-                logger.info("[MPRIS] New player detected during poll, updating player.")
                 self._set_player(MprisPlayer(current_players[0]))
         return True
 
@@ -105,14 +114,14 @@ class MprisWidget(ButtonWidget):
             return
 
         current_title = self.player.title or ""
-        logger.info(f"[MPRIS] Metadata updated, new title: {current_title}")
-
         self.label.set_text(current_title)
         if self.config.get("tooltip"):
             self.set_tooltip_text(current_title)
 
     def on_mouse_enter(self, *_):
         self.revealer.set_reveal_child(True)
+        self.box.set_spacing(4)
 
     def on_mouse_leave(self, *_):
         self.revealer.set_reveal_child(False)
+        self.box.set_spacing(4)
