@@ -61,7 +61,7 @@ def resolve_icon(item, icon_size: int = 16):
 class SystemTrayMenu(Box):
     """A widget to display additional system tray items in a grid."""
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config, refresh_callback=None, **kwargs):
         super().__init__(
             name="system-tray-menu",
             orientation="vertical",
@@ -71,6 +71,7 @@ class SystemTrayMenu(Box):
 
         self.config = config
         self._context_menu_open = False
+        self.refresh_callback = refresh_callback
 
         self.grid = Grid(
             row_spacing=8,
@@ -92,7 +93,7 @@ class SystemTrayMenu(Box):
         bulk_connect(
             item,
             {
-                "removed": lambda *args: button.destroy(),
+                "removed": lambda *args: (button.destroy(), self.refresh_callback() if self.refresh_callback else None),
                 "icon-changed": lambda icon_item: self.do_update_item_button(icon_item, button),
             },
         )
@@ -172,7 +173,7 @@ class SystemTrayWidget(ButtonWidget):
 
         self.box.children = (self.tray_box, Separator(), self.toggle_icon)
 
-        self.popup_menu = SystemTrayMenu(config=self.config)
+        self.popup_menu = SystemTrayMenu(config=self.config, refresh_callback=self.refresh_icons)
         self.popup = Popover(
             content_factory=lambda: self.popup_menu,
             point_to=self,
@@ -200,6 +201,20 @@ class SystemTrayWidget(ButtonWidget):
             self.on_item_added(self.watcher, item_id)
 
         self.connect("clicked", self.handle_click)
+
+    def refresh_icons(self):
+        """Move icons from the popover to the tray if space allows."""
+        tray_children = self.tray_box.get_children()
+        popover_children = list(self.popup_menu.grid.get_children())
+
+        while len(tray_children) < self.MAX_VISIBLE_ICONS and popover_children:
+            widget = popover_children.pop(0)
+            self.popup_menu.grid.remove(widget)
+            self.tray_box.pack_start(widget, False, False, 0)
+            tray_children = self.tray_box.get_children()
+
+        self.tray_box.show_all()
+        self.popup_menu.grid.show_all()
 
     def on_popup_closed(self, *_):
         self.toggle_icon.set_from_icon_name(
@@ -257,7 +272,7 @@ class SystemTrayWidget(ButtonWidget):
             pixbuf = resolve_icon(item=item)
             button.set_image(Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"]))
 
-            item.connect("removed", lambda *args: button.destroy())
+            item.connect("removed", lambda *args: (button.destroy(), self.refresh_icons()))
             item.connect(
                 "icon-changed",
                 lambda icon_item: self.popup_menu.do_update_item_button(icon_item, button),
