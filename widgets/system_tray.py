@@ -1,9 +1,8 @@
 import os
+import types
 
 import gi
-from fabric.utils import (
-    bulk_connect,
-)
+from fabric.utils import bulk_connect
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from gi.repository import Gdk, GdkPixbuf, GLib, Gray, Gtk
@@ -25,7 +24,6 @@ def resolve_icon(item, icon_size: int = 16):
             icon_name = item.get_icon_name()
             icon_theme_path = item.get_icon_theme_path()
 
-            # Use custom theme path if available
             if icon_theme_path:
                 custom_theme = Gtk.IconTheme.new()
                 custom_theme.prepend_search_path(icon_theme_path)
@@ -36,7 +34,6 @@ def resolve_icon(item, icon_size: int = 16):
                         Gtk.IconLookupFlags.FORCE_SIZE,
                     )
                 except GLib.Error:
-                    # Fallback to default theme if custom path fails
                     return Gtk.IconTheme.get_default().load_icon(
                         icon_name,
                         icon_size,
@@ -54,7 +51,6 @@ def resolve_icon(item, icon_size: int = 16):
                         Gtk.IconLookupFlags.FORCE_SIZE,
                     )
     except GLib.Error:
-        # Fallback to 'image-missing' icon
         return Gtk.IconTheme.get_default().load_icon(
             "image-missing",
             icon_size,
@@ -74,8 +70,8 @@ class SystemTrayMenu(Box):
         )
 
         self.config = config
+        self._context_menu_open = False
 
-        # Create a grid for the items
         self.grid = Grid(
             row_spacing=8,
             column_spacing=12,
@@ -93,7 +89,6 @@ class SystemTrayMenu(Box):
     def add_item(self, item):
         button = self.do_bake_item_button(item)
 
-        # Correctly pass a dict of signals to callbacks, not a set
         bulk_connect(
             item,
             {
@@ -111,7 +106,8 @@ class SystemTrayMenu(Box):
 
     def do_bake_item_button(self, item: Gray.Item) -> HoverButton:
         button = HoverButton(
-            style_classes="flat", toottip_text=item.get_property("title")
+            style_classes="flat",
+            tooltip_text=item.get_property("title"),
         )
         button.connect(
             "button-press-event",
@@ -121,15 +117,20 @@ class SystemTrayMenu(Box):
         return button
 
     def do_update_item_button(self, item: Gray.Item, button: HoverButton):
-        pixbuf = resolve_icon(
-            item=item,
-        )
+        pixbuf = resolve_icon(item=item)
         button.set_image(Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"]))
 
     def on_button_click(self, button, item: Gray.Item, event):
         if event.button in (1, 3):
             menu = item.get_property("menu")
             if menu:
+                def on_menu_hide(_):
+                    self._context_menu_open = False
+                    menu.disconnect(on_menu_hide_id)
+
+                on_menu_hide_id = menu.connect("hide", on_menu_hide)
+                self._context_menu_open = True
+
                 menu.popup_at_widget(
                     button,
                     Gdk.Gravity.SOUTH,
@@ -137,8 +138,17 @@ class SystemTrayMenu(Box):
                     event,
                 )
             else:
+                self._context_menu_open = True
                 item.context_menu(event.x, event.y)
 
+                def reset_flag():
+                    self._context_menu_open = False
+                    return False
+
+                GLib.timeout_add(1000, reset_flag)
+
+            return True
+        return False
 
 
 class SystemTrayWidget(ButtonWidget):
@@ -163,12 +173,25 @@ class SystemTrayWidget(ButtonWidget):
         self.box.children = (self.tray_box, Separator(), self.toggle_icon)
 
         self.popup_menu = SystemTrayMenu(config=self.config)
-
         self.popup = Popover(
             content_factory=lambda: self.popup_menu,
             point_to=self,
         )
         self.popup.connect("popover-closed", self.on_popup_closed)
+
+        # Patch popover focus-out to stay open while context menu is active
+        original_focus_out = self.popup._on_popover_focus_out
+
+        def patched_focus_out(self, widget, event):
+            if (
+                self._content
+                and hasattr(self._content, "_context_menu_open")
+                and self._content._context_menu_open
+            ):
+                return True
+            return original_focus_out(widget, event)
+
+        self.popup._on_popover_focus_out = types.MethodType(patched_focus_out, self.popup)
 
         self.watcher = Gray.Watcher()
         self.watcher.connect("item-added", self.on_item_added)
@@ -193,9 +216,8 @@ class SystemTrayWidget(ButtonWidget):
             )
             self.toggle_icon.get_style_context().remove_class("active")
         else:
-            # Refresh popover content to catch new icons
             self.popup.set_content_factory(lambda: self.popup_menu)
-            self.popup._content = None  # reset cached content
+            self.popup._content = None
             self.popup.open()
             self.toggle_icon.set_from_icon_name(
                 icons["ui"]["arrow"]["up"], self.config["icon_size"]
@@ -209,48 +231,40 @@ class SystemTrayWidget(ButtonWidget):
 
         title = item.get_property("title") or ""
 
-        ignored_list = self.config.get("ignored", [])
-        if any(x.lower() in title.lower() for x in ignored_list):
+        ignored = self.config.get("ignored", [])
+        if any(x.lower() in title.lower() for x in ignored):
             return
 
-        hidden_list = self.config.get("hidden", [])
-        is_hidden = any(x.lower() in title.lower() for x in hidden_list)
-
-        if is_hidden:
+        hidden = self.config.get("hidden", [])
+        if any(x.lower() in title.lower() for x in hidden):
             self.popup_menu.add_item(item)
             self.popup_menu.show_all()
+            return
+
+        visible_count = len(self.tray_box.get_children())
+        if visible_count < self.MAX_VISIBLE_ICONS:
+            button = HoverButton(
+                style_classes="flat",
+                tooltip_text=title,
+                margin_start=2,
+                margin_end=2,
+            )
+            button.connect(
+                "button-press-event",
+                lambda button, event: self.popup_menu.on_button_click(button, item, event),
+            )
+
+            pixbuf = resolve_icon(item=item)
+            button.set_image(Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"]))
+
+            item.connect("removed", lambda *args: button.destroy())
+            item.connect(
+                "icon-changed",
+                lambda icon_item: self.popup_menu.do_update_item_button(icon_item, button),
+            )
+
+            button.show_all()
+            self.tray_box.pack_start(button, False, False, 0)
         else:
-            visible_count = len(self.tray_box.get_children())
-
-            if visible_count < self.MAX_VISIBLE_ICONS:
-                button = HoverButton(
-                    style_classes="flat",
-                    tooltip_text=title,
-                    margin_start=2,
-                    margin_end=2,
-                )
-                button.connect(
-                    "button-press-event",
-                    lambda button, event: self.popup_menu.on_button_click(
-                        button, item, event
-                    ),
-                )
-
-                pixbuf = resolve_icon(item=item)
-                button.set_image(
-                    Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"])
-                )
-
-                item.connect("removed", lambda *args: button.destroy())
-                item.connect(
-                    "icon-changed",
-                    lambda icon_item: self.popup_menu.do_update_item_button(
-                        icon_item, button
-                    ),
-                )
-
-                button.show_all()
-                self.tray_box.pack_start(button, False, False, 0)
-            else:
-                self.popup_menu.add_item(item)
-                self.popup_menu.show_all()
+            self.popup_menu.add_item(item)
+            self.popup_menu.show_all()
