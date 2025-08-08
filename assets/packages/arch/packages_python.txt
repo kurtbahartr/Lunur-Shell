@@ -2,3 +2,4 @@ python-fabric-git
 python-pyjson5
 python-pytomlpp
 python-ijson
+python-setproctitle
