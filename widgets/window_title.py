@@ -1,6 +1,6 @@
 import re
 
-from fabric.hyprland.widgets import ActiveWindow
+from fabric.hyprland.widgets import HyprlandActiveWindow
 from fabric.utils import FormattedString, truncate
 from loguru import logger
 
@@ -15,7 +15,7 @@ class WindowTitleWidget(ButtonWidget):
         super().__init__(name="window_title", **kwargs)
 
         # Create an ActiveWindow widget to track the active window
-        self.window = ActiveWindow(
+        self.window = HyprlandActiveWindow(
             name="window",
             formatter=FormattedString(
                 "{ get_title(win_title, win_class) }",

@@ -1,4 +1,4 @@
-from fabric.hyprland.widgets import WorkspaceButton as WsButton, Workspaces
+from fabric.hyprland.widgets import WorkspaceButton as WsButton, HyprlandWorkspaces
 from shared import BoxWidget
 from utils import BarConfig
 from utils.functions import unique_list
@@ -52,7 +52,7 @@ class WorkspacesWidget(BoxWidget):
             if i not in ignored_ws
         ]
 
-        self.workspace = Workspaces(
+        self.workspace = HyprlandWorkspaces(
             name="workspaces",
             spacing=4,
             count=count,
