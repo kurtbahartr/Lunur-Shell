@@ -106,6 +106,13 @@ DEFAULT_CONFIG = {
         "tooltip": True,
         "orientation": "vertical",
         "icon_size": 16,
+        "notifications": {
+            "enabled": True,
+            "full_battery": True,
+            "charging": True,
+            "low_battery": True,
+            "low_threshold": 10,
+        },
     },
     "system_tray": {
         "icon_size": 16,

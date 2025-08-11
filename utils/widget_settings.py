@@ -82,7 +82,16 @@ Battery = TypedDict(
         "full_battery_level": int,
         "hide_label_when_full": bool,
         "icon_size": int,
-        "notifications": Dict,
+        "notifications": TypedDict(
+            "BatteryNotifications",
+            {
+                "enabled": bool,
+                "full_battery": bool,
+                "charging": bool,
+                "low_battery": bool,
+                "low_threshold": int,
+            },
+        ),
     },
 )
 
