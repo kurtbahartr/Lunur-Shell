@@ -189,7 +189,7 @@ class NotificationWidget(EventBox):
                 warp=True,
                 warp_mode="word",
                 chars_width=20,
-                max_chars_width=45,
+                max_chars_width=40,
                 ellipsization="end",
             ),
         )
