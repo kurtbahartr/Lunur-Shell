@@ -1,5 +1,5 @@
 import os
-import pyjson5 as json
+import json
 import pytomlpp
 from fabric.utils import get_relative_path
 from loguru import logger
@@ -33,13 +33,13 @@ class LunurShellConfig:
     @ttl_lru_cache(600, 10)
     def read_config_json(self) -> dict:
         logger.info(f"[Config] Reading JSON from {self.json_config}")
-        with open(self.json_config) as file:
+        with open(self.json_config, "r", encoding="utf-8") as file:
             return json.load(file)
 
     @ttl_lru_cache(600, 10)
     def read_config_toml(self) -> dict:
         logger.info(f"[Config] Reading TOML from {self.toml_config}")
-        with open(self.toml_config) as file:
+        with open(self.toml_config, "r", encoding="utf-8") as file:
             return pytomlpp.load(file)
 
     def default_config(self) -> BarConfig:
@@ -65,4 +65,3 @@ class LunurShellConfig:
 
 configuration = LunurShellConfig.get_default()
 widget_config = configuration.config
-
