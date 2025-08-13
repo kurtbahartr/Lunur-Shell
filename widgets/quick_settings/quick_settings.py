@@ -147,13 +147,15 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.update_network_icon()
 
     def update_network_icon(self):
-        device_type = self.network.primary_device
+        wifi_device = self.network.wifi_device
+        eth_device = self.network.ethernet_device
 
-        if device_type == "wifi" and self.network.wifi_device:
-            icon_name = self.network.wifi_device.get_icon_name()
-            ssid = self.network.wifi_device.get_ssid() if self.show_network_name else None
-        elif device_type == "ethernet" and self.network.ethernet_device:
-            icon_name = self.network.ethernet_device.get_icon_name()
+        if wifi_device and getattr(wifi_device, "state", "") in ("connected", "activated"):
+            icon_name = wifi_device.get_icon_name()
+            ssid = wifi_device.get_ssid() if self.show_network_name else None
+        # Check Ethernet next
+        elif eth_device and getattr(eth_device, "state", "") in ("connected", "activated"):
+            icon_name = eth_device.get_icon_name()
             ssid = None
         else:
             icon_name = icons["network"]["wifi"]["disconnected"]
