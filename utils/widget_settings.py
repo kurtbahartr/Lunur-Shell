@@ -166,6 +166,20 @@ EmojiPicker = TypedDict(
 
 # Theme configuration
 Theme = TypedDict("Theme", {"name": str})
+
+
+# Collapsible group
+CollapsibleGroup = TypedDict(
+    "CollapsibleGroup",
+    {
+        "widgets": List[str],
+        "spacing": int,
+        "style_classes": List[str],
+        "collapsed_icon": str,
+        "slide_direction": str,
+        "transition_duration": int,
+    },
+)
     
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
@@ -184,3 +198,4 @@ class BarConfig(TypedDict):
     power_profiles: PowerProfiles
     cliphist: Cliphist
     mpris: Mpris
+    collapsible_groups: List[CollapsibleGroup]

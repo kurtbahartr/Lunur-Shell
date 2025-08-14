@@ -4,6 +4,7 @@ from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.wayland import WaylandWindow as Window
 
 from shared import ToggleableWidget, ModuleGroup
+from shared.collapsible_groups import CollapsibleGroups
 from utils import HyprlandWithMonitors
 from utils.functions import run_in_thread
 from utils.widget_utils import lazy_load_widget
@@ -148,24 +149,54 @@ class StatusBar(Window, ToggleableWidget):
 
         for section in new_layout:
             for widget_name in layout[section]:
+                # Module group
                 if widget_name.startswith("@group:"):
-                    group_name = widget_name[len("@group:") :]
+                    group_idx = widget_name[len("@group:") :]
                     group_config = None
-
-                    if group_name.isdigit():
-                        idx = int(group_name)
+                    if group_idx.isdigit():
+                        idx = int(group_idx)
                         groups = widget_config.get("module_groups", [])
-                        if isinstance(groups, list) and 0 <= idx < len(groups):
+                        if 0 <= idx < len(groups):
                             group_config = groups[idx]
 
                     if group_config:
                         group = ModuleGroup.from_config(
-                            group_config,
-                            self.widgets_list,
-                            bar=self,
-                            widget_config=widget_config,
+                            group_config, self.widgets_list, bar=self, widget_config=widget_config
                         )
                         new_layout[section].append(group)
+
+                # Collapsible group
+                elif widget_name.startswith("@collapsible_group:"):
+                    group_idx = widget_name[len("@collapsible_group:") :]
+                    group_config = None
+                    if group_idx.isdigit():
+                        idx = int(group_idx)
+                        groups = widget_config.get("collapsible_groups", [])
+                        if 0 <= idx < len(groups):
+                            group_config = groups[idx]
+
+                    if group_config:
+                        child_widgets = []
+                        for wname in group_config.get("widgets", []):
+                            if wname in self.widgets_list:
+                                cls = lazy_load_widget(wname, self.widgets_list)
+                                try:
+                                    child = cls(widget_config)
+                                except TypeError:
+                                    child = cls()
+                                child_widgets.append(child)
+
+                        collapsible = CollapsibleGroups(
+                            collapsed_icon=group_config.get("collapsed_icon"),
+                            child_widgets=child_widgets,
+                            slide_direction=group_config.get("slide_direction"),
+                            transition_duration=group_config.get("transition_duration"),
+                            spacing=group_config.get("spacing"),
+                            tooltip=group_config.get("tooltip"),
+                            icon_size=group_config.get("icon_size"),
+                        )
+                        new_layout[section].append(collapsible)
+                        
                 else:
                     if widget_name in self.widgets_list:
                         widget_class = lazy_load_widget(widget_name, self.widgets_list)

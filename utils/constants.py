@@ -57,11 +57,14 @@ DEFAULT_CONFIG = {
         "enabled": False,
         "size": 20,
     },
-    "module_groups": [
+    "collapsible_groups": [
         {
-            "widgets": ["hyprpicker", "quick_settings", "battery"],
+            "widgets": ["hyprpicker", "emoji_picker", "cliphist"],
             "spacing": 4,
-            "style_classes": ["bordered"],
+            "style_classes": ["compact"],
+            "collapsed_icon": "",
+            "slide_direction": "left",
+            "transition_duration": 300,
         },
     ],
     "layout": {

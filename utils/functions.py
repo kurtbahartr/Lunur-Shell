@@ -66,8 +66,14 @@ def send_notification(
     return True
 
 # Merge the parsed data with the default configuration
-def merge_defaults(data: dict, defaults: dict):
-    return {**defaults, **data}
+def merge_defaults(data, defaults):
+    if isinstance(defaults, dict) and isinstance(data, dict):
+        return {**defaults, **data}
+    elif isinstance(defaults, list) and isinstance(data, list):
+        return data if data else defaults
+    else:
+        return data if data is not None else defaults
+
 
 @run_in_thread
 def copy_theme(theme: str):
@@ -93,52 +99,67 @@ def copy_theme(theme: str):
 def validate_widgets(parsed_data, default_config):
     """Validates the widgets defined in the layout configuration.
 
+    Supports regular widgets, module groups (@group:X), and collapsible groups (@collapsible_group:X).
+
     Args:
         parsed_data (dict): The parsed configuration data
         default_config (dict): The default configuration data
 
     Raises:
-        ValueError: If an invalid widget is found in the layout
+        ValueError: If an invalid widget or group reference is found in the layout
     """
     layout = parsed_data["layout"]
+
     for section in layout:
         for widget in layout[section]:
+            # Module groups
             if widget.startswith("@group:"):
-                # Handle module groups
                 group_idx = widget.replace("@group:", "", 1)
                 if not group_idx.isdigit():
                     raise ValueError(
-                        "Invalid module group index "
-                        f"'{group_idx}' in section {section}. Must be a number."
+                        f"Invalid module group index '{group_idx}' in section {section}. Must be a number."
                     )
                 idx = int(group_idx)
                 groups = parsed_data.get("module_groups", [])
                 if not isinstance(groups, list):
-                    raise ValueError(
-                        "module_groups must be an array when using @group references"
-                    )
+                    raise ValueError("module_groups must be a list when using @group references")
                 if not (0 <= idx < len(groups)):
-                    raise ValueError(
-                        "Module group index "
-                        f"{idx} is out of range. Available indices: 0-{len(groups) - 1}"
-                    )
-                # Validate widgets inside the group
+                    raise ValueError(f"Module group index {idx} is out of range. Available indices: 0-{len(groups)-1}")
                 group = groups[idx]
                 if not isinstance(group, dict) or "widgets" not in group:
-                    raise ValueError(
-                        f"Invalid module group at index {idx}. "
-                        "Must be an object with 'widgets' array."
-                    )
+                    raise ValueError(f"Invalid module group at index {idx}. Must be a dict with 'widgets' array.")
                 for group_widget in group["widgets"]:
                     if group_widget not in default_config:
                         raise ValueError(
-                            f"Invalid widget '{group_widget}' found in "
-                            f"module group {idx}. Please check the widget name."
+                            f"Invalid widget '{group_widget}' found in module group {idx}. Please check the widget name."
                         )
+
+            # Collapsible groups
+            elif widget.startswith("@collapsible_group:"):
+                group_idx = widget.replace("@collapsible_group:", "", 1)
+                if not group_idx.isdigit():
+                    raise ValueError(
+                        f"Invalid collapsible group index '{group_idx}' in section {section}. Must be a number."
+                    )
+                idx = int(group_idx)
+                groups = parsed_data.get("collapsible_groups", [])
+                if not isinstance(groups, list):
+                    raise ValueError("collapsible_groups must be a list when using @collapsible_group references")
+                if not (0 <= idx < len(groups)):
+                    raise ValueError(f"Collapsible group index {idx} is out of range. Available indices: 0-{len(groups)-1}")
+                group = groups[idx]
+                if not isinstance(group, dict) or "widgets" not in group:
+                    raise ValueError(f"Invalid collapsible group at index {idx}. Must be a dict with 'widgets' array.")
+                for group_widget in group["widgets"]:
+                    if group_widget not in default_config:
+                        raise ValueError(
+                            f"Invalid widget '{group_widget}' found in collapsible group {idx}. Please check the widget name."
+                        )
+
+            # Regular widgets
             elif widget not in default_config:
                 raise ValueError(
-                    f"Invalid widget '{widget}' found in section {section}. "
-                    "Please check the widget name."
+                    f"Invalid widget '{widget}' found in section {section}. Please check the widget name."
                 )
 
 @ttl_lru_cache(600, 10)
