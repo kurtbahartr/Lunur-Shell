@@ -6,6 +6,13 @@ collapsed_icon = ""
 slide_direction = "left"    # "left" or "right"
 transition_duration = 300
 
+[[collapsible_groups]]
+widgets = ["sleep", "reboot", "logout", "shutdown"]
+spacing = 4
+style_classes = ["compact"]
+collapsed_icon = "󰐥"
+slide_direction = "left"    # "left" or "right"
+transition_duration = 300
 
 [[module_groups]]
 widgets = ["quick_settings", "battery" ]
@@ -16,7 +23,7 @@ style_classes = [ "compact" ]
 start_container = ["app_launcher", "workspaces", "window_title"]
 center_container = ["date_time", "power_profiles", "mpris"]
 # end_container = ["quick_settings", "battery", "system_tray"]
-end_container = ["system_tray", "@collapsible_group:0","@group:0"]
+end_container = ["system_tray", "@collapsible_group:0","@group:0", "@collapsible_group:1"]
 
 [general]
 layer = "top"

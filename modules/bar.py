@@ -36,6 +36,10 @@ class StatusBar(Window, ToggleableWidget):
             "emoji_picker": "widgets.emoji_picker.EmojiPickerWidget",
             "cliphist": "widgets.cliphist.ClipHistoryWidget",
             "mpris": "widgets.mpris.MprisWidget",
+            "sleep": "widgets.power_menu.SleepWidget",
+            "reboot": "widgets.power_menu.RebootWidget",
+            "logout": "widgets.power_menu.LogoutWidget",
+            "shutdown": "widgets.power_menu.ShutdownWidget",
         }
 
         options = config["general"]

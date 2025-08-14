@@ -13,6 +13,22 @@ DEFAULT_CONFIG = {
         "clock_format": "24h",
         "format": "%b %d", 
     },
+    "sleep": {
+        "label": False,
+        "tooltip": True
+    },
+    "reboot": {
+        "label": False,
+        "tooltip": True
+    },
+    "logout": {
+        "label": False,
+        "tooltip": True
+    },
+    "shutdown": {
+        "label": False,
+        "tooltip": True
+    },
     "quick_settings": {
         "icon_size": "16",
         "ignored": [],
@@ -70,7 +86,7 @@ DEFAULT_CONFIG = {
     "layout": {
         "left_section": ["app_launcher", "workspaces"],
         "middle_section": ["date_time", "power_profiles"],
-        "right_section": ["@group:0", "system_tray"],
+        "right_section": ["@group:0", "system_tray", "sleep", "reboot", "logout", "shutdown"],
     },
     "window_title": {
         "icon": True,

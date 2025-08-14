@@ -180,6 +180,12 @@ CollapsibleGroup = TypedDict(
         "transition_duration": int,
     },
 )
+
+# Power menu buttons
+Sleep = TypedDict("SleepButtonConfig", {**BaseConfig.__annotations__})
+Reboot = TypedDict("RebootButtonConfig", {**BaseConfig.__annotations__})
+Logout = TypedDict("LogoutButtonConfig", {**BaseConfig.__annotations__})
+Shutdown = TypedDict("ShutdownButtonConfig", {**BaseConfig.__annotations__})
     
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
@@ -199,3 +205,7 @@ class BarConfig(TypedDict):
     cliphist: Cliphist
     mpris: Mpris
     collapsible_groups: List[CollapsibleGroup]
+    sleep: Sleep
+    reboot: Reboot
+    logout: Logout
+    shutdown: Shutdown
