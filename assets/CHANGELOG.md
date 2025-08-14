@@ -1,3 +1,10 @@
+Version 0.2.1
+https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.2.0
+-----------------------------------------------------------------------
+
+# Fixes
+- Make buttons inside collapsible group able to preform their action
+
 Version 0.2.0
 https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.2.0
 -----------------------------------------------------------------------
