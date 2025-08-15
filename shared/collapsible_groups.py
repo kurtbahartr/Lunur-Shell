@@ -3,6 +3,7 @@ from fabric.widgets.revealer import Revealer
 from shared.widget_container import EventBoxWidget
 from utils.widget_utils import text_icon
 
+
 class CollapsibleGroups(EventBoxWidget):
     """A collapsible group with child widgets that reveal on hover and respond to clicks."""
 
@@ -18,6 +19,9 @@ class CollapsibleGroups(EventBoxWidget):
         **kwargs
     ):
         super().__init__(tooltip=tooltip or "", **kwargs)
+
+        self.slide_direction = slide_direction
+        self.transition_duration = transition_duration
 
         # Create the collapsed icon manually
         self.icon_widget = text_icon(collapsed_icon, {"size": icon_size})
@@ -52,25 +56,37 @@ class CollapsibleGroups(EventBoxWidget):
         self.box.show_all()
 
         # Mouse hover events to trigger reveal
-        self.connect("enter-notify-event", lambda *_: self.revealer.set_reveal_child(True))
+        self.connect("enter-notify-event", lambda *_: self.set_expanded(True))
         self.connect("leave-notify-event", self.on_leave)
 
         # Handle click event to toggle the visibility of child widgets
         self.connect("button-press-event", self.on_click)
 
+    def set_expanded(self, expanded: bool):
+        """Reveal or hide child widgets and adjust spacing."""
+        if expanded:
+            if self.slide_direction == "right":
+                self.revealer.set_margin_start(16)
+                self.revealer.set_margin_end(0)
+            else:
+                self.revealer.set_margin_start(0)
+                self.revealer.set_margin_end(16)
+        else:
+            # Remove spacing immediately for smoother collapse
+            self.revealer.set_margin_start(0)
+            self.revealer.set_margin_end(0)
+
+        self.revealer.set_reveal_child(expanded)
+
     def on_leave(self, widget, event):
         """Don't hide the revealer immediately when the mouse leaves."""
-        # Get the allocation (bounding box) of the revealer
         allocation = self.revealer.get_allocation()
 
-        # Check if the mouse is inside the revealed area using manual bounds checking
         if not (allocation.x <= event.x <= allocation.x + allocation.width and
                 allocation.y <= event.y <= allocation.y + allocation.height):
-            self.revealer.set_reveal_child(False)
+            self.set_expanded(False)
 
     def on_click(self, widget, event):
         """Handle the click event to toggle the visibility of the child widgets."""
         if event.button == 1:  # Left-click (button 1)
-            # Toggle the revealed state of the child widgets
-            self.revealer.set_reveal_child(not self.revealer.get_reveal_child())
-
+            self.set_expanded(not self.revealer.get_reveal_child())
