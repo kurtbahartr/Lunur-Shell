@@ -8,6 +8,8 @@ from .thread import run_in_thread
 from fabric.utils import (
     cooldown,
     get_relative_path,
+    exec_shell_command,
+    exec_shell_command_async,
 )
 import time
 from typing import Dict, List, Literal, Optional
@@ -201,6 +203,14 @@ def ensure_file(path: str) -> None:
     except GLib.Error as e:
         print(f"Failed to ensure file '{path}': {e.message}")
 
+
+## Function to execute a shell command asynchronously
+def kill_process(process_name: str):
+    exec_shell_command_async(f"pkill {process_name}", lambda *_: None)
+
+# Function to check if an app is running
+def is_app_running(app_name: str) -> bool:
+    return len(exec_shell_command(f"pidof {app_name}")) != 0
 
 # Function to ensure the directory exists
 

@@ -1,5 +1,5 @@
 [[collapsible_groups]]
-widgets = ["hyprpicker", "emoji_picker", "cliphist"]
+widgets = ["hyprpicker", "emoji_picker", "screenshot", "recorder", "cliphist"]
 spacing = 4
 style_classes = ["compact"]
 collapsed_icon = ""
@@ -37,6 +37,21 @@ location = "top"
 icon_size = 16 # Bar button icon
 app_icon_size = 48 # Size of app icons in launcher
 show_descriptions = true
+
+[screenshot]
+path = "Pictures/Screenshots"
+icon = "󰄀"
+icon_size = 16
+label = false
+tooltip = true
+annotation = true
+# capture_sound = true
+
+[recorder]
+path = "Videos/Screencasting"
+audio = true
+icon_size = 16
+tooltip = true
 
 [emoji_picker]
 icon = ""

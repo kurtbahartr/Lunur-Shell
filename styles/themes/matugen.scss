@@ -1,30 +1,30 @@
 /* ---------------------------- */
 /* Base Colors                  */
 /* ---------------------------- */
-$background: #121318; // Main background
-$background-alt: #1a1b20; // Secondary background
-$background-dark: #0c0e13; // Darkest background
+$background: #1a110f; // Main background
+$background-alt: #231917; // Secondary background
+$background-dark: #140c0a; // Darkest background
 
 /* Text Colors */
-$text-main: #e2e2e9; // Primary text color
-$text-secondary: #c5c6d0; // Secondary text color
-$text-muted: #44474f; // Tertiary text, muted
+$text-main: #f1dfda; // Primary text color
+$text-secondary: #d8c2bb; // Secondary text color
+$text-muted: #53433f; // Tertiary text, muted
 
 /* Surface Colors */
-$surface-disabled: #44474f; // Background for disabled items
-$surface-neutral: #121318; // Neutral surface for cards, panels
-$surface-highlight: #38393e; // Selection and highlights
+$surface-disabled: #53433f; // Background for disabled items
+$surface-neutral: #1a110f; // Neutral surface for cards, panels
+$surface-highlight: #423733; // Selection and highlights
 
 /* Accent Colors */
-$primary: #afc6ff;
+$primary: #ffb59d;
 $error: #ffb4ab;
 
 /* Overlay Colors */
-$text-disabled: #c5c6d0; // Text for disabled elements
-$text-muted-light: #44474f; // Light-muted text for hints
-$text-muted-dark: #8f9099; // Dark-muted text
+$text-disabled: #d8c2bb; // Text for disabled elements
+$text-muted-light: #53433f; // Light-muted text for hints
+$text-muted-dark: #a08d87; // Dark-muted text
 
-$bar-background: rgba(30, 31, 37, 35);
-$shadow-color: rgba(30, 31, 37, 0.5);
+$bar-background: rgba(39, 29, 27, 35);
+$shadow-color: rgba(39, 29, 27, 0.5);
 
 

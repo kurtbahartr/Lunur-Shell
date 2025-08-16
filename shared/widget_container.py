@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.eventbox import EventBox
@@ -19,6 +21,26 @@ class ToggleableWidget(Widget):
         else:
             self.show()
 
+class BaseWidget(Widget):
+    """A base widget class that can be extended for custom widgets."""
+
+    """A widget that can be toggled on and off."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def toggle(self):
+        """Toggle the visibility of the bar."""
+        if self.is_visible():
+            self.hide()
+        else:
+            self.show()
+
+    def set_has_class(self, class_name: str | Iterable[str], condition: bool):
+        if condition:
+            self.add_style_class(class_name)
+        else:
+            self.remove_style_class(class_name)
 
 class BoxWidget(Box, ToggleableWidget):
     """A container for box widgets."""

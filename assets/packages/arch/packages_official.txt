@@ -13,3 +13,6 @@ gnome-bluetooth-3.0
 figlet
 playerctl
 power-profiles-daemon
+swappy
+wf-recorder
+slurp

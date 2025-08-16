@@ -56,7 +56,7 @@ Run the following script
 
 Run the following command to install the required system packages:
 ```
-  yay -S --noconfirm --needed fabric-cli-git python-fabric-git dart-sass libnotify python-pytomlpp upower gray-git networkmanager bluez bluez-utils tela-circle-icon-theme-standard hyprpicker wl-clipboard cliphist noto-fonts-emoji gnome-bluetooth-3.0 python-ijson tela-circle-icon-theme-standard figlet playerctl
+  yay -S --noconfirm --needed fabric-cli-git python-fabric-git dart-sass libnotify python-pytomlpp upower gray-git networkmanager bluez bluez-utils tela-circle-icon-theme-standard hyprpicker wl-clipboard cliphist noto-fonts-emoji gnome-bluetooth-3.0 python-ijson tela-circle-icon-theme-standard figlet playerctl grimblast-git swappy wf-recorder slurp python-rlottie-python
   sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst 
 ```
 > [!NOTE]
@@ -86,8 +86,8 @@ Run the following command to install the required system packages:
 - [x] Notifications
 - [x] System Tray
 - [x] Keybind Cheat Sheet
-- [ ] Screen Recorder
-- [ ] Screenshots
+- [x] Screen Recorder (basic)
+- [x] Screenshots (basic)
 - [ ] OCR
 - [ ] OSD
 - [x] Emoji Picker

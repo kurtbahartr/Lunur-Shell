@@ -40,6 +40,8 @@ class StatusBar(Window, ToggleableWidget):
             "reboot": "widgets.power_menu.RebootWidget",
             "logout": "widgets.power_menu.LogoutWidget",
             "shutdown": "widgets.power_menu.ShutdownWidget",
+            "screenshot": "widgets.screenshot.ScreenShotWidget",
+            "recorder": "widgets.recorder.RecorderWidget",
         }
 
         options = config["general"]

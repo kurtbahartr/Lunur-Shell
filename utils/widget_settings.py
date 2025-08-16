@@ -186,6 +186,23 @@ Sleep = TypedDict("SleepButtonConfig", {**BaseConfig.__annotations__})
 Reboot = TypedDict("RebootButtonConfig", {**BaseConfig.__annotations__})
 Logout = TypedDict("LogoutButtonConfig", {**BaseConfig.__annotations__})
 Shutdown = TypedDict("ShutdownButtonConfig", {**BaseConfig.__annotations__})
+
+# Recording configuration
+Recording = TypedDict(
+    "Recording", {"path": str, "icon_size": int, "tooltip": bool, "audio": bool}
+)
+
+Screenshot = TypedDict(
+    "Screenshot",
+    {
+        "icon": str,
+        "path": str,
+        **BaseConfig.__annotations__,
+        "annotation": bool,
+        # "capture_sound": bool,
+    }
+)
+
     
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
@@ -209,3 +226,5 @@ class BarConfig(TypedDict):
     reboot: Reboot
     logout: Logout
     shutdown: Shutdown
+    screenshot: Screenshot
+    recorder: Recording

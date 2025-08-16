@@ -13,6 +13,20 @@ DEFAULT_CONFIG = {
         "clock_format": "24h",
         "format": "%b %d", 
     },
+    "screenshot": {
+        "path": "Pictures/Screenshots",
+        "icon": "󰕸"
+        "icon_size": 16,
+        "label": False,
+        "tooltip": True,
+        "annotation": True,
+    },
+    "recorder": {
+        "path": "Videos/Screencasting",
+        "audio": True,
+        "icon_size": 16,
+        "tooltip": True,
+    },
     "sleep": {
         "label": False,
         "tooltip": True

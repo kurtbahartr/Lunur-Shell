@@ -70,6 +70,7 @@ text_icons = {
         "openbsd": "",
         "slackware": "",
     },
+    "recorder": "󰻂"
 }
 
 icons = {
