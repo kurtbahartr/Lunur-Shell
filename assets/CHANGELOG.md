@@ -1,5 +1,17 @@
+Version 0.3.0
+https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.3.0
+-----------------------------------------------------------------------
+
+# Features
+- Add Power menu options
+- Add screenshot widget
+- Add recorder widget
+
+# Misc
+- collapsible group style improvements
+
 Version 0.2.1
-https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.2.0
+https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.2.1
 -----------------------------------------------------------------------
 
 # Fixes
