@@ -15,7 +15,7 @@ DEFAULT_CONFIG = {
     },
     "screenshot": {
         "path": "Pictures/Screenshots",
-        "icon": "󰕸"
+        "icon": "󰕸",
         "icon_size": 16,
         "label": False,
         "tooltip": True,
