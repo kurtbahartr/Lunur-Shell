@@ -80,7 +80,7 @@ Run the following command to install the required system packages:
 - [ ] Bluetooth Manager
 - [x] Clipboard Manager
 - [x] Power Manager
-- [ ] Power Menu
+- [x] Power Menu
 - [x] Color Picker
 - [ ] QuickSettings (in progress)
 - [x] Notifications
