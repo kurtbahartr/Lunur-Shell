@@ -96,16 +96,7 @@ Battery = TypedDict(
 )
 
 # SystemTray configuration
-SystemTray = TypedDict(
-    "SystemTray",
-    {
-        "icon_size": int,
-        "ignored": List[str],
-        "pinned": List[str],
-        "hidden": List[str],
-        "visible_count": int,
-    },
-)
+SystemTray = TypedDict("SystemTray", {**BaseConfig.__annotations__, "transition_duration": int, "icon_size": int, "slide_direction": str})
 
 # Quick Settings
 QuickSettings = TypedDict(

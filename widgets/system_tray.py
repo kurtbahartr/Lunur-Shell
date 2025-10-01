@@ -1,13 +1,11 @@
 import os
-import types
-
 import gi
-from fabric.utils import bulk_connect
+from gi.repository import Gdk, GdkPixbuf, GLib, Gray, Gtk
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
-from gi.repository import Gdk, GdkPixbuf, GLib, Gray, Gtk
-
-from shared import ButtonWidget, Grid, HoverButton, Popover, Separator
+from fabric.widgets.revealer import Revealer
+from shared.widget_container import EventBoxWidget
+from shared import HoverButton
 from utils import BarConfig
 from utils.icons import icons
 
@@ -15,271 +13,157 @@ gi.require_version("Gray", "0.1")
 
 
 def resolve_icon(item, icon_size: int = 16):
-    pixmap = Gray.get_pixmap_for_pixmaps(item.get_icon_pixmaps(), icon_size)
-
     try:
-        if pixmap is not None:
+        pixmap = Gray.get_pixmap_for_pixmaps(item.get_icon_pixmaps(), icon_size)
+        if pixmap:
             return pixmap.as_pixbuf(icon_size, GdkPixbuf.InterpType.HYPER)
-        else:
-            icon_name = item.get_icon_name()
-            icon_theme_path = item.get_icon_theme_path()
 
-            if icon_theme_path:
-                custom_theme = Gtk.IconTheme.new()
-                custom_theme.prepend_search_path(icon_theme_path)
-                try:
-                    return custom_theme.load_icon(
-                        icon_name,
-                        icon_size,
-                        Gtk.IconLookupFlags.FORCE_SIZE,
-                    )
-                except GLib.Error:
-                    return Gtk.IconTheme.get_default().load_icon(
-                        icon_name,
-                        icon_size,
-                        Gtk.IconLookupFlags.FORCE_SIZE,
-                    )
-            else:
-                if os.path.exists(icon_name):  # for some apps, the icon_name is a path
-                    return GdkPixbuf.Pixbuf.new_from_file_at_size(
-                        icon_name, width=icon_size, height=icon_size
-                    )
-                else:
-                    return Gtk.IconTheme.get_default().load_icon(
-                        icon_name,
-                        icon_size,
-                        Gtk.IconLookupFlags.FORCE_SIZE,
-                    )
-    except GLib.Error:
+        icon_name = item.get_icon_name()
+        icon_theme_path = item.get_icon_theme_path()
+
+        if icon_theme_path:
+            theme = Gtk.IconTheme.new()
+            theme.prepend_search_path(icon_theme_path)
+            try:
+                return theme.load_icon(icon_name, icon_size, Gtk.IconLookupFlags.FORCE_SIZE)
+            except GLib.Error:
+                pass
+
+        if os.path.exists(icon_name):
+            return GdkPixbuf.Pixbuf.new_from_file_at_size(icon_name, icon_size, icon_size)
+
+        return Gtk.IconTheme.get_default().load_icon(icon_name, icon_size, Gtk.IconLookupFlags.FORCE_SIZE)
+    except Exception:
         return Gtk.IconTheme.get_default().load_icon(
-            "image-missing",
-            icon_size,
-            Gtk.IconLookupFlags.FORCE_SIZE,
+            "image-missing", icon_size, Gtk.IconLookupFlags.FORCE_SIZE
         )
 
 
-class SystemTrayMenu(Box):
-    """A widget to display additional system tray items in a grid."""
-
-    def __init__(self, config, refresh_callback=None, **kwargs):
-        super().__init__(
-            name="system-tray-menu",
-            orientation="vertical",
-            style_classes=["panel-menu"],
-            **kwargs,
-        )
-
-        self.config = config
-        self._context_menu_open = False
-        self.refresh_callback = refresh_callback
-
-        self.grid = Grid(
-            row_spacing=8,
-            column_spacing=12,
-            margin_top=6,
-            margin_bottom=6,
-            margin_start=12,
-            margin_end=12,
-        )
-        self.add(self.grid)
-
-        self.row = 0
-        self.column = 0
-        self.max_columns = 3
-
-    def add_item(self, item):
-        button = self.do_bake_item_button(item)
-
-        bulk_connect(
-            item,
-            {
-                "removed": lambda *args: (button.destroy(), self.refresh_callback() if self.refresh_callback else None),
-                "icon-changed": lambda icon_item: self.do_update_item_button(icon_item, button),
-            },
-        )
-
-        button.show_all()
-        self.grid.attach(button, self.column, self.row, 1, 1)
-        self.column += 1
-        if self.column >= self.max_columns:
-            self.column = 0
-            self.row += 1
-
-    def do_bake_item_button(self, item: Gray.Item) -> HoverButton:
-        button = HoverButton(
-            style_classes="flat",
-            tooltip_text=item.get_property("title"),
-        )
-        button.connect(
-            "button-press-event",
-            lambda button, event: self.on_button_click(button, item, event),
-        )
-        self.do_update_item_button(item, button)
-        return button
-
-    def do_update_item_button(self, item: Gray.Item, button: HoverButton):
-        pixbuf = resolve_icon(item=item)
-        button.set_image(Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"]))
-
-    def on_button_click(self, button, item: Gray.Item, event):
-        if event.button in (1, 3):
-            menu = item.get_property("menu")
-            if menu:
-                def on_menu_hide(_):
-                    self._context_menu_open = False
-                    menu.disconnect(on_menu_hide_id)
-
-                on_menu_hide_id = menu.connect("hide", on_menu_hide)
-                self._context_menu_open = True
-
-                menu.popup_at_widget(
-                    button,
-                    Gdk.Gravity.SOUTH,
-                    Gdk.Gravity.NORTH,
-                    event,
-                )
-            else:
-                self._context_menu_open = True
-                item.context_menu(event.x, event.y)
-
-                def reset_flag():
-                    self._context_menu_open = False
-                    return False
-
-                GLib.timeout_add(1000, reset_flag)
-
-            return True
-        return False
-
-
-class SystemTrayWidget(ButtonWidget):
-    """A widget to display the system tray items."""
-
-    MAX_VISIBLE_ICONS = 3
+class SystemTrayWidget(EventBoxWidget):
+    """System tray widget with configurable direction, transition, and tooltip."""
 
     def __init__(self, widget_config: BarConfig, **kwargs):
-        super().__init__(widget_config["system_tray"], name="system_tray", **kwargs)
+        super().__init__(**kwargs)
 
-        self.tray_box = Box(
-            spacing=4,
-            name="system-tray-box",
-            orientation="horizontal",
-        )
+        self.config = widget_config["system_tray"]
+        self.tray_items = []
+
+        # Config options
+        self.icon_size = self.config.get("icon_size", 16)
+        self.slide_direction = self.config.get("slide_direction", "left")
+        self.transition_duration = self.config.get("transition_duration", 250)
+        self.tooltip_enabled = self.config.get("tooltip", True)
+
+        if self.slide_direction not in ("left", "right"):
+            raise ValueError(
+                f"[SystemTray] Invalid 'slide_direction'. Expected 'left' or 'right', got '{self.slide_direction}'"
+            )
+
+        gtk_direction = "slide_left" if self.slide_direction == "left" else "slide_right"
+
+        # Toggle icon (arrow) opposite of slide direction
+        arrow_icon_name = "right" if self.slide_direction == "left" else "left"
         self.toggle_icon = Image(
-            icon_name=icons["ui"]["arrow"]["down"],
-            icon_size=self.config["icon_size"],
+            icon_name=icons["ui"]["arrow"][arrow_icon_name],
+            icon_size=self.icon_size,
             style_classes=["panel-icon", "toggle-icon"],
         )
 
-        self.box.children = (self.tray_box, Separator(), self.toggle_icon)
+        # Box for tray icons
+        self.tray_box = Box(spacing=4, orientation="horizontal")
 
-        self.popup_menu = SystemTrayMenu(config=self.config, refresh_callback=self.refresh_icons)
-        self.popup = Popover(
-            content_factory=lambda: self.popup_menu,
-            point_to=self,
+        # Revealer for icons
+        self.revealer = Revealer(
+            child=self.tray_box,
+            transition_type=gtk_direction,
+            transition_duration=self.transition_duration,
+            reveal_child=False,
         )
-        self.popup.connect("popover-closed", self.on_popup_closed)
 
-        # Patch popover focus-out to stay open while context menu is active
-        original_focus_out = self.popup._on_popover_focus_out
+        # Layout: direction determines placement of arrow vs tray
+        if self.slide_direction == "left":
+            self.box.add(self.revealer)
+            self.box.add(self.toggle_icon)
+        else:
+            self.box.add(self.toggle_icon)
+            self.box.add(self.revealer)
 
-        def patched_focus_out(self, widget, event):
-            if (
-                self._content
-                and hasattr(self._content, "_context_menu_open")
-                and self._content._context_menu_open
-            ):
-                return True
-            return original_focus_out(widget, event)
+        self.toggle_icon.show()
+        self.revealer.show()
+        self.box.show_all()
 
-        self.popup._on_popover_focus_out = types.MethodType(patched_focus_out, self.popup)
-
+        # System tray watcher
         self.watcher = Gray.Watcher()
         self.watcher.connect("item-added", self.on_item_added)
 
         for item_id in self.watcher.get_items():
             self.on_item_added(self.watcher, item_id)
 
-        self.connect("clicked", self.handle_click)
+        # Hover events to reveal tray
+        self.connect("enter-notify-event", lambda *args: self.set_expanded(True))
+        self.connect("leave-notify-event", self.on_leave)
 
-    def refresh_icons(self):
-        """Move icons from the popover to the tray if space allows."""
-        tray_children = self.tray_box.get_children()
-        popover_children = list(self.popup_menu.grid.get_children())
+    def set_expanded(self, expanded: bool):
+        """Show or hide the tray icons and update arrow."""
+        self.revealer.set_reveal_child(expanded)
+        arrow_icon = "left" if (self.slide_direction == "left" and not expanded) else "right"
+        if self.slide_direction == "right":
+            arrow_icon = "left" if expanded else "right"
+        self.toggle_icon.set_from_icon_name(icons["ui"]["arrow"][arrow_icon], self.icon_size)
 
-        while len(tray_children) < self.MAX_VISIBLE_ICONS and popover_children:
-            widget = popover_children.pop(0)
-            self.popup_menu.grid.remove(widget)
-            self.tray_box.pack_start(widget, False, False, 0)
-            tray_children = self.tray_box.get_children()
-
-        self.tray_box.show_all()
-        self.popup_menu.grid.show_all()
-
-    def on_popup_closed(self, *_):
-        self.toggle_icon.set_from_icon_name(
-            icons["ui"]["arrow"]["down"], self.config["icon_size"]
-        )
-        self.toggle_icon.get_style_context().remove_class("active")
-
-    def handle_click(self, *_):
-        visible = self.popup.get_visible()
-        if visible:
-            self.popup.hide()
-            self.toggle_icon.set_from_icon_name(
-                icons["ui"]["arrow"]["down"], self.config["icon_size"]
-            )
-            self.toggle_icon.get_style_context().remove_class("active")
-        else:
-            self.popup.set_content_factory(lambda: self.popup_menu)
-            self.popup._content = None
-            self.popup.open()
-            self.toggle_icon.set_from_icon_name(
-                icons["ui"]["arrow"]["up"], self.config["icon_size"]
-            )
-            self.toggle_icon.get_style_context().add_class("active")
+    def on_leave(self, widget, event):
+        allocation = self.revealer.get_allocation()
+        x, y = widget.translate_coordinates(self.revealer, int(event.x), int(event.y))
+        if not (0 <= x <= allocation.width and 0 <= y <= allocation.height):
+            self.set_expanded(False)
 
     def on_item_added(self, _, identifier: str):
         item = self.watcher.get_item_for_identifier(identifier)
         if not item:
             return
 
-        title = item.get_property("title") or ""
+        button = HoverButton(
+            tooltip_text=item.get_property("title") if self.tooltip_enabled else "",
+            style_classes="flat",
+            margin_start=2,
+            margin_end=2,
+        )
 
-        ignored = self.config.get("ignored", [])
-        if any(x.lower() in title.lower() for x in ignored):
-            return
+        pixbuf = resolve_icon(item, self.icon_size)
+        button.set_image(Image(pixbuf=pixbuf, pixel_size=self.icon_size))
 
-        hidden = self.config.get("hidden", [])
-        if any(x.lower() in title.lower() for x in hidden):
-            self.popup_menu.add_item(item)
-            self.popup_menu.show_all()
-            return
+        button.connect("button-press-event", lambda btn, ev: self._on_item_click(btn, item, ev))
 
-        visible_count = len(self.tray_box.get_children())
-        if visible_count < self.MAX_VISIBLE_ICONS:
-            button = HoverButton(
-                style_classes="flat",
-                tooltip_text=title,
-                margin_start=2,
-                margin_end=2,
-            )
-            button.connect(
-                "button-press-event",
-                lambda button, event: self.popup_menu.on_button_click(button, item, event),
-            )
+        self.tray_items.append((item, button))
+        self.tray_box.add(button)
+        button.show()
 
-            pixbuf = resolve_icon(item=item)
-            button.set_image(Image(pixbuf=pixbuf, pixel_size=self.config["icon_size"]))
+        item.connect("removed", self._on_item_removed)
+        item.connect("icon-changed", self._on_icon_changed)
 
-            item.connect("removed", lambda *args: (button.destroy(), self.refresh_icons()))
-            item.connect(
-                "icon-changed",
-                lambda icon_item: self.popup_menu.do_update_item_button(icon_item, button),
-            )
+    def _on_item_click(self, button, item, event):
+        if event.button in (1, 3):
+            menu = item.get_property("menu")
+            if menu:
+                menu.popup_at_widget(button, Gdk.Gravity.SOUTH, Gdk.Gravity.NORTH, event)
+            else:
+                item.context_menu(event.x, event.y)
+            return True
+        return False
 
-            button.show_all()
-            self.tray_box.pack_start(button, False, False, 0)
-        else:
-            self.popup_menu.add_item(item)
-            self.popup_menu.show_all()
+    def _on_item_removed(self, item):
+        for stored_item, button in self.tray_items[:]:
+            if stored_item == item:
+                self.tray_box.remove(button)
+                self.tray_items.remove((stored_item, button))
+                button.destroy()
+                break
+        if not self.tray_items:
+            self.set_expanded(False)
+
+    def _on_icon_changed(self, item):
+        for stored_item, button in self.tray_items:
+            if stored_item == item:
+                pixbuf = resolve_icon(item, self.icon_size)
+                button.set_image(Image(pixbuf=pixbuf, pixel_size=self.icon_size))
+                break

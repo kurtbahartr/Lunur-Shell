@@ -149,10 +149,9 @@ DEFAULT_CONFIG = {
     },
     "system_tray": {
         "icon_size": 16,
-        # "ignored": [],
-        # "hidden": [],
-        # "pinned": [],
-        "visible_count": 3,
+        "slide_direction": "right",
+        "transition_duration": 300,
+        "tooltip": True,
     },
     "hyprpicker": {
         "icon_size": 16,

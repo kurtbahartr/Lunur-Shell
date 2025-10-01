@@ -110,7 +110,9 @@ format = "%b %d"
 
 [system_tray]
 icon_size = 16
-ignored = [ ]
+slide_direction = "left" # right or left
+transition_duration = 300
+tooltip = true
 
 [quick_settings]
 bar_icons = ["network","audio", "bluetooth","brightness"] # quick setting buttons to display on the bar
