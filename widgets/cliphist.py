@@ -415,15 +415,27 @@ class ClipHistoryMenu(Box):
         )
 
     def paste_item(self, item_id):
-        """Copy the selected item to the clipboard and close (GLib.idle_add)"""
+        """Copy the selected item (text or image) to the clipboard"""
 
         def paste():
             try:
+                # Don’t use text=True here so we get raw bytes
                 result = subprocess.run(
                     ["cliphist", "decode", item_id], capture_output=True, check=True
                 )
-                subprocess.run(["wl-copy"], input=result.stdout, check=True)
+
+                data = result.stdout
+
+                # Heuristics for detecting image
+                if data.startswith(b"\x89PNG") or data.startswith(b"\xff\xd8\xff") or data.startswith(b"GIF8"):
+                    # PNG, JPEG, or GIF
+                    subprocess.run(["wl-copy", "--type", "image/png"], input=data, check=True)
+                else:
+                    # Treat as text
+                    subprocess.run(["wl-copy"], input=data, check=True)
+
                 GLib.idle_add(self.close)
+
             except subprocess.CalledProcessError as e:
                 logger.exception(f"Error pasting clipboard item: {e}")
             return False
@@ -623,10 +635,9 @@ class ClipHistoryWidget(ButtonWidget):
 
     def show_popover(self, *_):
         """Show the popover."""
-        if self.popup is None:
-            self.popup = Popover(
-                content=ClipHistoryMenu(),
-                point_to=self,
-            )
+        self.popup = Popover(
+            content=ClipHistoryMenu(),
+            point_to=self,
+        )
         self.popup.open()
 
