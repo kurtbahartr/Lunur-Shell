@@ -28,12 +28,15 @@ def setup_cursor_hover(
         },
     )
 
-# Function to get the system stats using
+
+# Function to get the system icon
 def get_icon(app_icon, size=25) -> Image:
     icon_size = size - 5
     try:
         match app_icon:
             case str(x) if "file://" in x:
+                from gi.repository import GdkPixbuf
+
                 return Image(
                     name="app-icon",
                     pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_size(
@@ -42,6 +45,8 @@ def get_icon(app_icon, size=25) -> Image:
                     size=size,
                 )
             case str(x) if len(x) > 0 and x[0] == "/":
+                from gi.repository import GdkPixbuf
+
                 return Image(
                     name="app-icon",
                     pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_size(app_icon, size, size),
@@ -62,19 +67,21 @@ def get_icon(app_icon, size=25) -> Image:
             icon_size=icon_size,
         )
 
+
 # Function to create a text icon label
 def nerd_font_icon(icon: str, props=None, name="nerd-icon") -> Label:
     label_props = {
-        "label": str(icon),  # Directly use the provided icon name
+        "label": str(icon),
         "name": name,
-        "h_align": "center",  # Align horizontally
-        "v_align": "center",  # Align vertically
+        "h_align": "center",
+        "v_align": "center",
     }
 
     if props:
         label_props.update(props)
 
     return Label(**label_props)
+
 
 def text_icon(icon: str, props=None):
     label_props = {
@@ -89,7 +96,8 @@ def text_icon(icon: str, props=None):
 
     return Label(**label_props)
 
-# Function to get the brightness icons
+
+# Function to get brightness icon
 def get_brightness_icon_name(level: int) -> dict[Literal["icon_text", "icon"], str]:
     if level <= 0:
         return {
@@ -112,7 +120,7 @@ def get_brightness_icon_name(level: int) -> dict[Literal["icon_text", "icon"], s
     }
 
 
-# Function to get the volume icons
+# Function to get volume icon
 def get_audio_icon_name(
     volume: int, is_muted: bool
 ) -> dict[Literal["icon_text", "icon"], str]:
@@ -142,19 +150,54 @@ def get_audio_icon_name(
     }
 
 
+# Function to create AnimatedScale
+def create_scale(
+    name,
+    marks=None,
+    value=0,
+    min_value: float = 0,
+    max_value: float = 100,
+    increments=(1, 1),
+    curve=(0.34, 1.56, 0.64, 1.0),
+    orientation="h",
+    h_expand=True,
+    h_align="center",
+    style_classes="",
+    duration=0.8,
+    **kwargs,
+):
+    # Import here to avoid circular import
+    from shared.animated.scale import AnimatedScale
+    from fabric.widgets.scale import ScaleMark
+
+    if marks is None:
+        marks = (ScaleMark(value=i) for i in range(1, 100, 10))
+
+    return AnimatedScale(
+        name=name,
+        marks=marks,
+        value=value,
+        min_value=min_value,
+        max_value=max_value,
+        increments=increments,
+        orientation=orientation,
+        curve=curve,
+        h_expand=h_expand,
+        h_align=h_align,
+        duration=duration,
+        style_classes=style_classes,
+        **kwargs,
+    )
+
+
 # Function to get the widget class dynamically
 def lazy_load_widget(widget_name: str, widgets_list: dict[str, str]):
     if widget_name in widgets_list:
-        # Get the full module path (e.g., "widgets.BatteryWidget")
         class_path = widgets_list[widget_name]
-
-        # Dynamically import the module
         module_name, class_name = class_path.rsplit(".", 1)
         module = importlib.import_module(module_name)
-
-        # Get the class from the module
         widget_class = getattr(module, class_name)
-
         return widget_class
     else:
         raise KeyError(f"Widget {widget_name} not found in the dictionary.")
+

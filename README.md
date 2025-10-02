@@ -89,7 +89,7 @@ Run the following command to install the required system packages:
 - [x] Screen Recorder (basic)
 - [x] Screenshots (basic)
 - [ ] OCR
-- [ ] OSD
+- [ ] OSD (volume added, more to come soon)
 - [x] Emoji Picker
 - [ ] Media Player (half done)
 - [ ] Matugen theme (in progress)

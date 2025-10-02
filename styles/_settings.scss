@@ -37,6 +37,24 @@ $modules-notification-border-enabled: false;
 $modules-notification-border-width: 1px;
 $modules-notification-border-radius: 16px;
 
+$modules-osd-scaling: 100;
+$modules-osd-opacity: 100;
+$modules-osd-widget_style: default;
+$modules-osd-sliders-height: 0.5em;
+$modules-osd-sliders-slider: false;
+$modules-osd-shadow-enabled: false;
+$modules-osd-shadow-offset: 0;
+$modules-osd-shadow-blur: 0;
+$modules-osd-shadow-spread: 0;
+$modules-osd-shadow-opacity: 100;
+$modules-osd-padding_x: .8em;
+$modules-osd-padding_y: .6em;
+$modules-osd-margin_x: 0;
+$modules-osd-margin_y: 1.25em;
+$modules-osd-border-enabled: false;
+$modules-osd-border-width: 1px;
+$modules-osd-border-radius: 16px;
+
 $bar-opacity: 0;
 $bar-style-panel: cave;
 $bar-style-widget: default;

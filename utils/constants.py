@@ -21,6 +21,18 @@ DEFAULT_CONFIG = {
         "tooltip": True,
         "annotation": True,
     },
+    "osd": {
+        "osds": ["volume", "brightness"],
+        "enable": True,
+        "anchor": "bottom-center",
+        "icon_size": 28,
+        # "opacity": 90,
+        "timeout": 3000,
+        "transition_type": "slide-up",
+        "transition_duration": 500,
+        "percentage": True,
+        "orientation": "horizontal",  
+    },
     "recorder": {
         "path": "Videos/Screencasting",
         "audio": True,

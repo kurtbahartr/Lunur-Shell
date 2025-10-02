@@ -33,6 +33,18 @@ location = "top"
   enabled = true
   size = 20
 
+[osd]
+osds = ["volume", "brightness"]
+enabled = true
+anchor = "bottom-center"
+icon_size = 28
+# opacity = 90
+timeout = 3000
+transition_type = "slide-up"
+transition_duration = 500
+percentage = true
+orientation = "horizontal"
+
 [app_launcher]
 icon_size = 16 # Bar button icon
 app_icon_size = 48 # Size of app icons in launcher

@@ -53,6 +53,13 @@ if __name__ == "__main__":
 
         windows.append(screen_corners)
 
+    if widget_config.get("osd", {}).get("enabled"):
+        from modules.osd import OSDWindow
+
+        osd = OSDWindow(widget_config)
+        windows.append(osd)
+
+
     app = Application(APPLICATION_NAME, windows=windows)
 
     helpers.copy_theme(widget_config["theme"]["name"])

@@ -194,6 +194,22 @@ Screenshot = TypedDict(
     }
 )
 
+# OSD configuration
+OSD = TypedDict(
+    "OSD",
+    {
+        "osds": List[str],
+        "enabled": bool,
+        "anchor": str,
+        "icon_size": int,
+        # "opacity": int,
+        "timeout": int,
+        "transition_type": str,
+        "transition_duration": int,
+        "percentage": bool,
+        "orientation": str,
+    },
+)
     
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
@@ -219,3 +235,4 @@ class BarConfig(TypedDict):
     shutdown: Shutdown
     screenshot: Screenshot
     recorder: Recording
+    osd: OSD 
