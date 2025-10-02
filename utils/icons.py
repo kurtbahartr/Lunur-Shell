@@ -202,7 +202,7 @@ icons = {
             "disabled": "network-vpn-off-symbolic",
         },
     },
-    "mpris": {
+    "playerctl": {
         "shuffle": {
             "enabled": "media-playlist-shuffle-symbolic",
             "disabled": "media-playlist-consecutive-symbolic",

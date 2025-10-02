@@ -21,7 +21,7 @@ style_classes = [ "compact" ]
 
 [layout]
 start_container = ["app_launcher", "workspaces", "window_title"]
-center_container = ["date_time", "power_profiles", "mpris"]
+center_container = ["date_time", "power_profiles", "playerctl"]
 # end_container = ["quick_settings", "battery", "system_tray"]
 end_container = ["system_tray", "@collapsible_group:0","@group:0", "@collapsible_group:1"]
 
@@ -58,7 +58,7 @@ icon = ""
 label = false
 tooltip = true
 
-[mpris]
+[playerctl]
 icon_size = 16
 slide_direction = "right" # right or left
 transition_duration = 300

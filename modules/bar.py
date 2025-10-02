@@ -35,7 +35,7 @@ class StatusBar(Window, ToggleableWidget):
             "power_profiles": "widgets.power_profile.PowerProfileButton",
             "emoji_picker": "widgets.emoji_picker.EmojiPickerWidget",
             "cliphist": "widgets.cliphist.ClipHistoryWidget",
-            "mpris": "widgets.mpris.MprisWidget",
+            "playerctl": "widgets.playerctl.PlayerctlWidget",
             "sleep": "widgets.power_menu.SleepWidget",
             "reboot": "widgets.power_menu.RebootWidget",
             "logout": "widgets.power_menu.LogoutWidget",

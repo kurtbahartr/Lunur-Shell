@@ -147,8 +147,8 @@ Hyprpicker = TypedDict(
 Cliphist = TypedDict("Cliphist", {"icon": str, **BaseConfig.__annotations__})
 
 
-# Mpris configuration
-Mpris = TypedDict("Mpris", {**BaseConfig.__annotations__, "transition_duration": int, "icon_size": int, "slide_direction": str})
+# Playerctl configuration
+Playerctl = TypedDict("Playerctl", {**BaseConfig.__annotations__, "transition_duration": int, "icon_size": int, "slide_direction": str})
 
 EmojiPicker = TypedDict(
     "emoji_picker",
@@ -211,7 +211,7 @@ class BarConfig(TypedDict):
     hyprpicker: Hyprpicker
     power_profiles: PowerProfiles
     cliphist: Cliphist
-    mpris: Mpris
+    playerctl: Playerctl
     collapsible_groups: List[CollapsibleGroup]
     sleep: Sleep
     reboot: Reboot

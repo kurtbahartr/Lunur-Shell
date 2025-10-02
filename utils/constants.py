@@ -66,7 +66,7 @@ DEFAULT_CONFIG = {
         "label": False,
         "tooltip": True,
     },
-    "mpris": {
+    "playerctl": {
         "icon_size": 16,
         "slide_direction": "right",
         "transition_duration": 300,
