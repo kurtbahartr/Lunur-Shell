@@ -4,7 +4,7 @@ from fabric.widgets.entry import Entry
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import idle_add, remove_handler
-from gi.repository import GLib
+from gi.repository import GLib, Gtk
 
 _current_scrolled_view = None  # Global singleton instance tracker
 
@@ -47,6 +47,7 @@ class ScrolledView(Window):
             min_content_size=min_content_size,
             max_content_size=max_content_size,
             child=self.viewport,
+            h_scrollbar_policy=Gtk.PolicyType.NEVER,
         )
         self.displayitems.set_name("displayitems")
 
