@@ -35,12 +35,27 @@ class AppLauncher(ScrolledView):
             # Labels for app name and optional description
             labels = [Label(label=app.display_name or "Unknown", h_align="start", v_align="start")]
             if self.show_descriptions and app.description:
+                def split_description(desc, max_line_length=80):
+                    words = desc.split()
+                    lines = []
+                    current_line = []
+                    for word in words:
+                        if len(' '.join(current_line + [word])) <= max_line_length:
+                            current_line.append(word)
+                        else:
+                            lines.append(' '.join(current_line))
+                            current_line = [word]
+                    if current_line:
+                        lines.append(' '.join(current_line))
+                    return '\n'.join(lines)
+            
+                description = split_description(app.description)
+                
                 labels.append(
                     Label(
-                        label=app.description,
-                        h_align="start",
+                        label=description,
+                        h_align="start", 
                         v_align="start",
-                        # style="font-size: 10px; color: #888;",
                     )
                 )
 
