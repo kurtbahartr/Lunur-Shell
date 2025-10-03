@@ -8,15 +8,15 @@ from fabric.widgets.revealer import Revealer
 from fabric.widgets.wayland import WaylandWindow as Window
 from gi.repository import GLib, GObject
 
-from services import audio_service
+from services import audio_service, Brightness
 from utils.icons import icons
-from utils.widget_utils import create_scale, get_audio_icon_name
+from utils.widget_utils import create_scale, get_audio_icon_name, get_brightness_icon_name
 
 gi.require_versions({"GObject": "2.0"})
 
 
 class GenericOSDContainer(Box):
-    """Generic OSD container for audio."""
+    """Generic OSD container for audio/brightness."""
 
     def __init__(self, config: dict, **kwargs):
         is_vertical = config["orientation"] == "vertical"
@@ -82,20 +82,15 @@ class AudioOSDContainer(GenericOSDContainer):
             },
         )
 
-        # Try to initialize immediately if speaker is already ready
         if self.audio_service.speaker:
             self._bind_and_update(self.audio_service.speaker)
 
     def _on_speaker_changed(self, *_):
-        """Called when default speaker changes (including first init)."""
         if speaker := self.audio_service.speaker:
             self._bind_and_update(speaker)
 
     def _bind_and_update(self, speaker):
-        # Bind volume notifications
         speaker.connect("notify::volume", self._update_volume)
-
-        # Immediately update UI with current state
         vol = round(speaker.volume)
         muted = speaker.muted
         self._update_volume_ui(vol, muted)
@@ -139,15 +134,57 @@ class AudioOSDContainer(GenericOSDContainer):
         self.emit("volume-changed")
 
 
-class OSDWindow(Window):
-    """Top-level OSD window for audio with anchor support."""
+class BrightnessOSDContainer(GenericOSDContainer):
+    """OSD container for screen brightness."""
+
+    __gsignals__: ClassVar = {
+        "brightness-changed": (GObject.SignalFlags.RUN_FIRST, None, ())
+    }
 
     def __init__(self, config: dict, **kwargs):
+        super().__init__(config=config, icon_name=icons["brightness"]["medium"], **kwargs)
+
+        self.brightness_service = Brightness()
+        self.previous_level = None
+
+        self.brightness_service.brightness_changed.connect(self._on_brightness_changed)
+
+        self._update_brightness_ui(round(self.brightness_service.screen_brightness))
+
+    def _on_brightness_changed(self, service_instance, value, *_):
+        level = round((value / service_instance.max_screen) * 100)
+        if self.previous_level is None or level != self.previous_level:
+            self._update_brightness_ui(level)
+
+    def _update_brightness_ui(self, level: int):
+        icon_info = get_brightness_icon_name(level)
+        self.icon.set_from_icon_name(icon_info["icon"], self.icon_size)
+
+        self.update_values(level)
+
+        self.previous_level = level
+        self.emit("brightness-changed")
+
+
+class OSDWindow(Window):
+    """Top-level OSD window for audio and brightness."""
+
+    def __init__(self, config: dict, **kwargs):
+        from .osd import AudioOSDContainer  # keep audio as is
+
         self.hide_timer_id = None
         self.config = config["osd"]
 
-        self.audio_container = AudioOSDContainer(config=self.config)
-        self.audio_container.connect("volume-changed", self.show_audio)
+        self.audio_container = None
+        self.brightness_container = None
+
+        if "volume" in self.config.get("osds", []):
+            self.audio_container = AudioOSDContainer(config=self.config)
+            self.audio_container.connect("volume-changed", self.show_audio)
+
+        if "brightness" in self.config.get("osds", []):
+            self.brightness_container = BrightnessOSDContainer(config=self.config)
+            self.brightness_container.connect("brightness-changed", self.show_brightness)
 
         self.timeout = self.config["timeout"]
 
@@ -158,8 +195,8 @@ class OSDWindow(Window):
             child_revealed=False,
         )
 
-        # Preload container so OSD is ready immediately
-        self.revealer.add(self.audio_container)
+        if self.audio_container:
+            self.revealer.add(self.audio_container)
 
         anchor_string = self.config["anchor"]
 
@@ -174,10 +211,18 @@ class OSDWindow(Window):
         )
 
     def show_audio(self, *_):
-        if self.revealer.get_child() != self.audio_container:
+        if self.audio_container:
+            self._show_container(self.audio_container)
+
+    def show_brightness(self, *_):
+        if self.brightness_container:
+            self._show_container(self.brightness_container)
+
+    def _show_container(self, container: Box):
+        if self.revealer.get_child() != container:
             if self.revealer.get_child():
                 self.revealer.remove(self.revealer.get_child())
-            self.revealer.add(self.audio_container)
+            self.revealer.add(container)
 
         self.set_visible(True)
 
@@ -198,61 +243,3 @@ class OSDWindow(Window):
         self.hide_timer_id = None
         return False
 
-class OSDWindow(Window):
-    """Top-level OSD window for audio with anchor support."""
-
-    def __init__(self, config: dict, **kwargs):
-        self.hide_timer_id = None
-        self.config = config["osd"]
-
-        self.audio_container = AudioOSDContainer(config=self.config)
-        self.audio_container.connect("volume-changed", self.show_audio)
-
-        self.timeout = self.config["timeout"]
-
-        self.revealer = Revealer(
-            name="osd-revealer",
-            transition_type=self.config["transition_type"],
-            transition_duration=self.config["transition_duration"],
-            child_revealed=False,
-        )
-
-        # Preload the audio container so it’s ready immediately
-        self.revealer.add(self.audio_container)
-
-        anchor_string = self.config["anchor"]
-
-        super().__init__(
-            layer="overlay",
-            anchor=anchor_string,
-            child=self.revealer,
-            visible=False,
-            pass_through=True,
-            name="osd",
-            **kwargs,
-        )
-
-    def show_audio(self, *_):
-        if self.revealer.get_child() != self.audio_container:
-            if self.revealer.get_child():
-                self.revealer.remove(self.revealer.get_child())
-            self.revealer.add(self.audio_container)
-
-        self.set_visible(True)
-
-        if self.hide_timer_id is not None:
-            remove_handler(self.hide_timer_id)
-            self.hide_timer_id = None
-
-        GLib.idle_add(lambda: self.revealer.set_reveal_child(True))
-        self.hide_timer_id = GLib.timeout_add(self.timeout, self._hide)
-
-    def _hide(self):
-        self.revealer.set_reveal_child(False)
-        GLib.timeout_add(self.revealer.get_transition_duration(), self._finalize_hide)
-        return False
-
-    def _finalize_hide(self):
-        self.set_visible(False)
-        self.hide_timer_id = None
-        return False
