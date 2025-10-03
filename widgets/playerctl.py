@@ -130,18 +130,26 @@ class PlayerctlWidget(EventBoxWidget):
         if not self.player:
             return
 
-        # Get title, using empty string if not available
+        # Get title and artist
         title = player.get_title() or ""
-        
-        # Clean up title (remove newlines)
+        artist = player.get_artist() or ""
+
+        # Clean up text (remove newlines)
         title = re.sub(r"\r?\n", " ", title)
-        
+        artist = re.sub(r"\r?\n", " ", artist)
+
+        # Combine title and artist
+        if artist:
+            display_text = f"{title} – {artist}"
+        else:
+            display_text = title
+
         # Update label
-        self.label.set_text(title)
-        
+        self.label.set_text(display_text)
+
         # Update tooltip if configured
         if self.tooltip_enabled:
-            self.set_tooltip_text(title)
+            self.set_tooltip_text(display_text)
 
     def _clear_player(self):
         """Clear the current player."""
