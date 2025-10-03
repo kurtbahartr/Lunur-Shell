@@ -2,17 +2,15 @@ import re
 from gi.repository import GObject, GLib, Playerctl
 from fabric.widgets.label import Label
 from fabric.widgets.box import Box
-from fabric.widgets.revealer import Revealer
+from fabric.widgets.image import Image
 
-from shared.widget_container import ButtonWidget
+from shared.widget_container import EventBoxWidget
 from utils.icons import icons
-from utils.widget_utils import get_icon
 from utils import BarConfig
+from widgets.common.resolver import create_slide_revealer, resolve_icon
 
-
-class PlayerctlWidget(ButtonWidget):
-    """A widget to control media playback using Playerctl, showing a music icon and current track label.
-    The label is hidden by default and revealed on hover."""
+class PlayerctlWidget(EventBoxWidget):
+    """A widget to control media playback using Playerctl, showing a music icon and current track label."""
 
     POLL_INTERVAL_MS = 2000  # poll every 2 seconds
 
@@ -21,54 +19,60 @@ class PlayerctlWidget(ButtonWidget):
             widget_config = BarConfig()
 
         config = widget_config["playerctl"] if "playerctl" in widget_config else widget_config
-        super().__init__(config=config, name="playerctl", **kwargs)
+        super().__init__(**kwargs)
 
+        self.config = config
         self.player = None
         self.player_manager = Playerctl.PlayerManager.new()
 
+        # Config options
+        self.icon_size = self.config.get("icon_size", 16)
+        self.slide_direction = self.config.get("slide_direction", "left")
+        self.transition_duration = self.config.get("transition_duration", 250)
+        self.tooltip_enabled = self.config.get("tooltip", True)
+
+        # Music icon
         icon_name = icons["playerctl"]["music"]
-        self.icon_widget = get_icon(icon_name, size=self.config.get("icon_size"))
-        self.label = Label(label="", style_classes="panel-text")
-
-        # Require explicit valid slide_direction: "left" or "right"
-        direction = self.config.get("slide_direction")
-        if direction == "left":
-            gtk_direction = "slide_left"
-        elif direction == "right":
-            gtk_direction = "slide_right"
-        else:
-            raise ValueError(
-                f"[PLAYERCTL] Invalid or missing 'slide_direction'. Expected 'left' or 'right', got '{direction}'"
-            )
-
-        self.revealer = Revealer(
-            child=self.label,
-            transition_duration=self.config.get("transition_duration"),
-            transition_type=gtk_direction,
-            reveal_child=False,
+        self.icon_widget = Image(
+            icon_name=icon_name, 
+            icon_size=self.icon_size, 
+            style_classes=["panel-icon"]
         )
 
-        if direction == "right":
-            self.box.add(self.icon_widget)    # Icon on the left
-            self.box.add(self.revealer)       # Label on the right
+        # Label for track information
+        self.label = Label(label="", style_classes="panel-text")
+
+        # Create revealer for the label
+        self.revealer = create_slide_revealer(
+            child=self.label,
+            slide_direction=self.slide_direction,
+            transition_duration=self.transition_duration,
+            initially_revealed=False
+        )
+
+        # Layout based on slide direction
+        if self.slide_direction == "right":
+            self.box.add(self.icon_widget)
+            self.box.add(self.revealer)
         else:
-            self.box.add(self.revealer)       # Label on the left
-            self.box.add(self.icon_widget)    # Icon on the right
+            self.box.add(self.revealer)
+            self.box.add(self.icon_widget)
 
         self.icon_widget.show()
         self.label.show()
         self.box.show_all()
 
-        # Setup Playerctl player manager
+        # Player manager setup
         self.player_manager.connect("player-vanished", self._on_player_vanished)
         self.player_manager.connect("name-appeared", self._on_player_appeared)
 
         # Initial player setup
         self._setup_initial_player()
 
-        # Periodic check for players
+        # Periodic player check
         GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_players)
 
+        # Hover events
         self.connect("enter-notify-event", self.on_mouse_enter)
         self.connect("leave-notify-event", self.on_mouse_leave)
 
@@ -136,14 +140,14 @@ class PlayerctlWidget(ButtonWidget):
         self.label.set_text(title)
         
         # Update tooltip if configured
-        if self.config.get("tooltip"):
+        if self.tooltip_enabled:
             self.set_tooltip_text(title)
 
     def _clear_player(self):
         """Clear the current player."""
         self.player = None
         self.label.set_text("")
-        if self.config.get("tooltip"):
+        if self.tooltip_enabled:
             self.set_tooltip_text("")
 
     def on_mouse_enter(self, *_):
@@ -151,8 +155,12 @@ class PlayerctlWidget(ButtonWidget):
         self.revealer.set_reveal_child(True)
         self.box.set_spacing(4)
 
-    def on_mouse_leave(self, *_):
-        """Hide label when mouse leaves."""
-        self.revealer.set_reveal_child(False)
-        self.box.set_spacing(4)
+    def on_mouse_leave(self, widget, event):
+        """Hide label when mouse leaves, similar to SystemTrayWidget."""
+        allocation = self.revealer.get_allocation()
+        x, y = widget.translate_coordinates(self.revealer, int(event.x), int(event.y))
         
+        if not (0 <= x <= allocation.width and 0 <= y <= allocation.height):
+            self.revealer.set_reveal_child(False)
+            self.box.set_spacing(4)
+
