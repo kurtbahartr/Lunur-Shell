@@ -9,8 +9,7 @@ $workspace-transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
 
 #workspaces {
   font-weight: 700;
-  padding: .2em;
-  border-radius: variable.$bar-widgets-workspaces-border-radius;
+  /* border-radius: variable.$bar-widgets-workspaces-border-radius; */
   border: if(variable.$bar-widgets-workspaces-border-enabled, variable.$border, none);
   border-width: variable.$bar-widgets-workspaces-border-width;
 
