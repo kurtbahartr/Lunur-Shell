@@ -35,7 +35,13 @@ class KeybindsWidget(ScrolledView):
                 ellipsize=0,
             )
 
-            box = Box(orientation="horizontal", spacing=8, hexpand=True, halign="start")
+            box = Box(
+                orientation="vertical",
+                spacing=2,
+                hexpand=True,
+                halign="start",
+                valign="start"
+            )
             box.add(main_label)
             box.add(cmd_label)
 
