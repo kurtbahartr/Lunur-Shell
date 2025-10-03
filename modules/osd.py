@@ -77,60 +77,67 @@ class AudioOSDContainer(GenericOSDContainer):
         bulk_connect(
             self.audio_service,
             {
-                "notify::speaker": self.on_speaker_changed,
-                "changed": self.check_mute,
+                "notify::speaker": self._on_speaker_changed,
+                "changed": self._check_volume_state,
             },
         )
 
-    def check_mute(self, *_):
+        # Try to initialize immediately if speaker is already ready
+        if self.audio_service.speaker:
+            self._bind_and_update(self.audio_service.speaker)
+
+    def _on_speaker_changed(self, *_):
+        """Called when default speaker changes (including first init)."""
+        if speaker := self.audio_service.speaker:
+            self._bind_and_update(speaker)
+
+    def _bind_and_update(self, speaker):
+        # Bind volume notifications
+        speaker.connect("notify::volume", self._update_volume)
+
+        # Immediately update UI with current state
+        vol = round(speaker.volume)
+        muted = speaker.muted
+        self._update_volume_ui(vol, muted)
+
+    def _check_volume_state(self, *_):
         if not self.audio_service.speaker:
             return
-
         current_muted = self.audio_service.speaker.muted
+        current_volume = round(self.audio_service.speaker.volume)
         if self.previous_muted is None or current_muted != self.previous_muted:
             self.previous_muted = current_muted
-            self.update_icon()
-            if current_muted:
-                self.scale.add_style_class("muted")
-            else:
-                self.scale.remove_style_class("muted")
-            self.emit("volume-changed")
+            self._update_volume_ui(current_volume, current_muted)
 
-    def on_speaker_changed(self, *_):
-        if speaker := self.audio_service.speaker:
-            speaker.connect("notify::volume", self.update_volume)
-
-    def update_volume(self, speaker, *_):
+    def _update_volume(self, speaker, *_):
         if not self.audio_service.speaker:
             return
+        volume = round(speaker.volume)
+        is_muted = speaker.muted
+        if (self.previous_volume is None or
+            volume != self.previous_volume or
+            is_muted != self.previous_muted):
+            self._update_volume_ui(volume, is_muted)
 
-        speaker.handler_block_by_func(self.update_volume)
-        volume = round(self.audio_service.speaker.volume)
+    def _update_volume_ui(self, volume: int, is_muted: bool):
+        icon_info = get_audio_icon_name(volume, is_muted)
+        self.icon.set_from_icon_name(icon_info["icon"], self.icon_size)
 
-        if self.previous_volume is None or volume != self.previous_volume:
-            is_over_amplified = volume > 100
-            self.previous_volume = volume
+        if is_muted or volume == 0:
+            self.scale.add_style_class("muted")
+        else:
+            self.scale.remove_style_class("muted")
 
-            if is_over_amplified:
-                self.scale.add_style_class("overamplified")
-            else:
-                self.scale.remove_style_class("overamplified")
+        if volume > 100:
+            self.scale.add_style_class("overamplified")
+        else:
+            self.scale.remove_style_class("overamplified")
 
-            if self.audio_service.speaker.muted or volume == 0:
-                self.update_icon()
-                self.scale.add_style_class("muted")
-            else:
-                self.scale.remove_style_class("muted")
-                self.update_icon(volume)
+        self.update_values(volume)
+        self.previous_volume = volume
+        self.previous_muted = is_muted
+        self.emit("volume-changed")
 
-            self.update_values(volume)
-            self.emit("volume-changed")
-
-        speaker.handler_unblock_by_func(self.update_volume)
-
-    def update_icon(self, volume=0):
-        icon_name = get_audio_icon_name(volume, self.audio_service.speaker.muted)["icon"]
-        self.icon.set_from_icon_name(icon_name, self.icon_size)
 
 class OSDWindow(Window):
     """Top-level OSD window for audio with anchor support."""
@@ -150,6 +157,68 @@ class OSDWindow(Window):
             transition_duration=self.config["transition_duration"],
             child_revealed=False,
         )
+
+        # Preload container so OSD is ready immediately
+        self.revealer.add(self.audio_container)
+
+        anchor_string = self.config["anchor"]
+
+        super().__init__(
+            layer="overlay",
+            anchor=anchor_string,
+            child=self.revealer,
+            visible=False,
+            pass_through=True,
+            name="osd",
+            **kwargs,
+        )
+
+    def show_audio(self, *_):
+        if self.revealer.get_child() != self.audio_container:
+            if self.revealer.get_child():
+                self.revealer.remove(self.revealer.get_child())
+            self.revealer.add(self.audio_container)
+
+        self.set_visible(True)
+
+        if self.hide_timer_id is not None:
+            remove_handler(self.hide_timer_id)
+            self.hide_timer_id = None
+
+        GLib.idle_add(lambda: self.revealer.set_reveal_child(True))
+        self.hide_timer_id = GLib.timeout_add(self.timeout, self._hide)
+
+    def _hide(self):
+        self.revealer.set_reveal_child(False)
+        GLib.timeout_add(self.revealer.get_transition_duration(), self._finalize_hide)
+        return False
+
+    def _finalize_hide(self):
+        self.set_visible(False)
+        self.hide_timer_id = None
+        return False
+
+class OSDWindow(Window):
+    """Top-level OSD window for audio with anchor support."""
+
+    def __init__(self, config: dict, **kwargs):
+        self.hide_timer_id = None
+        self.config = config["osd"]
+
+        self.audio_container = AudioOSDContainer(config=self.config)
+        self.audio_container.connect("volume-changed", self.show_audio)
+
+        self.timeout = self.config["timeout"]
+
+        self.revealer = Revealer(
+            name="osd-revealer",
+            transition_type=self.config["transition_type"],
+            transition_duration=self.config["transition_duration"],
+            child_revealed=False,
+        )
+
+        # Preload the audio container so it’s ready immediately
+        self.revealer.add(self.audio_container)
 
         anchor_string = self.config["anchor"]
 
