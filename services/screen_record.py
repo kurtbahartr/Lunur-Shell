@@ -56,7 +56,7 @@ class ScreenRecorderService(Service):
         self._current_screencast_path = file_path
 
         area = "" if fullscreen else f"-g '{exec_shell_command('slurp')}'"
-        audio = "--audio" if config.get("audio", False) else ""
+        audio = "--audio=@DEFAULT_MONITOR@" if config.get("audio", False) else ""
         command = (
             f"wf-recorder {audio} --file={file_path} --pixel-format yuv420p {area}"
         )
