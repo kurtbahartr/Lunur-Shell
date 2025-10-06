@@ -1,0 +1,16 @@
+@use "sass:color";
+@use "theme";
+@use "variable";
+@use "common";
+
+$slider-height: 12px;
+
+#quick-settings-menu {
+  @include common.floating-widget;
+  @include common.spacing;
+
+  background-color: theme.$background; 
+  border-radius: variable.$radius;
+  min-width: variable.$quicksettings-width;
+  min-height: 400px;
+}

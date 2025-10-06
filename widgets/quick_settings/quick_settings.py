@@ -3,7 +3,7 @@
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
-from gi.repository import GLib
+from gi.repository import GLib, Gtk
 
 from fabric.bluetooth.service import BluetoothClient, BluetoothDevice
 from fabric.utils import bulk_connect
@@ -12,7 +12,7 @@ import utils.functions as helpers
 from services import Brightness, audio_service
 from services.network import NetworkService
 from services import bluetooth_service
-from shared import ButtonWidget
+from shared import ButtonWidget, Popover
 from utils import BarConfig
 from utils.icons import icons
 from utils.widget_utils import (
@@ -26,6 +26,9 @@ class QuickSettingsButtonWidget(ButtonWidget):
         super().__init__(
             widget_config["quick_settings"], name="quick_settings", **kwargs
         )
+
+        self.popup = None
+        self.connect("clicked", self.show_popover)
 
         self.config = widget_config["quick_settings"]
         self.panel_icon_size = 16
@@ -265,3 +268,19 @@ class QuickSettingsButtonWidget(ButtonWidget):
         else:
             print(f"[QuickSettings] Missing icon, using fallback.")
             image_widget.set_from_icon_name(fallback_icon, self.panel_icon_size)
+
+    def show_popover(self, *_):
+         if self.popup:
+             self.popup.destroy()
+             self.popup = None
+
+         content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+         content_box.set_name("quick-settings-menu")
+
+         content_box.show_all()
+
+         self.popup = Popover(
+             content=content_box,
+             point_to=self,
+         )
+         self.popup.open()

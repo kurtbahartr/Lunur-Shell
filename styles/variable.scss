@@ -3,6 +3,8 @@
 @forward "settings";
 @use "theme.scss";
 
+
+$quicksettings-width: 370px;
 $radius-large: 9999px;
 
 $radius: settings.$border-radius;
