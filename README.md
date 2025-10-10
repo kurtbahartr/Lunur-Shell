@@ -91,6 +91,8 @@ Run the following command to install the required system packages:
 - [ ] OCR
 - [ ] OSD (volume and brightness added, more to come soon)
 - [x] Emoji Picker
+- [ ] Theme Switcher
+- [ ] Wallpaper Switcher
 - [ ] Media Player (half done)
 - [ ] Matugen theme (in progress)
 
