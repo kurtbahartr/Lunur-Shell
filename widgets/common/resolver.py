@@ -4,42 +4,73 @@ from gi.repository import Gdk, GdkPixbuf, GLib, Gray, Gtk
 from fabric.widgets.image import Image
 from fabric.widgets.revealer import Revealer
 
+
 def resolve_icon(item, icon_size: int = 16):
     try:
-        # Attempt to get pixmap from Gray
-        pixmap = Gray.get_pixmap_for_pixmaps(item.get_icon_pixmaps(), icon_size)
-        if pixmap:
-            return pixmap.as_pixbuf(icon_size, GdkPixbuf.InterpType.HYPER)
+        # First, try to get the icon name and path
+        icon_name = item.icon_name  # Direct property access
+        icon_theme_path = item.icon_theme_path  # Direct property access
 
-        # Try icon name with custom theme path
-        icon_name = item.get_icon_name()
-        icon_theme_path = item.get_icon_theme_path()
-
-        if icon_theme_path:
-            theme = Gtk.IconTheme.new()
-            theme.prepend_search_path(icon_theme_path)
+        # If a full path is provided, try to load directly from file
+        if icon_name and os.path.isfile(icon_name):
             try:
-                return theme.load_icon(icon_name, icon_size, Gtk.IconLookupFlags.FORCE_SIZE)
+                return GdkPixbuf.Pixbuf.new_from_file_at_size(
+                    icon_name, icon_size, icon_size
+                )
             except GLib.Error:
                 pass
 
-        # Try loading from file path
-        if os.path.exists(icon_name):
-            return GdkPixbuf.Pixbuf.new_from_file_at_size(icon_name, icon_size, icon_size)
+        # If icon theme path is provided, create a custom icon theme
+        if icon_theme_path:
+            theme = Gtk.IconTheme.new()
+            theme.prepend_search_path(icon_theme_path)
 
-        # Fallback to default icon theme
-        return Gtk.IconTheme.get_default().load_icon(icon_name, icon_size, Gtk.IconLookupFlags.FORCE_SIZE)
-    except Exception:
-        # Ultimate fallback: 'image-missing' icon
+            try:
+                # Try loading with custom theme
+                return theme.load_icon(
+                    os.path.basename(icon_name),
+                    icon_size,
+                    Gtk.IconLookupFlags.FORCE_SIZE,
+                )
+            except GLib.Error:
+                pass
+
+        # Try system default icon theme
+        default_theme = Gtk.IconTheme.get_default()
+
+        try:
+            # Try loading from default theme
+            return default_theme.load_icon(
+                os.path.basename(icon_name), icon_size, Gtk.IconLookupFlags.FORCE_SIZE
+            )
+        except GLib.Error:
+            # If still not found, try loading from full path
+            if icon_name and os.path.isfile(icon_name):
+                try:
+                    return GdkPixbuf.Pixbuf.new_from_file_at_size(
+                        icon_name, icon_size, icon_size
+                    )
+                except GLib.Error:
+                    pass
+
+        # Absolute last resort: use a generic icon
+        return default_theme.load_icon(
+            "image-missing", icon_size, Gtk.IconLookupFlags.FORCE_SIZE
+        )
+
+    except Exception as e:
+        print(f"Icon resolution error: {e}")
+        # Ultimate fallback
         return Gtk.IconTheme.get_default().load_icon(
             "image-missing", icon_size, Gtk.IconLookupFlags.FORCE_SIZE
         )
 
+
 def create_slide_revealer(
     child,
-    slide_direction: str = "left", 
-    transition_duration: int = 250, 
-    initially_revealed: bool = False
+    slide_direction: str = "left",
+    transition_duration: int = 250,
+    initially_revealed: bool = False,
 ) -> Revealer:
     if slide_direction not in ("left", "right"):
         raise ValueError(
