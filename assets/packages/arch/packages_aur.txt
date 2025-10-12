@@ -1,3 +1,2 @@
 fabric-cli-git
-gray-git
 grimblast-git
