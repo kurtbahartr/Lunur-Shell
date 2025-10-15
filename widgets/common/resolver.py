@@ -85,3 +85,29 @@ def create_slide_revealer(
         transition_duration=transition_duration,
         reveal_child=initially_revealed,
     )
+
+
+def set_expanded(
+    revealer, toggle_icon, slide_direction: str, icon_size: int, expanded: bool
+):
+    """Expand/collapse tray and update arrow icon."""
+    revealer.set_reveal_child(expanded)
+
+    if slide_direction == "left":
+        arrow_icon = "left" if not expanded else "right"
+    else:
+        arrow_icon = "left" if expanded else "right"
+
+    from utils.icons import icons  # lazy import to avoid circular imports
+
+    toggle_icon.set_from_icon_name(icons["ui"]["arrow"][arrow_icon], icon_size)
+
+
+def on_leave(
+    widget, event, revealer, slide_direction: str, toggle_icon, icon_size: int
+):
+    """Handle leaving tray widget area; collapses tray if cursor outside."""
+    alloc = revealer.get_allocation()
+    x, y = widget.translate_coordinates(revealer, int(event.x), int(event.y))
+    if not (0 <= x <= alloc.width and 0 <= y <= alloc.height):
+        set_expanded(revealer, toggle_icon, slide_direction, icon_size, expanded=False)

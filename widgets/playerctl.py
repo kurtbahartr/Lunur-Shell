@@ -7,7 +7,13 @@ from fabric.widgets.image import Image
 from shared.widget_container import EventBoxWidget
 from utils.icons import icons
 from utils import BarConfig
-from widgets.common.resolver import create_slide_revealer, resolve_icon
+from widgets.common.resolver import (
+    create_slide_revealer,
+    resolve_icon,
+    set_expanded,
+    on_leave,
+)
+
 
 class PlayerctlWidget(EventBoxWidget):
     """A widget to control media playback using Playerctl, showing a music icon and current track label."""
@@ -18,7 +24,11 @@ class PlayerctlWidget(EventBoxWidget):
         if widget_config is None:
             widget_config = BarConfig()
 
-        config = widget_config["playerctl"] if "playerctl" in widget_config else widget_config
+        config = (
+            widget_config["playerctl"]
+            if "playerctl" in widget_config
+            else widget_config
+        )
         super().__init__(**kwargs)
 
         self.config = config
@@ -34,9 +44,7 @@ class PlayerctlWidget(EventBoxWidget):
         # Music icon
         icon_name = icons["playerctl"]["music"]
         self.icon_widget = Image(
-            icon_name=icon_name, 
-            icon_size=self.icon_size, 
-            style_classes=["panel-icon"]
+            icon_name=icon_name, icon_size=self.icon_size, style_classes=["panel-icon"]
         )
 
         # Label for track information
@@ -47,7 +55,7 @@ class PlayerctlWidget(EventBoxWidget):
             child=self.label,
             slide_direction=self.slide_direction,
             transition_duration=self.transition_duration,
-            initially_revealed=False
+            initially_revealed=False,
         )
 
         # Layout based on slide direction
@@ -72,9 +80,19 @@ class PlayerctlWidget(EventBoxWidget):
         # Periodic player check
         GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_players)
 
-        # Hover events
-        self.connect("enter-notify-event", self.on_mouse_enter)
-        self.connect("leave-notify-event", self.on_mouse_leave)
+        # Hover events using generic functions
+        self.connect(
+            "enter-notify-event",
+            lambda *a: set_expanded(
+                self.revealer, None, self.slide_direction, self.icon_size, True
+            ),
+        )
+        self.connect(
+            "leave-notify-event",
+            lambda w, e: on_leave(
+                w, e, self.revealer, self.slide_direction, None, self.icon_size
+            ),
+        )
 
     def _setup_initial_player(self):
         """Set up the initial player if any are available."""
@@ -90,7 +108,9 @@ class PlayerctlWidget(EventBoxWidget):
         if not player_names and self.player:
             self._clear_player()
         elif player_names:
-            if not self.player or self.player.props.player_name not in [p.name for p in player_names]:
+            if not self.player or self.player.props.player_name not in [
+                p.name for p in player_names
+            ]:
                 first_player_name = player_names[0]
                 player = Playerctl.Player.new_from_name(first_player_name)
                 self._set_player(player)
@@ -118,10 +138,8 @@ class PlayerctlWidget(EventBoxWidget):
                 pass
 
         self.player = player
-
         # Connect metadata and playback status signals
         player.connect("metadata", self._on_metadata_changed)
-        
         # Update initial metadata
         self._on_metadata_changed(player, None)
 
@@ -138,13 +156,7 @@ class PlayerctlWidget(EventBoxWidget):
         title = re.sub(r"\r?\n", " ", title)
         artist = re.sub(r"\r?\n", " ", artist)
 
-        # Combine title and artist
-        if artist:
-            display_text = f"{title} – {artist}"
-        else:
-            display_text = title
-
-        # Update label
+        display_text = f"{title} – {artist}" if artist else title
         self.label.set_text(display_text)
 
         # Update tooltip if configured
@@ -157,18 +169,3 @@ class PlayerctlWidget(EventBoxWidget):
         self.label.set_text("")
         if self.tooltip_enabled:
             self.set_tooltip_text("")
-
-    def on_mouse_enter(self, *_):
-        """Show label when mouse enters."""
-        self.revealer.set_reveal_child(True)
-        self.box.set_spacing(4)
-
-    def on_mouse_leave(self, widget, event):
-        """Hide label when mouse leaves, similar to SystemTrayWidget."""
-        allocation = self.revealer.get_allocation()
-        x, y = widget.translate_coordinates(self.revealer, int(event.x), int(event.y))
-        
-        if not (0 <= x <= allocation.width and 0 <= y <= allocation.height):
-            self.revealer.set_reveal_child(False)
-            self.box.set_spacing(4)
-

@@ -6,7 +6,12 @@ from shared.widget_container import EventBoxWidget
 from shared import HoverButton
 from utils import BarConfig
 from utils.icons import icons
-from widgets.common.resolver import resolve_icon, create_slide_revealer
+from widgets.common.resolver import (
+    resolve_icon,
+    create_slide_revealer,
+    set_expanded,
+    on_leave,
+)
 
 
 class SystemTrayWidget(EventBoxWidget):
@@ -63,30 +68,30 @@ class SystemTrayWidget(EventBoxWidget):
             self.on_item_added(self.tray, identifier)
 
         # Hover behavior
-        self.connect("enter-notify-event", lambda *a: self.set_expanded(True))
-        self.connect("leave-notify-event", self.on_leave)
+        self.connect(
+            "enter-notify-event",
+            lambda *a: set_expanded(
+                self.revealer,
+                self.toggle_icon,
+                self.slide_direction,
+                self.icon_size,
+                True,
+            ),
+        )
+        self.connect(
+            "leave-notify-event",
+            lambda w, e: on_leave(
+                w,
+                e,
+                self.revealer,
+                self.slide_direction,
+                self.toggle_icon,
+                self.icon_size,
+            ),
+        )
 
         # Optional: periodic check fallback (every 5s)
         GLib.timeout_add_seconds(5, self._check_for_icon_changes)
-
-    def set_expanded(self, expanded: bool):
-        """Expand/collapse tray and update arrow."""
-        self.revealer.set_reveal_child(expanded)
-
-        if self.slide_direction == "left":
-            arrow_icon = "left" if not expanded else "right"
-        else:
-            arrow_icon = "left" if expanded else "right"
-
-        self.toggle_icon.set_from_icon_name(
-            icons["ui"]["arrow"][arrow_icon], self.icon_size
-        )
-
-    def on_leave(self, widget, event):
-        alloc = self.revealer.get_allocation()
-        x, y = widget.translate_coordinates(self.revealer, int(event.x), int(event.y))
-        if not (0 <= x <= alloc.width and 0 <= y <= alloc.height):
-            self.set_expanded(False)
 
     def on_item_added(self, _, identifier: str):
         item = self.tray.items.get(identifier)
@@ -155,7 +160,13 @@ class SystemTrayWidget(EventBoxWidget):
         button.destroy()
 
         if not self.tray_items:
-            self.set_expanded(False)
+            set_expanded(
+                self.revealer,
+                self.toggle_icon,
+                self.slide_direction,
+                self.icon_size,
+                False,
+            )
 
     def _check_for_icon_changes(self):
         """Fallback check in case signals aren't emitted when icons change."""
