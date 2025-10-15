@@ -1,4 +1,4 @@
-from gi.repository import Gdk
+from gi.repository import Gdk, GLib
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from fabric.system_tray import SystemTray, SystemTrayItem
@@ -16,7 +16,7 @@ class SystemTrayWidget(EventBoxWidget):
         super().__init__(**kwargs)
 
         self.config = widget_config.get("system_tray", {})
-        self.tray_items = []
+        self.tray_items = {}
 
         # Config options
         self.icon_size = self.config.get("icon_size", 16)
@@ -24,7 +24,7 @@ class SystemTrayWidget(EventBoxWidget):
         self.transition_duration = self.config.get("transition_duration", 250)
         self.tooltip_enabled = self.config.get("tooltip", True)
 
-        # Toggle icon (arrow) opposite of slide direction
+        # Toggle icon (arrow)
         arrow_icon_name = "right" if self.slide_direction == "left" else "left"
         self.toggle_icon = Image(
             icon_name=icons["ui"]["arrow"][arrow_icon_name],
@@ -32,9 +32,8 @@ class SystemTrayWidget(EventBoxWidget):
             style_classes=["panel-icon", "toggle-icon"],
         )
 
-        # Box for tray icons
+        # Tray box
         self.tray_box = Box(spacing=4, orientation="horizontal")
-
         self.revealer = create_slide_revealer(
             child=self.tray_box,
             slide_direction=self.slide_direction,
@@ -42,7 +41,7 @@ class SystemTrayWidget(EventBoxWidget):
             initially_revealed=False,
         )
 
-        # Layout: direction determines placement of arrow vs tray
+        # Layout setup
         if self.slide_direction == "left":
             self.box.add(self.revealer)
             self.box.add(self.toggle_icon)
@@ -54,27 +53,29 @@ class SystemTrayWidget(EventBoxWidget):
         self.revealer.show()
         self.box.show_all()
 
-        # System tray watcher
+        # System tray setup
         self.tray = SystemTray()
         self.tray.connect("item_added", self.on_item_added)
         self.tray.connect("item_removed", self.on_item_removed)
 
-        # Populate existing items
+        # Populate existing
         for identifier, item in self.tray.items.items():
             self.on_item_added(self.tray, identifier)
 
-        # Hover events to reveal tray
-        self.connect("enter-notify-event", lambda *args: self.set_expanded(True))
+        # Hover behavior
+        self.connect("enter-notify-event", lambda *a: self.set_expanded(True))
         self.connect("leave-notify-event", self.on_leave)
 
+        # Optional: periodic check fallback (every 5s)
+        GLib.timeout_add_seconds(5, self._check_for_icon_changes)
+
     def set_expanded(self, expanded: bool):
-        """Show or hide the tray icons and update arrow."""
+        """Expand/collapse tray and update arrow."""
         self.revealer.set_reveal_child(expanded)
 
-        # Determine arrow icon based on slide direction and expansion state
         if self.slide_direction == "left":
             arrow_icon = "left" if not expanded else "right"
-        else:  # right
+        else:
             arrow_icon = "left" if expanded else "right"
 
         self.toggle_icon.set_from_icon_name(
@@ -82,15 +83,12 @@ class SystemTrayWidget(EventBoxWidget):
         )
 
     def on_leave(self, widget, event):
-        """Handle mouse leave event to potentially collapse the tray."""
-        allocation = self.revealer.get_allocation()
+        alloc = self.revealer.get_allocation()
         x, y = widget.translate_coordinates(self.revealer, int(event.x), int(event.y))
-
-        if not (0 <= x <= allocation.width and 0 <= y <= allocation.height):
+        if not (0 <= x <= alloc.width and 0 <= y <= alloc.height):
             self.set_expanded(False)
 
     def on_item_added(self, _, identifier: str):
-        """Add a new system tray item."""
         item = self.tray.items.get(identifier)
         if not item:
             return
@@ -102,28 +100,40 @@ class SystemTrayWidget(EventBoxWidget):
             margin_end=2,
         )
 
-        # Use the custom resolver to load icon safely
-        try:
-            pixbuf = resolve_icon(item, self.icon_size)
-            if pixbuf:
-                button.set_image(Image(pixbuf=pixbuf, pixel_size=self.icon_size))
-        except Exception as e:
-            print(f"Failed to load icon for {item.title}: {e}")
+        self._update_item_icon(item, button)
 
-        # Connect left/right click
+        # Connect click handler
         button.connect(
             "button-press-event", lambda btn, ev: self._on_item_click(btn, item, ev)
         )
 
-        self.tray_items.append((item, button))
+        # Connect update signal if available
+        if hasattr(item, "connect"):
+            try:
+                item.connect(
+                    "icon_changed", lambda *a: self._update_item_icon(item, button)
+                )
+                item.connect("updated", lambda *a: self._update_item_icon(item, button))
+            except Exception:
+                pass
+
+        self.tray_items[identifier] = (item, button)
         self.tray_box.add(button)
         button.show()
 
+    def _update_item_icon(self, item: SystemTrayItem, button: HoverButton):
+        """Update tray icon image for a given item."""
+        try:
+            pixbuf = resolve_icon(item, self.icon_size)
+            if pixbuf:
+                image = Image(pixbuf=pixbuf, pixel_size=self.icon_size)
+                button.set_image(image)
+        except Exception as e:
+            print(f"Failed to update icon for {item.title}: {e}")
+
     def _on_item_click(self, button, item: SystemTrayItem, event):
-        """Handle click events on system tray items."""
-        if event.button in (1, 3):  # Left or right click
+        if event.button in (1, 3):
             try:
-                # Use invoke_menu_for_event if the item supports it
                 if getattr(item, "invoke_menu_for_event", None):
                     item.invoke_menu_for_event(event)
                 else:
@@ -136,14 +146,32 @@ class SystemTrayWidget(EventBoxWidget):
         return False
 
     def on_item_removed(self, _, identifier: str):
-        """Remove a system tray item when it's no longer available."""
-        for stored_item, button in self.tray_items[:]:
-            if stored_item.identifier == identifier:
-                self.tray_box.remove(button)
-                self.tray_items.remove((stored_item, button))
-                button.destroy()
-                break
+        entry = self.tray_items.pop(identifier, None)
+        if not entry:
+            return
 
-        # Collapse tray if no items remain
+        _, button = entry
+        self.tray_box.remove(button)
+        button.destroy()
+
         if not self.tray_items:
             self.set_expanded(False)
+
+    def _check_for_icon_changes(self):
+        """Fallback check in case signals aren't emitted when icons change."""
+        for identifier, (item, button) in self.tray_items.items():
+            try:
+                current_pixbuf = resolve_icon(item, self.icon_size)
+                if not current_pixbuf:
+                    continue
+
+                image_widget = button.get_image()
+                if (
+                    not image_widget
+                    or not image_widget.get_pixbuf()
+                    or not image_widget.get_pixbuf().equal(current_pixbuf)
+                ):
+                    self._update_item_icon(item, button)
+            except Exception:
+                continue
+        return True  # keep checking

@@ -1,6 +1,6 @@
 import os
 import gi
-from gi.repository import Gdk, GdkPixbuf, GLib, Gray, Gtk
+from gi.repository import Gdk, GdkPixbuf, GLib, Gtk
 from fabric.widgets.image import Image
 from fabric.widgets.revealer import Revealer
 
