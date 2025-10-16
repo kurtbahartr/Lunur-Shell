@@ -19,7 +19,6 @@ class SystemTrayWidget(EventBoxWidget):
 
     def __init__(self, widget_config: BarConfig, **kwargs):
         super().__init__(**kwargs)
-
         self.config = widget_config.get("system_tray", {})
         self.tray_items = {}
 
@@ -90,9 +89,6 @@ class SystemTrayWidget(EventBoxWidget):
             ),
         )
 
-        # Optional: periodic check fallback (every 5s)
-        GLib.timeout_add_seconds(5, self._check_for_icon_changes)
-
     def on_item_added(self, _, identifier: str):
         item = self.tray.items.get(identifier)
         if not item:
@@ -105,6 +101,7 @@ class SystemTrayWidget(EventBoxWidget):
             margin_end=2,
         )
 
+        # Initial icon
         self._update_item_icon(item, button)
 
         # Connect click handler
@@ -112,15 +109,25 @@ class SystemTrayWidget(EventBoxWidget):
             "button-press-event", lambda btn, ev: self._on_item_click(btn, item, ev)
         )
 
-        # Connect update signal if available
-        if hasattr(item, "connect"):
+        # Connect signals for reactive updates
+        signals = ["icon_changed", "updated", "changed"]
+        for sig in signals:
             try:
-                item.connect(
-                    "icon_changed", lambda *a: self._update_item_icon(item, button)
-                )
-                item.connect("updated", lambda *a: self._update_item_icon(item, button))
+                if hasattr(item, "connect"):
+                    item.connect(
+                        sig, lambda *a, i=item, b=button: self._update_item_icon(i, b)
+                    )
             except Exception:
                 pass
+
+        if hasattr(item, "dbus_iface"):
+            for sig in ["NewIcon", "AttentionIconChanged"]:
+                try:
+                    item.dbus_iface.connect_to_signal(
+                        sig, lambda *a, i=item, b=button: self._update_item_icon(i, b)
+                    )
+                except Exception:
+                    pass
 
         self.tray_items[identifier] = (item, button)
         self.tray_box.add(button)
@@ -134,7 +141,7 @@ class SystemTrayWidget(EventBoxWidget):
                 image = Image(pixbuf=pixbuf, pixel_size=self.icon_size)
                 button.set_image(image)
         except Exception as e:
-            print(f"Failed to update icon for {item.title}: {e}")
+            print(f"Failed to update icon for {getattr(item, 'title', 'unknown')}: {e}")
 
     def _on_item_click(self, button, item: SystemTrayItem, event):
         if event.button in (1, 3):
@@ -167,22 +174,3 @@ class SystemTrayWidget(EventBoxWidget):
                 self.icon_size,
                 False,
             )
-
-    def _check_for_icon_changes(self):
-        """Fallback check in case signals aren't emitted when icons change."""
-        for identifier, (item, button) in self.tray_items.items():
-            try:
-                current_pixbuf = resolve_icon(item, self.icon_size)
-                if not current_pixbuf:
-                    continue
-
-                image_widget = button.get_image()
-                if (
-                    not image_widget
-                    or not image_widget.get_pixbuf()
-                    or not image_widget.get_pixbuf().equal(current_pixbuf)
-                ):
-                    self._update_item_icon(item, button)
-            except Exception:
-                continue
-        return True  # keep checking
