@@ -1,6 +1,7 @@
 # widgets/quick_settings/quick_settings.py
 
 from fabric.widgets.box import Box
+from fabric.widgets.grid import Grid
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from gi.repository import GLib, Gtk
@@ -13,12 +14,16 @@ from services import Brightness, audio_service
 from services.network import NetworkService
 from services import bluetooth_service
 from shared import ButtonWidget, Popover
+from shared.buttons import HoverButton
 from utils import BarConfig
 from utils.icons import icons
 from utils.widget_utils import (
     get_audio_icon_name,
     get_brightness_icon_name,
 )
+
+from .shortcuts import ShortcutsContainer
+from .togglers import NotificationQuickSetting
 
 class AudioService:
     def __init__(self, config):
@@ -274,8 +279,21 @@ class QuickSettingsMenu(Popover):
         content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         content_box.set_name("quick-settings-menu")
 
+        self.grid = Grid(
+            row_spacing=10,
+            column_spacing=10,
+            column_homogeneous=True,
+            row_homogeneous=True,
+        )
+
         # Add brightness/audio slider
         # Add wifi, bluetooth buttons
+
+        self.notification_btn = NotificationQuickSetting()
+
+        self.grid.attach(self.notification_btn, 1, 1, 1, 1)
+
+        content_box.pack_start(self.grid, True, True, 0)
 
         content_box.show_all()
 

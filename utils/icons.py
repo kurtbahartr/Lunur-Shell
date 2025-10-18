@@ -39,6 +39,12 @@ text_icons = {
         "medium": "",
         "high": "",  # highest brightness
     },
+    "notification": {
+        "noisy": "󰂜",
+        "full": "󰅸",
+        "silent": "󰪑",
+        "checked": "󱇥",
+    },
     "distro": {
         "deepin": "",
         "fedora": "",
