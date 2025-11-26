@@ -148,6 +148,13 @@ class BrightnessService:
             image_widget.set_from_icon_name(fallback_icon, size)
 
 class BluetoothService:
+    # Only map audio devices for now
+    DEVICE_ICON_MAP = {
+        "headphones": icons["audio"]["type"]["headset"],
+        "headset": icons["audio"]["type"]["headset"],
+        "speaker": icons["audio"]["type"]["speaker"],
+    }
+
     def __init__(self, config):
         self.bluetooth = bluetooth_service
         self.bluetooth_icon = Image(style_classes="panel-icon")
@@ -160,15 +167,26 @@ class BluetoothService:
         self.bluetooth.connect("device-removed", self.update_bluetooth_icon)
         self.bluetooth.connect("changed", self.update_bluetooth_icon)
 
-    def update_bluetooth_icon(self):
+    def update_bluetooth_icon(self, *_):
+        """Update Bluetooth icon depending on connected audio device"""
         if not self.bluetooth.enabled:
             icon_name = icons["bluetooth"]["disabled"]
         else:
+            # Default to the regular Bluetooth "on" icon
             icon_name = icons["bluetooth"]["enabled"]
+
+            # Check connected devices for audio devices
+            for device in self.bluetooth.get_connected_devices():
+                dev_type = getattr(device, "type", "").lower()
+                if dev_type in self.DEVICE_ICON_MAP:
+                    icon_name = self.DEVICE_ICON_MAP[dev_type]
+                    break  # use the first recognized audio device
 
         self._set_icon(self.bluetooth_icon, icon_name, icons["bluetooth"]["disabled"])
 
-    def _set_icon(self, image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16):
+    def _set_icon(
+        self, image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16
+    ):
         if icon_name:
             image_widget.set_from_icon_name(icon_name, size)
         else:
@@ -176,7 +194,9 @@ class BluetoothService:
 
     def _start_bluetooth_polling(self):
         self._stop_bluetooth_polling()
-        self._bluetooth_poll_id = GLib.timeout_add_seconds(5, self.update_bluetooth_icon)
+        self._bluetooth_poll_id = GLib.timeout_add_seconds(
+            5, self.update_bluetooth_icon
+        )
 
     def _stop_bluetooth_polling(self):
         if self._bluetooth_poll_id is not None:
