@@ -17,7 +17,7 @@ class PlayerctlMenu(Popover):
     def __init__(self, point_to_widget, player):
         self.player = player
 
-        # Main vertical box
+        # Main container
         content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         content_box.set_name("playerctl-menu")
 
@@ -25,142 +25,126 @@ class PlayerctlMenu(Popover):
         self.track_frame = Gtk.Frame()
         self.track_frame.set_shadow_type(Gtk.ShadowType.IN)
         self.track_frame.set_name("playerctl-track-frame")
-        self.track_frame.set_margin_top(6)
-        self.track_frame.set_margin_bottom(6)
-        self.track_frame.set_margin_start(6)
-        self.track_frame.set_margin_end(6)
+        for side in ("top", "bottom", "start", "end"):
+            getattr(self.track_frame, f"set_margin_{side}")(6)
 
-        # Track info vertical box
-        track_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-
-        # Title label
+        # Labels
         self.title_label = Label(label="", style_classes="panel-text-title")
-        self.title_label.set_halign(Gtk.Align.START)
-
-        # Artist label
         self.artist_label = Label(label="", style_classes="panel-text-artist")
-        self.artist_label.set_halign(Gtk.Align.START)
-
-        # === FIXED: Explicit valid adjustment for slider ===
-        adjustment = Gtk.Adjustment(
-            value=0, lower=0, upper=1, step_increment=1, page_increment=5, page_size=0
-        )
-        self.slider = Gtk.Scale(
-            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment
-        )
-        self.slider.set_draw_value(False)
-        self.slider.set_hexpand(True)
-        self.slider.set_sensitive(False)
-
-        # Time label
         self.time_label = Label(label="0:00 / 0:00", style_classes="panel-text-time")
+        self.title_label.set_halign(Gtk.Align.START)
+        self.artist_label.set_halign(Gtk.Align.START)
         self.time_label.set_halign(Gtk.Align.END)
 
-        # Slider + time container
+        # Slider (seek enabled)
+        adj = Gtk.Adjustment(
+            value=0, lower=0, upper=1, step_increment=1, page_increment=5, page_size=0
+        )
+        self.slider = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
+        self.slider.set_draw_value(False)
+        self.slider.set_hexpand(True)
+        self.slider.set_sensitive(True)  # enable clicks
+        self.slider.connect("button-press-event", self._on_slider_click)
+
+        # Layout boxes
+        track_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         time_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         time_box.set_hexpand(True)
-        time_box.set_size_request(1, -1)  # ensure non-zero width
         time_box.pack_start(self.slider, True, True, 0)
         time_box.pack_end(self.time_label, False, False, 0)
 
-        # Pack widgets into track box
+        # Pack into frame
         track_box.pack_start(self.title_label, False, False, 0)
         track_box.pack_start(self.artist_label, False, False, 0)
         track_box.pack_start(time_box, False, False, 0)
-
         self.track_frame.add(track_box)
+
+        # Add to content
         content_box.add(self.track_frame)
         content_box.show_all()
 
+        # Create popover
         super().__init__(content=content_box, point_to=point_to_widget)
 
-        # Initial update
+        # First update + poll loop
         self.update_track_info()
-        GLib.timeout_add(self.POLL_INTERVAL_MS, self._update_slider)
+        GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_tick)
 
     def update_track_info(self):
-        """Update title, artist, and slider/time values."""
         if (
             not self.player
             or not getattr(self.player, "props", None)
             or not self.player.props.metadata
         ):
-            self.title_label.set_text("")
-            self.artist_label.set_text("")
-            self.time_label.set_text("0:00 / 0:00")
-            if self.slider:
-                adj = self.slider.get_adjustment()
-                if adj:
-                    adj.set_value(0)
+            self._reset_display()
             return
 
-        metadata_variant = self.player.props.metadata
-        metadata = dict(metadata_variant.unpack()) if metadata_variant else {}
+        md = dict(self.player.props.metadata.unpack())
+        title = md.get("xesam:title", "")
+        artist = md.get("xesam:artist", [None])[0] or ""
+        length_us = md.get("mpris:length", 0)
+        pos_us = (
+            self.player.get_position() if hasattr(self.player, "get_position") else 0
+        )
 
-        title = metadata.get("xesam:title", "")
-        artists = metadata.get("xesam:artist", [])
-        artist = artists[0] if artists else ""
-
+        # Clean text
         self.title_label.set_text(re.sub(r"\r?\n", " ", title))
         self.artist_label.set_text(re.sub(r"\r?\n", " ", artist))
 
-        pos_us = (
-            self.player.get_position() if hasattr(self.player, "get_position") else 0
-        )
-        length_us = metadata.get("mpris:length", 0)
+        # Convert to seconds
+        cur_sec, total_sec = int(pos_us / 1e6), int(length_us / 1e6)
+        cur_min, cur_s = divmod(cur_sec, 60)
+        tot_min, tot_s = divmod(total_sec, 60)
+        self.time_label.set_text(f"{cur_min}:{cur_s:02} / {tot_min}:{tot_s:02}")
 
-        pos_sec_total = int(pos_us / 1_000_000)
-        total_sec_total = int(length_us / 1_000_000)
-
-        pos_min, pos_sec = divmod(pos_sec_total, 60)
-        total_min, total_sec = divmod(total_sec_total, 60)
-
-        # Update time text
-        self.time_label.set_text(f"{pos_min}:{pos_sec:02} / {total_min}:{total_sec:02}")
-
-        # Update slider adjustment safely
+        # Update slider range/value
         adj = self.slider.get_adjustment()
         if adj:
-            adj.set_upper(total_sec_total if total_sec_total > 0 else 1)
-            adj.set_value(pos_sec_total)
+            adj.set_upper(total_sec if total_sec > 0 else 1)
+            adj.set_value(cur_sec)
 
-    def _update_slider(self):
-        """Update position/length every poll tick."""
-        if (
-            not self.player
-            or not getattr(self.player, "props", None)
-            or not self.player.props.metadata
-        ):
-            if self.slider:
-                adj = self.slider.get_adjustment()
-                if adj:
-                    adj.set_value(0)
-            self.time_label.set_text("0:00 / 0:00")
-            return True
-
-        pos_us = (
-            self.player.get_position() if hasattr(self.player, "get_position") else 0
-        )
-        pos_sec_total = int(pos_us / 1_000_000)
-
-        metadata_variant = self.player.props.metadata
-        metadata = dict(metadata_variant.unpack()) if metadata_variant else {}
-        length_us = metadata.get("mpris:length", 0)
-        total_sec_total = int(length_us / 1_000_000)
-
-        pos_min, pos_sec = divmod(pos_sec_total, 60)
-        total_min, total_sec = divmod(total_sec_total, 60)
-
-        # Update time display
-        self.time_label.set_text(f"{pos_min}:{pos_sec:02} / {total_min}:{total_sec:02}")
-
-        # === FIX: Update through adjustment, not raw slider calls ===
-        adj = self.slider.get_adjustment()
-        if adj:
-            adj.set_upper(total_sec_total if total_sec_total > 0 else 1)
-            adj.set_value(pos_sec_total)
-
+    def _poll_tick(self):
+        if self.player:
+            self.update_track_info()
         return True
+
+    def _reset_display(self):
+        self.title_label.set_text("")
+        self.artist_label.set_text("")
+        self.time_label.set_text("0:00 / 0:00")
+        if self.slider:
+            adj = self.slider.get_adjustment()
+            if adj:
+                adj.set_value(0)
+
+    def _reset_display(self):
+        """Reset text and slider when nothing is playing."""
+        self.title_label.set_text("")
+        self.artist_label.set_text("")
+        self.time_label.set_text("0:00 / 0:00")
+
+        adj = self.slider.get_adjustment()
+        if adj:
+            adj.set_value(0)
+
+    def _on_slider_click(self, widget, event):
+        """Seek to clicked point on the bar and resume playback."""
+        alloc = widget.get_allocation()
+        if alloc.width <= 0:
+            return False
+
+        # X → 0..1 fraction → seconds
+        fraction = max(0, min(event.x / alloc.width, 1))
+        total_sec = widget.get_adjustment().get_upper()
+        seek_sec = int(total_sec * fraction)
+
+        # Seek + resume
+        if hasattr(self.player, "set_position"):
+            self.player.set_position(seek_sec * 1_000_000)
+        if hasattr(self.player, "play"):
+            self.player.play()
+
+        return False  # propagate event
 
 
 class PlayerctlWidget(EventBoxWidget):

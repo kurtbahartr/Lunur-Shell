@@ -37,12 +37,13 @@
     font-size: 12px;
     color: color.adjust(theme.$text-main, $lightness: -30%);
     margin-left: 4px;
-    margin-top: 0;
+    margin-top: 1rem;
   }
 
   // Style the scale (slider) for media progress
   scale {
-    min-height: 8px;
+    margin-top: 1rem;
+    min-height: 0.8rem;
     border-radius: variable.$radius;
     background-color: color.adjust(theme.$background, $lightness: 15%);
     padding: 0;
@@ -50,14 +51,16 @@
     trough {
       border-radius: variable.$radius;
       background-color: color.adjust(theme.$background, $lightness: 15%);
-      min-height: 8px;
+      min-height: 0.8rem;
+      margin: 0.2rem 0.6rem;
     }
 
     slider {
       background-color: theme.$text-main; // filled portion
       border-radius: variable.$radius;
-      min-height: 10px;
-      min-width: 12px;
+      margin: 0rem 2rem;
+      min-height: 0.6rem;
+      min-width: 0.6rem;
       box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
     }
   }
