@@ -1,0 +1,70 @@
+@use "sass:color";
+@use "theme";
+@use "variable";
+@use "common";
+
+#playerctl-menu {
+  @include common.floating-widget;
+  @include common.spacing;
+
+  background-color: theme.$background-dark;
+  border-radius: variable.$radius;
+  min-width: 250px;
+  min-height: 100px;
+
+  // Track frame styling (rounded box) with alternate background
+  #playerctl-track-frame {
+    background-color: theme.$background-alt;
+    border-radius: variable.$radius;
+    padding: 8px;
+  }
+
+  .panel-text-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: theme.$text-main;
+  }
+
+  .panel-text-artist {
+    font-weight: 400;
+    font-size: 13px;
+    color: color.adjust(theme.$text-main, $lightness: -20%);
+  }
+
+  // Horizontal row for scale + time label
+  .panel-text-time {
+    font-weight: 400;
+    font-size: 12px;
+    color: color.adjust(theme.$text-main, $lightness: -30%);
+    margin-left: 4px;
+    margin-top: 0;
+  }
+
+  // Style the scale (slider) for media progress
+  scale {
+    min-height: 8px;
+    border-radius: variable.$radius;
+    background-color: color.adjust(theme.$background, $lightness: 15%);
+    padding: 0;
+
+    trough {
+      border-radius: variable.$radius;
+      background-color: color.adjust(theme.$background, $lightness: 15%);
+      min-height: 8px;
+    }
+
+    slider {
+      background-color: theme.$text-main; // filled portion
+      border-radius: variable.$radius;
+      min-height: 10px;
+      min-width: 12px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+
+  // Placeholder for future playback buttons
+  .playerctl-controls {
+    margin-top: 8px;
+  }
+}
