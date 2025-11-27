@@ -5,13 +5,11 @@ from fabric.widgets.image import Image
 from shared.widget_container import EventBoxWidget
 from shared import Popover
 from utils.icons import icons
-from utils import BarConfig
+from utils import BarConfig, run_in_thread
 from widgets.common.resolver import create_slide_revealer, set_expanded, on_leave
 
 
 class PlayerctlMenu(Popover):
-    """Popover menu showing track info, slider for position, and current/total time."""
-
     POLL_INTERVAL_MS = 1000
 
     def __init__(self, point_to_widget, player):
@@ -36,47 +34,43 @@ class PlayerctlMenu(Popover):
         self.artist_label.set_halign(Gtk.Align.START)
         self.time_label.set_halign(Gtk.Align.END)
 
-        # Slider (seek enabled)
+        # Slider
         adj = Gtk.Adjustment(
             value=0, lower=0, upper=1, step_increment=1, page_increment=5, page_size=0
         )
         self.slider = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
         self.slider.set_draw_value(False)
         self.slider.set_hexpand(True)
-        self.slider.set_sensitive(True)  # enable clicks
+        self.slider.set_sensitive(True)
         self.slider.connect("button-press-event", self._on_slider_click)
 
-        # Layout boxes
+        # Layout
         track_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         time_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         time_box.set_hexpand(True)
         time_box.pack_start(self.slider, True, True, 0)
         time_box.pack_end(self.time_label, False, False, 0)
 
-        # Pack into frame
         track_box.pack_start(self.title_label, False, False, 0)
         track_box.pack_start(self.artist_label, False, False, 0)
         track_box.pack_start(time_box, False, False, 0)
         self.track_frame.add(track_box)
 
-        # Add to content
         content_box.add(self.track_frame)
         content_box.show_all()
-
-        # Create popover
         super().__init__(content=content_box, point_to=point_to_widget)
 
-        # First update + poll loop
-        self.update_track_info()
+        self._update_track_info_async()
         GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_tick)
 
-    def update_track_info(self):
+    @run_in_thread
+    def _update_track_info_async(self):
         if (
             not self.player
             or not getattr(self.player, "props", None)
             or not self.player.props.metadata
         ):
-            self._reset_display()
+            GLib.idle_add(self._reset_display)
             return
 
         md = dict(self.player.props.metadata.unpack())
@@ -87,69 +81,55 @@ class PlayerctlMenu(Popover):
             self.player.get_position() if hasattr(self.player, "get_position") else 0
         )
 
-        # Clean text
-        self.title_label.set_text(re.sub(r"\r?\n", " ", title))
-        self.artist_label.set_text(re.sub(r"\r?\n", " ", artist))
-
-        # Convert to seconds
         cur_sec, total_sec = int(pos_us / 1e6), int(length_us / 1e6)
         cur_min, cur_s = divmod(cur_sec, 60)
         tot_min, tot_s = divmod(total_sec, 60)
-        self.time_label.set_text(f"{cur_min}:{cur_s:02} / {tot_min}:{tot_s:02}")
+        time_text = f"{cur_min}:{cur_s:02} / {tot_min}:{tot_s:02}"
 
-        # Update slider range/value
+        GLib.idle_add(
+            self._update_labels_and_slider, title, artist, time_text, cur_sec, total_sec
+        )
+
+    def _update_labels_and_slider(self, title, artist, time_text, cur_sec, total_sec):
+        self.title_label.set_text(re.sub(r"\r?\n", " ", title))
+        self.artist_label.set_text(re.sub(r"\r?\n", " ", artist))
+        self.time_label.set_text(time_text)
+
         adj = self.slider.get_adjustment()
         if adj:
-            adj.set_upper(total_sec if total_sec > 0 else 1)
+            adj.set_upper(max(total_sec, 1))
             adj.set_value(cur_sec)
 
     def _poll_tick(self):
         if self.player:
-            self.update_track_info()
+            self._update_track_info_async()
         return True
 
     def _reset_display(self):
         self.title_label.set_text("")
         self.artist_label.set_text("")
         self.time_label.set_text("0:00 / 0:00")
-        if self.slider:
-            adj = self.slider.get_adjustment()
-            if adj:
-                adj.set_value(0)
-
-    def _reset_display(self):
-        """Reset text and slider when nothing is playing."""
-        self.title_label.set_text("")
-        self.artist_label.set_text("")
-        self.time_label.set_text("0:00 / 0:00")
-
         adj = self.slider.get_adjustment()
         if adj:
             adj.set_value(0)
 
     def _on_slider_click(self, widget, event):
-        """Seek to clicked point on the bar and resume playback."""
         alloc = widget.get_allocation()
         if alloc.width <= 0:
             return False
 
-        # X → 0..1 fraction → seconds
         fraction = max(0, min(event.x / alloc.width, 1))
         total_sec = widget.get_adjustment().get_upper()
         seek_sec = int(total_sec * fraction)
 
-        # Seek + resume
         if hasattr(self.player, "set_position"):
             self.player.set_position(seek_sec * 1_000_000)
         if hasattr(self.player, "play"):
             self.player.play()
-
-        return False  # propagate event
+        return False
 
 
 class PlayerctlWidget(EventBoxWidget):
-    """Playerctl widget with icon, slide reveal, and popover menu."""
-
     POLL_INTERVAL_MS = 2000
 
     def __init__(self, widget_config=None, **kwargs):
@@ -163,20 +143,16 @@ class PlayerctlWidget(EventBoxWidget):
         self.player_manager = Playerctl.PlayerManager.new()
         self.popup = None
 
-        # Configuration
         self.icon_size = self.config.get("icon_size", 16)
         self.slide_direction = self.config.get("slide_direction", "left")
         self.transition_duration = self.config.get("transition_duration", 250)
         self.tooltip_enabled = self.config.get("tooltip", True)
 
-        # Icon
         self.icon_widget = Image(
             icon_name=icons["playerctl"]["music"],
             icon_size=self.icon_size,
             style_classes=["panel-icon"],
         )
-
-        # Track label
         self.label = Label(label="", style_classes="panel-text")
 
         label_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -189,7 +165,6 @@ class PlayerctlWidget(EventBoxWidget):
             initially_revealed=False,
         )
 
-        # Layout order
         if self.slide_direction == "right":
             self.box.add(self.icon_widget)
             self.box.add(self.revealer)
@@ -201,21 +176,17 @@ class PlayerctlWidget(EventBoxWidget):
         self.box.set_size_request(1, -1)
         self.box.show_all()
 
-        # Connect player manager signals
+        # Connect signals
         self.player_manager.connect("player-vanished", self._on_player_vanished)
         self.player_manager.connect("name-appeared", self._on_player_appeared)
         self._setup_initial_player()
         GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_players)
 
-        # Hover expand/collapse (toggle_icon=None prevents crash)
+        # Hover reveal
         self.connect(
             "enter-notify-event",
             lambda *a: set_expanded(
-                revealer=self.revealer,
-                toggle_icon=None,
-                slide_direction=self.slide_direction,
-                icon_size=self.icon_size,
-                expanded=True,
+                self.revealer, None, self.slide_direction, self.icon_size, expanded=True
             ),
         )
         self.connect(
@@ -229,21 +200,35 @@ class PlayerctlWidget(EventBoxWidget):
                 icon_size=self.icon_size,
             ),
         )
-
-        # Click to open menu
+        # Click menu
         self.connect("button-press-event", self.on_click)
 
     def on_click(self, *_):
         if self.popup:
             self.popup.destroy()
             self.popup = None
-
         if not self.player:
             return
-
         self.popup = PlayerctlMenu(self, self.player)
-        self.popup.update_track_info()
         self.popup.open()
+
+    @run_in_thread
+    def _on_metadata_changed(self, player, metadata=None):
+        if not self.player or not getattr(player, "props", None):
+            return
+        md = dict(player.props.metadata.unpack()) if player.props.metadata else {}
+        title = md.get("xesam:title", "")
+        artist = md.get("xesam:artist", [])
+        artist = artist[0] if artist else ""
+        display_text = f"{title} – {artist}" if artist else title
+        GLib.idle_add(self._update_label_text, display_text)
+
+    def _update_label_text(self, text):
+        self.label.set_text(text)
+        if self.tooltip_enabled:
+            self.set_tooltip_text(text)
+        if self.popup:
+            self.popup._update_track_info_async()
 
     def _setup_initial_player(self):
         player_names = self.player_manager.props.player_names
@@ -261,11 +246,9 @@ class PlayerctlWidget(EventBoxWidget):
                 getattr(self.player.props, "player_name", None) if self.player else None
             )
             available = [p for p in player_names]
-
             if current not in available:
                 player = Playerctl.Player.new_from_name(available[0])
                 self._set_player(player)
-
         return True
 
     def _on_player_vanished(self, _, player):
@@ -284,30 +267,10 @@ class PlayerctlWidget(EventBoxWidget):
                 self.player.disconnect_by_func(self._on_metadata_changed)
             except TypeError:
                 pass
-
         self.player = player
         if player:
             player.connect("metadata", self._on_metadata_changed)
             self._on_metadata_changed(player)
-
-    def _on_metadata_changed(self, player, metadata=None):
-        if not self.player or not getattr(player, "props", None):
-            return
-
-        metadata_variant = player.props.metadata
-        md = dict(metadata_variant.unpack()) if metadata_variant else {}
-        title = md.get("xesam:title", "")
-        artists = md.get("xesam:artist", [])
-        artist = artists[0] if artists else ""
-
-        display_text = f"{title} – {artist}" if artist else title
-        self.label.set_text(display_text)
-
-        if self.tooltip_enabled:
-            self.set_tooltip_text(display_text)
-
-        if self.popup:
-            self.popup.update_track_info()
 
     def _clear_player(self):
         self.player = None
