@@ -29,6 +29,7 @@ General = TypedDict(
         "screen_corners": ScreenCorners,
         "location": str,
         "layer": Layer,
+        "debug": bool,
     },
 )
 
@@ -37,7 +38,7 @@ AppLauncher = TypedDict(
     {
         "icon_size": int,
         "app_icon_size": int,
-        "show_descriptions": bool,  
+        "show_descriptions": bool,
     },
 )
 
@@ -96,7 +97,15 @@ Battery = TypedDict(
 )
 
 # SystemTray configuration
-SystemTray = TypedDict("SystemTray", {**BaseConfig.__annotations__, "transition_duration": int, "icon_size": int, "slide_direction": str})
+SystemTray = TypedDict(
+    "SystemTray",
+    {
+        **BaseConfig.__annotations__,
+        "transition_duration": int,
+        "icon_size": int,
+        "slide_direction": str,
+    },
+)
 
 # Quick Settings
 QuickSettings = TypedDict(
@@ -113,7 +122,7 @@ Keybinds = TypedDict(
     "Keybinds",
     {
         "enabled": bool,
-        "path": str, 
+        "path": str,
     },
 )
 
@@ -133,7 +142,7 @@ PowerProfiles = TypedDict(
     "PowerProfiles",
     {
         "icon_size": int,
-    }
+    },
 )
 
 Hyprpicker = TypedDict(
@@ -141,14 +150,22 @@ Hyprpicker = TypedDict(
     {
         "icon_size": int,
         "tooltip": bool,
-    }
+    },
 )
 
 Cliphist = TypedDict("Cliphist", {"icon": str, **BaseConfig.__annotations__})
 
 
 # Playerctl configuration
-Playerctl = TypedDict("Playerctl", {**BaseConfig.__annotations__, "transition_duration": int, "icon_size": int, "slide_direction": str})
+Playerctl = TypedDict(
+    "Playerctl",
+    {
+        **BaseConfig.__annotations__,
+        "transition_duration": int,
+        "icon_size": int,
+        "slide_direction": str,
+    },
+)
 
 EmojiPicker = TypedDict(
     "emoji_picker",
@@ -191,7 +208,7 @@ Screenshot = TypedDict(
         **BaseConfig.__annotations__,
         "annotation": bool,
         # "capture_sound": bool,
-    }
+    },
 )
 
 # OSD configuration
@@ -210,7 +227,8 @@ OSD = TypedDict(
         "orientation": str,
     },
 )
-    
+
+
 # Main minimal BarConfig for your current widgets
 class BarConfig(TypedDict):
     date_time: DateTimeMenu
@@ -235,4 +253,4 @@ class BarConfig(TypedDict):
     shutdown: Shutdown
     screenshot: Screenshot
     recorder: Recording
-    osd: OSD 
+    osd: OSD

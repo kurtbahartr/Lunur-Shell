@@ -3,7 +3,7 @@ widgets = ["hyprpicker", "emoji_picker", "screenshot", "recorder", "cliphist"]
 spacing = 4
 style_classes = ["compact"]
 collapsed_icon = ""
-slide_direction = "left"    # "left" or "right"
+slide_direction = "left"                                                       # "left" or "right"
 transition_duration = 300
 
 [[collapsible_groups]]
@@ -11,27 +11,33 @@ widgets = ["sleep", "reboot", "logout", "shutdown"]
 spacing = 4
 style_classes = ["compact"]
 collapsed_icon = "󰐥"
-slide_direction = "left"    # "left" or "right"
+slide_direction = "left"                            # "left" or "right"
 transition_duration = 300
 
 [[module_groups]]
-widgets = ["quick_settings", "battery" ]
+widgets = ["quick_settings", "battery"]
 spacing = 4
-style_classes = [ "compact" ]
+style_classes = ["compact"]
 
 [layout]
 start_container = ["app_launcher", "workspaces", "window_title"]
 center_container = ["date_time", "power_profiles", "playerctl"]
 # end_container = ["quick_settings", "battery", "system_tray"]
-end_container = ["system_tray", "@collapsible_group:0","@group:0", "@collapsible_group:1"]
+end_container = [
+  "system_tray",
+  "@collapsible_group:0",
+  "@group:0",
+  "@collapsible_group:1",
+]
 
 [general]
+debug = true
 layer = "top"
 location = "top"
 
-  [general.screen_corners]
-  enabled = true
-  size = 20
+[general.screen_corners]
+enabled = true
+size = 20
 
 [osd]
 osds = ["volume", "brightness"]
@@ -46,8 +52,8 @@ percentage = true
 orientation = "horizontal"
 
 [app_launcher]
-icon_size = 16 # Bar button icon
-app_icon_size = 48 # Size of app icons in launcher
+icon_size = 16           # Bar button icon
+app_icon_size = 48       # Size of app icons in launcher
 show_descriptions = true
 
 [screenshot]
@@ -88,7 +94,7 @@ path = "~/.config/hypr/hyprbinds.conf"
 [workspaces]
 count = 3
 hide_unoccupied = false
-ignored = [] # or []
+ignored = []                  # or []
 reverse_scroll = true
 empty_scroll = false
 default_label_format = "{id}"
@@ -109,25 +115,30 @@ label = true
 tooltip = true
 orientation = "vertical"
 icon_size = 16
-  [battery.notifications]
-  enabled = true
-  full_battery = false
-  charging = false
-  low_battery = true
-  low_threshold = 25
+[battery.notifications]
+enabled = true
+full_battery = false
+charging = false
+low_battery = true
+low_threshold = 25
 
 [date_time]
-clock_format = "24h"  # 24h or "12h"
+clock_format = "24h" # 24h or "12h"
 format = "%b %d"
 
 [system_tray]
 icon_size = 16
-slide_direction = "left" # right or left
+slide_direction = "left"  # right or left
 transition_duration = 300
 tooltip = true
 
 [quick_settings]
-bar_icons = ["network","audio", "bluetooth","brightness"] # quick setting buttons to display on the bar
+bar_icons = [
+  "network",
+  "audio",
+  "bluetooth",
+  "brightness",
+] # quick setting buttons to display on the bar
 show_network_name = true
 show_audio_percent = false
 show_brightness_percent = false

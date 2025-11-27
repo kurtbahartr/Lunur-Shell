@@ -1,3 +1,4 @@
+import time
 from fabric.utils import exec_shell_command_async, get_relative_path
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
@@ -9,6 +10,7 @@ from utils import HyprlandWithMonitors
 from utils.functions import run_in_thread
 from utils.widget_utils import lazy_load_widget
 from modules.corners import SideCorner
+from loguru import logger
 
 
 class StatusBar(Window, ToggleableWidget):
@@ -44,6 +46,7 @@ class StatusBar(Window, ToggleableWidget):
             "recorder": "widgets.recorder.RecorderWidget",
         }
 
+        self.debug = config.get("general", {}).get("debug", False)
         options = config["general"]
         layout = self.make_layout(config)
 
@@ -70,11 +73,11 @@ class StatusBar(Window, ToggleableWidget):
                 ],
             )
 
-        # Center uses shared names
+        # Center corners
         self.center_corner_left = corner_left()
         self.center_corner_right = corner_right()
 
-        # Other sections with clear labels
+        # Start/end corners
         self.start_corner_right = corner_right()
         self.end_corner_left = corner_left()
 
@@ -147,11 +150,31 @@ class StatusBar(Window, ToggleableWidget):
     def make_layout(self, widget_config):
         layout = {
             "left_section": widget_config.get("layout", {}).get("start_container", []),
-            "middle_section": widget_config.get("layout", {}).get("center_container", []),
+            "middle_section": widget_config.get("layout", {}).get(
+                "center_container", []
+            ),
             "right_section": widget_config.get("layout", {}).get("end_container", []),
         }
 
         new_layout = {"left_section": [], "middle_section": [], "right_section": []}
+
+        def safe_instantiate(cls):
+            """Try passing widget_config, fallback if it fails."""
+            try:
+                return cls(widget_config)
+            except TypeError:
+                return cls()
+
+        def time_widget_load(name, constructor):
+            if self.debug:
+                start = time.time()
+                instance = constructor()
+                end = time.time()
+                elapsed_ms = (end - start) * 1000
+                logger.info(f"[Timing] Widget '{name}' loaded in {elapsed_ms:.1f} ms")
+                return instance
+            else:
+                return constructor()
 
         for section in new_layout:
             for widget_name in layout[section]:
@@ -167,7 +190,10 @@ class StatusBar(Window, ToggleableWidget):
 
                     if group_config:
                         group = ModuleGroup.from_config(
-                            group_config, self.widgets_list, bar=self, widget_config=widget_config
+                            group_config,
+                            self.widgets_list,
+                            bar=self,
+                            widget_config=widget_config,
                         )
                         new_layout[section].append(group)
 
@@ -186,10 +212,9 @@ class StatusBar(Window, ToggleableWidget):
                         for wname in group_config.get("widgets", []):
                             if wname in self.widgets_list:
                                 cls = lazy_load_widget(wname, self.widgets_list)
-                                try:
-                                    child = cls(widget_config)
-                                except TypeError:
-                                    child = cls()
+                                child = time_widget_load(
+                                    wname, lambda cls=cls: safe_instantiate(cls)
+                                )
                                 child_widgets.append(child)
 
                         collapsible = CollapsibleGroups(
@@ -202,14 +227,14 @@ class StatusBar(Window, ToggleableWidget):
                             icon_size=group_config.get("icon_size"),
                         )
                         new_layout[section].append(collapsible)
-                        
+
+                # Regular widget
                 else:
                     if widget_name in self.widgets_list:
-                        widget_class = lazy_load_widget(widget_name, self.widgets_list)
-                        try:
-                            widget_instance = widget_class(widget_config)
-                        except TypeError:
-                            widget_instance = widget_class()
+                        cls = lazy_load_widget(widget_name, self.widgets_list)
+                        widget_instance = time_widget_load(
+                            widget_name, lambda cls=cls: safe_instantiate(cls)
+                        )
                         new_layout[section].append(widget_instance)
 
         return new_layout

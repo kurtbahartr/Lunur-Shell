@@ -11,7 +11,7 @@ NOTIFICATION_CACHE_FILE = f"{APP_CACHE_DIRECTORY}/notifications.json"
 DEFAULT_CONFIG = {
     "date_time": {
         "clock_format": "24h",
-        "format": "%b %d", 
+        "format": "%b %d",
     },
     "screenshot": {
         "path": "Pictures/Screenshots",
@@ -31,7 +31,7 @@ DEFAULT_CONFIG = {
         "transition_type": "slide-up",
         "transition_duration": 500,
         "percentage": True,
-        "orientation": "horizontal",  
+        "orientation": "horizontal",
     },
     "recorder": {
         "path": "Videos/Screencasting",
@@ -39,22 +39,10 @@ DEFAULT_CONFIG = {
         "icon_size": 16,
         "tooltip": True,
     },
-    "sleep": {
-        "label": False,
-        "tooltip": True
-    },
-    "reboot": {
-        "label": False,
-        "tooltip": True
-    },
-    "logout": {
-        "label": False,
-        "tooltip": True
-    },
-    "shutdown": {
-        "label": False,
-        "tooltip": True
-    },
+    "sleep": {"label": False, "tooltip": True},
+    "reboot": {"label": False, "tooltip": True},
+    "logout": {"label": False, "tooltip": True},
+    "shutdown": {"label": False, "tooltip": True},
     "quick_settings": {
         "icon_size": "16",
         "ignored": [],
@@ -62,11 +50,11 @@ DEFAULT_CONFIG = {
         "show_ssid": False,
         "show_audio_percent": False,
         "show_brightness_percent": False,
-        "style_classes": [ "compact" ],
+        "style_classes": ["compact"],
     },
     "keybinds": {
         "enabled": True,
-        "path": "~/.config/hypr/hyprbinds.conf",  
+        "path": "~/.config/hypr/hyprbinds.conf",
     },
     "app_launcher": {
         "icon_size": 16,
@@ -92,8 +80,9 @@ DEFAULT_CONFIG = {
         "per_column": 4,
     },
     "general": {
+        "debug": "false",
         "layer": "top",
-        "location":"top",
+        "location": "top",
     },
     "screen_corners": {
         "enabled": False,
@@ -112,7 +101,14 @@ DEFAULT_CONFIG = {
     "layout": {
         "left_section": ["app_launcher", "workspaces"],
         "middle_section": ["date_time", "power_profiles"],
-        "right_section": ["@group:0", "system_tray", "sleep", "reboot", "logout", "shutdown"],
+        "right_section": [
+            "@group:0",
+            "system_tray",
+            "sleep",
+            "reboot",
+            "logout",
+            "shutdown",
+        ],
     },
     "window_title": {
         "icon": True,
@@ -171,7 +167,7 @@ DEFAULT_CONFIG = {
     },
     "power_profiles": {
         "icon_size": 16,
-    }
+    },
 }
 
 WINDOW_TITLE_MAP = [
@@ -280,4 +276,3 @@ NOTIFICATION_WIDTH = 400
 NOTIFICATION_IMAGE_SIZE = 64
 NOTIFICATION_ACTION_NUMBER = 3
 HIGH_POLL_INTERVAL = 3600  # 1 hour in seconds
-

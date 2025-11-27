@@ -1,3 +1,4 @@
+import time
 import setproctitle
 from fabric import Application
 from fabric.utils import cooldown, exec_shell_command, get_relative_path, monitor_file
@@ -7,7 +8,26 @@ from gi.repository import Gtk
 import utils.functions as helpers
 from modules.bar import StatusBar
 from modules.launcher import AppLauncher
-from utils import APPLICATION_NAME, APP_CACHE_DIRECTORY, ExecutableNotFoundError, widget_config
+from utils import (
+    APPLICATION_NAME,
+    APP_CACHE_DIRECTORY,
+    ExecutableNotFoundError,
+    widget_config,
+)
+
+DEBUG = widget_config.get("general", {}).get("debug")
+
+
+def time_module_load(name: str, func):
+    if DEBUG:
+        start = time.time()
+        result = func()
+        end = time.time()
+        elapsed_ms = (end - start) * 1000  # convert to milliseconds
+        logger.info(f"[Timing] Module '{name}' loaded in {elapsed_ms:.1f} ms")
+        return result
+    else:
+        return func()
 
 
 @cooldown(2)
@@ -29,39 +49,42 @@ def process_and_apply_css(app: Application):
 
 if __name__ == "__main__":
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
-    launcher = AppLauncher()
-    bar = StatusBar(widget_config)
 
+    launcher = time_module_load("AppLauncher", lambda: AppLauncher())
+    bar = time_module_load("StatusBar", lambda: StatusBar(widget_config))
     windows = [bar, launcher]
 
     if widget_config.get("keybinds", {}).get("enabled"):
         from modules.keybinds import KeybindsWidget
 
-        keybinds = KeybindsWidget(widget_config)
+        keybinds = time_module_load(
+            "KeybindsWidget", lambda: KeybindsWidget(widget_config)
+        )
         windows.append(keybinds)
 
-    if widget_config["notification"]["enabled"]:
+    if widget_config.get("notification", {}).get("enabled"):
         from modules.notification import NotificationPopup
 
-        notifications = NotificationPopup(widget_config)
+        notifications = time_module_load(
+            "NotificationPopup", lambda: NotificationPopup(widget_config)
+        )
         windows.append(notifications)
 
-    if widget_config["general"]["screen_corners"]["enabled"]:
+    if widget_config.get("general", {}).get("screen_corners", {}).get("enabled"):
         from modules.corners import ScreenCorners
 
-        screen_corners = ScreenCorners(widget_config)
-
+        screen_corners = time_module_load(
+            "ScreenCorners", lambda: ScreenCorners(widget_config)
+        )
         windows.append(screen_corners)
 
     if widget_config.get("osd", {}).get("enabled"):
         from modules.osd import OSDWindow
 
-        osd = OSDWindow(widget_config)
+        osd = time_module_load("OSDWindow", lambda: OSDWindow(widget_config))
         windows.append(osd)
 
-
     app = Application(APPLICATION_NAME, windows=windows)
-
     helpers.copy_theme(widget_config["theme"]["name"])
 
     icon_theme = Gtk.IconTheme.get_default()
@@ -74,12 +97,11 @@ if __name__ == "__main__":
         "changed",
         lambda *args: (
             helpers.copy_theme(widget_config["theme"]["name"]),
-            process_and_apply_css(app)
-        )
+            process_and_apply_css(app),
+        ),
     )
-    style_monitor.connect("changed", lambda *args: process_and_apply_css(app)) 
+    style_monitor.connect("changed", lambda *args: process_and_apply_css(app))
     process_and_apply_css(app)
 
     setproctitle.setproctitle(APPLICATION_NAME)
-
     app.run()
