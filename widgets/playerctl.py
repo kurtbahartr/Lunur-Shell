@@ -194,8 +194,12 @@ class PlayerctlWidget(EventBoxWidget):
 
         # Track label
         self.label = Label(label="", style_classes="panel-text")
+
+        label_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        label_container.pack_start(self.label, True, True, 6)
+
         self.revealer = create_slide_revealer(
-            child=self.label,
+            child=label_container,
             slide_direction=self.slide_direction,
             transition_duration=self.transition_duration,
             initially_revealed=False,
