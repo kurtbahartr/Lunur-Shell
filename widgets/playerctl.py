@@ -10,29 +10,31 @@ from widgets.common.resolver import create_slide_revealer, set_expanded, on_leav
 
 
 class PlayerctlMenu(Popover):
-    POLL_INTERVAL_MS = 1000
-
-    def __init__(self, point_to_widget, player):
+    def __init__(self, point_to_widget, player, config=None):
         self.player = player
-        self.icon_size = 16
+        self.config = config or {}
+        self.icon_size = self.config.get("icon_size", 16)
+        self.poll_interval = self.config.get("menu_poll_interval", 1000)
 
         # Main container
-        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         content_box.set_name("playerctl-menu")
+        content_box.set_halign(Gtk.Align.FILL)
+        content_box.set_hexpand(True)
 
         # Track frame
         self.track_frame = Gtk.Frame()
         self.track_frame.set_shadow_type(Gtk.ShadowType.IN)
         self.track_frame.set_name("playerctl-track-frame")
         for side in ("top", "bottom", "start", "end"):
-            getattr(self.track_frame, f"set_margin_{side}")(6)
+            getattr(self.track_frame, f"set_margin_{side}")(2)
 
         # Labels
         self.title_label = Label(label="", style_classes="panel-text-title")
         self.artist_label = Label(label="", style_classes="panel-text-artist")
         self.time_label = Label(label="0:00 / 0:00", style_classes="panel-text-time")
-        self.title_label.set_halign(Gtk.Align.START)
-        self.artist_label.set_halign(Gtk.Align.START)
+        self.title_label.set_halign(Gtk.Align.FILL)
+        self.artist_label.set_halign(Gtk.Align.FILL)
         self.time_label.set_halign(Gtk.Align.END)
 
         # Slider
@@ -42,26 +44,25 @@ class PlayerctlMenu(Popover):
         self.slider = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
         self.slider.set_draw_value(False)
         self.slider.set_hexpand(True)
-        self.slider.set_sensitive(True)
+        self.slider.set_halign(Gtk.Align.FILL)
+        self.slider.set_size_request(50, -1)  # minimum width
         self.slider.connect("button-press-event", self._on_slider_click)
 
         # Play/Pause Button
         self.play_pause_button = Gtk.Button()
         self.play_pause_button.set_name("playerctl-play-pause")
         self.play_pause_button.connect("clicked", self._on_play_pause_clicked)
-
-        # Play/Pause Icon
         self.play_pause_icon = Image(
-            icon_name=icons["playerctl"]["paused"],  # Default to paused icon
-            icon_size=16,
+            icon_name=icons["playerctl"]["paused"],
+            icon_size=self.icon_size,
             style_classes=["panel-icon"],
         )
         self.play_pause_button.add(self.play_pause_icon)
 
         # Layout
         track_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        track_box.set_hexpand(True)
         time_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-
         time_box.set_hexpand(True)
         time_box.pack_start(self.slider, True, True, 0)
         time_box.pack_end(self.time_label, False, False, 0)
@@ -69,19 +70,16 @@ class PlayerctlMenu(Popover):
         track_box.pack_start(self.title_label, False, False, 0)
         track_box.pack_start(self.artist_label, False, False, 0)
         track_box.pack_start(time_box, False, False, 0)
-        track_box.pack_start(self.play_pause_button, False, False, 6)
+        track_box.pack_start(self.play_pause_button, False, False, 2)
 
         self.track_frame.add(track_box)
-
         content_box.add(self.track_frame)
         content_box.show_all()
         super().__init__(content=content_box, point_to=point_to_widget)
 
-        # Add method to match the previous implementation
+        # Initial update
         self._update_track_info_async()
-        GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_tick)
-
-        # Initial icon state
+        GLib.timeout_add(self.poll_interval, self._poll_tick)
         self._update_play_pause_icon()
 
     def _on_play_pause_clicked(self, *args):
@@ -98,15 +96,13 @@ class PlayerctlMenu(Popover):
     def _update_play_pause_icon(self):
         if not self.player:
             return
-
         try:
             status = self.player.props.playback_status
-            if status == Playerctl.PlaybackStatus.PLAYING:
-                icon_name = icons["playerctl"]["playing"]
-            else:
-                icon_name = icons["playerctl"]["paused"]
-
-            # Update icon on the main thread
+            icon_name = (
+                icons["playerctl"]["playing"]
+                if status == Playerctl.PlaybackStatus.PLAYING
+                else icons["playerctl"]["paused"]
+            )
             GLib.idle_add(self._set_play_pause_icon, icon_name)
         except Exception as e:
             print(f"Error updating play/pause icon: {e}")
@@ -126,17 +122,12 @@ class PlayerctlMenu(Popover):
         ):
             GLib.idle_add(self._reset_display)
             return
-
         try:
             md = dict(self.player.props.metadata.unpack())
             title = md.get("xesam:title", "")
             artist = md.get("xesam:artist", [None])[0] or ""
             length_us = md.get("mpris:length", 0)
-            pos_us = (
-                self.player.get_position()
-                if hasattr(self.player, "get_position")
-                else 0
-            )
+            pos_us = getattr(self.player, "get_position", lambda: 0)()
 
             cur_sec, total_sec = int(pos_us / 1e6), int(length_us / 1e6)
             cur_min, cur_s = divmod(cur_sec, 60)
@@ -151,19 +142,15 @@ class PlayerctlMenu(Popover):
                 cur_sec,
                 total_sec,
             )
-
-            # Also update play/pause icon
             self._update_play_pause_icon()
         except Exception as e:
             print(f"Error in track info update: {e}")
 
     def _update_labels_and_slider(self, title, artist, time_text, cur_sec, total_sec):
-        # Update labels
         self.title_label.set_text(re.sub(r"\r?\n", " ", title))
         self.artist_label.set_text(re.sub(r"\r?\n", " ", artist))
         self.time_label.set_text(time_text)
 
-        # Update slider
         adj = self.slider.get_adjustment()
         if adj:
             adj.set_upper(max(total_sec, 1))
@@ -177,7 +164,6 @@ class PlayerctlMenu(Popover):
     def _on_slider_click(self, widget, event):
         if not self.player:
             return False
-
         alloc = widget.get_allocation()
         if alloc.width <= 0:
             return False
@@ -196,74 +182,75 @@ class PlayerctlMenu(Popover):
         return False
 
     def _reset_display(self):
-        """Reset all display elements when no player is active."""
-        # Reset labels
         self.title_label.set_text("")
         self.artist_label.set_text("")
         self.time_label.set_text("0:00 / 0:00")
 
-        # Reset slider
         adj = self.slider.get_adjustment()
         if adj:
             adj.set_value(0)
             adj.set_upper(1)
-
-        # Reset play/pause icon
         GLib.idle_add(self._set_play_pause_icon, icons["playerctl"]["paused"])
 
 
 class PlayerctlWidget(EventBoxWidget):
-    POLL_INTERVAL_MS = 2000
-
     def __init__(self, widget_config=None, **kwargs):
-        if widget_config is None:
-            widget_config = BarConfig()
+        widget_config = widget_config or BarConfig()
         config = widget_config.get("playerctl", widget_config)
         super().__init__(**kwargs)
 
         self.config = config
+        self.icon_size = config.get("icon_size", 16)
+        self.slide_direction = config.get("slide_direction", "left")
+        self.transition_duration = config.get("transition_duration", 250)
+        self.tooltip_enabled = config.get("tooltip", True)
+        self.poll_interval = config.get("poll_interval", 2000)
         self.player = None
-        self.player_manager = Playerctl.PlayerManager.new()
         self.popup = None
 
-        self.icon_size = self.config.get("icon_size", 16)
-        self.slide_direction = self.config.get("slide_direction", "left")
-        self.transition_duration = self.config.get("transition_duration", 250)
-        self.tooltip_enabled = self.config.get("tooltip", True)
+        self.player_manager = Playerctl.PlayerManager.new()
 
+        # Icon widget
         self.icon_widget = Image(
             icon_name=icons["playerctl"]["music"],
             icon_size=self.icon_size,
             style_classes=["panel-icon"],
         )
+
+        # Label inside a box for revealer
         self.label = Label(label="", style_classes="panel-text")
-
         label_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        label_container.pack_start(self.label, True, True, 6)
+        label_container.pack_start(self.label, True, True, 4)
+        label_container.set_hexpand(True)
 
+        # Slide revealer
         self.revealer = create_slide_revealer(
             child=label_container,
             slide_direction=self.slide_direction,
             transition_duration=self.transition_duration,
             initially_revealed=False,
         )
+        self.revealer.set_hexpand(True)
+        self.revealer.set_halign(Gtk.Align.FILL)
 
+        # Combine icon and revealer in a single box
+        self.icon_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.icon_container.set_hexpand(False)
         if self.slide_direction == "right":
-            self.box.add(self.icon_widget)
-            self.box.add(self.revealer)
+            self.icon_container.pack_start(self.icon_widget, False, False, 0)
+            self.icon_container.pack_start(self.revealer, True, True, 0)
         else:
-            self.box.add(self.revealer)
-            self.box.add(self.icon_widget)
+            self.icon_container.pack_start(self.revealer, True, True, 0)
+            self.icon_container.pack_start(self.icon_widget, False, False, 0)
 
-        self.box.set_hexpand(True)
-        self.box.set_size_request(1, -1)
+        self.box.add(self.icon_container)
         self.box.show_all()
 
         # Connect signals
         self.player_manager.connect("player-vanished", self._on_player_vanished)
         self.player_manager.connect("name-appeared", self._on_player_appeared)
         self._setup_initial_player()
-        GLib.timeout_add(self.POLL_INTERVAL_MS, self._poll_players)
+        GLib.timeout_add(self.poll_interval, self._poll_players)
 
         # Hover reveal
         self.connect(
@@ -283,6 +270,7 @@ class PlayerctlWidget(EventBoxWidget):
                 icon_size=self.icon_size,
             ),
         )
+
         # Click menu
         self.connect("button-press-event", self.on_click)
 
@@ -292,7 +280,7 @@ class PlayerctlWidget(EventBoxWidget):
             self.popup = None
         if not self.player:
             return
-        self.popup = PlayerctlMenu(self, self.player)
+        self.popup = PlayerctlMenu(self, self.player, config=self.config)
         self.popup.open()
 
     @run_in_thread
@@ -301,8 +289,7 @@ class PlayerctlWidget(EventBoxWidget):
             return
         md = dict(player.props.metadata.unpack()) if player.props.metadata else {}
         title = md.get("xesam:title", "")
-        artist = md.get("xesam:artist", [])
-        artist = artist[0] if artist else ""
+        artist = md.get("xesam:artist", [None])[0] or ""
         display_text = f"{title} – {artist}" if artist else title
         GLib.idle_add(self._update_label_text, display_text)
 
@@ -316,8 +303,7 @@ class PlayerctlWidget(EventBoxWidget):
     def _setup_initial_player(self):
         player_names = self.player_manager.props.player_names
         if player_names and isinstance(player_names[0], Playerctl.PlayerName):
-            player_name_obj = player_names[0]
-            player = Playerctl.Player.new_from_name(player_name_obj)
+            player = Playerctl.Player.new_from_name(player_names[0])
             self._set_player(player)
 
     def _poll_players(self):
