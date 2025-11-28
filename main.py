@@ -37,7 +37,19 @@ def process_and_apply_css(app: Application):
         raise ExecutableNotFoundError("sass")
 
     logger.info("[Main] Compiling CSS")
-    output = exec_shell_command("sass styles/main.scss dist/main.css --no-source-map")
+
+    if DEBUG:
+        start = time.time()
+        output = exec_shell_command(
+            "sass styles/main.scss dist/main.css --no-source-map"
+        )
+        end = time.time()
+        elapsed_ms = (end - start) * 1000
+        logger.info(f"[Timing] SCSS compiled in {elapsed_ms:.1f} ms")
+    else:
+        output = exec_shell_command(
+            "sass styles/main.scss dist/main.css --no-source-map"
+        )
 
     if output == "":
         logger.info("[Main] CSS applied")
