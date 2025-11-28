@@ -39,18 +39,25 @@ class PlayerctlMenu(Popover):
 
         # Slider
         adj = Gtk.Adjustment(
-            value=0, lower=0, upper=1, step_increment=1, page_increment=5, page_size=0
+            value=0, lower=0, upper=1, step_increment=1, page_increment=5
         )
         self.slider = Gtk.Scale(orientation=Gtk.Orientation.HORIZONTAL, adjustment=adj)
         self.slider.set_draw_value(False)
         self.slider.set_hexpand(True)
         self.slider.set_halign(Gtk.Align.FILL)
-        self.slider.set_size_request(50, -1)  # minimum width
         self.slider.connect("button-press-event", self._on_slider_click)
 
-        # Play/Pause Button
+        # Skip and Play/Pause Buttons
+        self.skip_back_button = Gtk.Button()
+        self.skip_back_button.connect("clicked", self._on_skip_back_clicked)
+        self.skip_back_icon = Image(
+            icon_name=icons["playerctl"]["prev"],
+            icon_size=self.icon_size,
+            style_classes=["panel-icon"],
+        )
+        self.skip_back_button.add(self.skip_back_icon)
+
         self.play_pause_button = Gtk.Button()
-        self.play_pause_button.set_name("playerctl-play-pause")
         self.play_pause_button.connect("clicked", self._on_play_pause_clicked)
         self.play_pause_icon = Image(
             icon_name=icons["playerctl"]["paused"],
@@ -59,25 +66,39 @@ class PlayerctlMenu(Popover):
         )
         self.play_pause_button.add(self.play_pause_icon)
 
+        self.skip_forward_button = Gtk.Button()
+        self.skip_forward_button.connect("clicked", self._on_skip_forward_clicked)
+        self.skip_forward_icon = Image(
+            icon_name=icons["playerctl"]["next"],
+            icon_size=self.icon_size,
+            style_classes=["panel-icon"],
+        )
+        self.skip_forward_button.add(self.skip_forward_icon)
+
+        # Controls box
+        controls_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        controls_box.set_halign(Gtk.Align.CENTER)
+        controls_box.pack_start(self.skip_back_button, False, False, 0)
+        controls_box.pack_start(self.play_pause_button, False, False, 0)
+        controls_box.pack_start(self.skip_forward_button, False, False, 0)
+
         # Layout
         track_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        track_box.set_hexpand(True)
-        time_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
-        time_box.set_hexpand(True)
-        time_box.pack_start(self.slider, True, True, 0)
-        time_box.pack_end(self.time_label, False, False, 0)
-
         track_box.pack_start(self.title_label, False, False, 0)
         track_box.pack_start(self.artist_label, False, False, 0)
+
+        time_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        time_box.pack_start(self.slider, True, True, 0)
+        time_box.pack_end(self.time_label, False, False, 0)
         track_box.pack_start(time_box, False, False, 0)
-        track_box.pack_start(self.play_pause_button, False, False, 2)
+        track_box.pack_start(controls_box, False, False, 2)
 
         self.track_frame.add(track_box)
         content_box.add(self.track_frame)
         content_box.show_all()
         super().__init__(content=content_box, point_to=point_to_widget)
 
-        # Initial update
+        # Start updates
         self._update_track_info_async()
         GLib.timeout_add(self.poll_interval, self._poll_tick)
         self._update_play_pause_icon()
@@ -92,6 +113,20 @@ class PlayerctlMenu(Popover):
                 self.player.play()
         except Exception as e:
             print(f"Error toggling play/pause: {e}")
+
+    def _on_skip_back_clicked(self, *args):
+        if self.player:
+            try:
+                self.player.previous()
+            except Exception as e:
+                print(f"Error skipping back: {e}")
+
+    def _on_skip_forward_clicked(self, *args):
+        if self.player:
+            try:
+                self.player.next()
+            except Exception as e:
+                print(f"Error skipping forward: {e}")
 
     def _update_play_pause_icon(self):
         if not self.player:
@@ -185,7 +220,6 @@ class PlayerctlMenu(Popover):
         self.title_label.set_text("")
         self.artist_label.set_text("")
         self.time_label.set_text("0:00 / 0:00")
-
         adj = self.slider.get_adjustment()
         if adj:
             adj.set_value(0)
