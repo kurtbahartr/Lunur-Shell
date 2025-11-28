@@ -16,20 +16,17 @@ class PlayerctlMenu(Popover):
         self.icon_size = self.config.get("icon_size", 16)
         self.poll_interval = self.config.get("menu_poll_interval", 1000)
 
-        # Main container
         content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         content_box.set_name("playerctl-menu")
         content_box.set_halign(Gtk.Align.FILL)
         content_box.set_hexpand(True)
 
-        # Track frame
         self.track_frame = Gtk.Frame()
         self.track_frame.set_shadow_type(Gtk.ShadowType.IN)
         self.track_frame.set_name("playerctl-track-frame")
         for side in ("top", "bottom", "start", "end"):
             getattr(self.track_frame, f"set_margin_{side}")(2)
 
-        # Labels
         self.title_label = Label(label="", style_classes="panel-text-title")
         self.artist_label = Label(label="", style_classes="panel-text-artist")
         self.time_label = Label(label="0:00 / 0:00", style_classes="panel-text-time")
@@ -37,7 +34,6 @@ class PlayerctlMenu(Popover):
         self.artist_label.set_halign(Gtk.Align.FILL)
         self.time_label.set_halign(Gtk.Align.END)
 
-        # Slider
         adj = Gtk.Adjustment(
             value=0, lower=0, upper=1, step_increment=1, page_increment=5
         )
@@ -47,7 +43,6 @@ class PlayerctlMenu(Popover):
         self.slider.set_halign(Gtk.Align.FILL)
         self.slider.connect("button-press-event", self._on_slider_click)
 
-        # Skip and Play/Pause Buttons
         self.skip_back_button = Gtk.Button()
         self.skip_back_button.connect("clicked", self._on_skip_back_clicked)
         self.skip_back_icon = Image(
@@ -75,14 +70,12 @@ class PlayerctlMenu(Popover):
         )
         self.skip_forward_button.add(self.skip_forward_icon)
 
-        # Controls box
         controls_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         controls_box.set_halign(Gtk.Align.CENTER)
         controls_box.pack_start(self.skip_back_button, False, False, 0)
         controls_box.pack_start(self.play_pause_button, False, False, 0)
         controls_box.pack_start(self.skip_forward_button, False, False, 0)
 
-        # Layout
         track_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         track_box.pack_start(self.title_label, False, False, 0)
         track_box.pack_start(self.artist_label, False, False, 0)
@@ -98,13 +91,12 @@ class PlayerctlMenu(Popover):
         content_box.show_all()
         super().__init__(content=content_box, point_to=point_to_widget)
 
-        # Start updates
         self._update_track_info_async()
         GLib.timeout_add(self.poll_interval, self._poll_tick)
         self._update_play_pause_icon()
 
     def _on_play_pause_clicked(self, *args):
-        if not self.player:
+        if not self.player or not getattr(self.player, "props", None):
             return
         try:
             if self.player.props.playback_status == Playerctl.PlaybackStatus.PLAYING:
@@ -115,21 +107,21 @@ class PlayerctlMenu(Popover):
             print(f"Error toggling play/pause: {e}")
 
     def _on_skip_back_clicked(self, *args):
-        if self.player:
+        if self.player and getattr(self.player, "props", None):
             try:
                 self.player.previous()
             except Exception as e:
                 print(f"Error skipping back: {e}")
 
     def _on_skip_forward_clicked(self, *args):
-        if self.player:
+        if self.player and getattr(self.player, "props", None):
             try:
                 self.player.next()
             except Exception as e:
                 print(f"Error skipping forward: {e}")
 
     def _update_play_pause_icon(self):
-        if not self.player:
+        if not self.player or not getattr(self.player, "props", None):
             return
         try:
             status = self.player.props.playback_status
@@ -150,17 +142,17 @@ class PlayerctlMenu(Popover):
 
     @run_in_thread
     def _update_track_info_async(self):
-        if (
-            not self.player
-            or not getattr(self.player, "props", None)
-            or not self.player.props.metadata
-        ):
+        if not self.player or not getattr(self.player, "props", None):
+            GLib.idle_add(self._reset_display)
+            return
+        metadata = getattr(self.player.props, "metadata", None)
+        if not metadata:
             GLib.idle_add(self._reset_display)
             return
         try:
-            md = dict(self.player.props.metadata.unpack())
+            md = dict(metadata.unpack())
             title = md.get("xesam:title", "")
-            artist = md.get("xesam:artist", [None])[0] or ""
+            artist = (md.get("xesam:artist") or [""])[0]
             length_us = md.get("mpris:length", 0)
             pos_us = getattr(self.player, "get_position", lambda: 0)()
 
@@ -180,6 +172,7 @@ class PlayerctlMenu(Popover):
             self._update_play_pause_icon()
         except Exception as e:
             print(f"Error in track info update: {e}")
+            GLib.idle_add(self._reset_display)
 
     def _update_labels_and_slider(self, title, artist, time_text, cur_sec, total_sec):
         self.title_label.set_text(re.sub(r"\r?\n", " ", title))
@@ -197,7 +190,7 @@ class PlayerctlMenu(Popover):
         return True
 
     def _on_slider_click(self, widget, event):
-        if not self.player:
+        if not self.player or not getattr(self.player, "props", None):
             return False
         alloc = widget.get_allocation()
         if alloc.width <= 0:
@@ -244,20 +237,16 @@ class PlayerctlWidget(EventBoxWidget):
 
         self.player_manager = Playerctl.PlayerManager.new()
 
-        # Icon widget
         self.icon_widget = Image(
             icon_name=icons["playerctl"]["music"],
             icon_size=self.icon_size,
             style_classes=["panel-icon"],
         )
-
-        # Label inside a box for revealer
         self.label = Label(label="", style_classes="panel-text")
         label_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         label_container.pack_start(self.label, True, True, 4)
         label_container.set_hexpand(True)
 
-        # Slide revealer
         self.revealer = create_slide_revealer(
             child=label_container,
             slide_direction=self.slide_direction,
@@ -267,7 +256,6 @@ class PlayerctlWidget(EventBoxWidget):
         self.revealer.set_hexpand(True)
         self.revealer.set_halign(Gtk.Align.FILL)
 
-        # Combine icon and revealer in a single box
         self.icon_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.icon_container.set_hexpand(False)
         if self.slide_direction == "right":
@@ -280,13 +268,11 @@ class PlayerctlWidget(EventBoxWidget):
         self.box.add(self.icon_container)
         self.box.show_all()
 
-        # Connect signals
         self.player_manager.connect("player-vanished", self._on_player_vanished)
         self.player_manager.connect("name-appeared", self._on_player_appeared)
         self._setup_initial_player()
         GLib.timeout_add(self.poll_interval, self._poll_players)
 
-        # Hover reveal
         self.connect(
             "enter-notify-event",
             lambda *a: set_expanded(
@@ -305,7 +291,6 @@ class PlayerctlWidget(EventBoxWidget):
             ),
         )
 
-        # Click menu
         self.connect("button-press-event", self.on_click)
 
     def on_click(self, *_):
@@ -323,7 +308,7 @@ class PlayerctlWidget(EventBoxWidget):
             return
         md = dict(player.props.metadata.unpack()) if player.props.metadata else {}
         title = md.get("xesam:title", "")
-        artist = md.get("xesam:artist", [None])[0] or ""
+        artist = (md.get("xesam:artist") or [""])[0]
         display_text = f"{title} – {artist}" if artist else title
         GLib.idle_add(self._update_label_text, display_text)
 
