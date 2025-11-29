@@ -23,20 +23,18 @@ def time_module_load(name: str, func):
         start = time.time()
         result = func()
         end = time.time()
-        elapsed_ms = (end - start) * 1000  # convert to milliseconds
+        elapsed_ms = (end - start) * 1000
         logger.info(f"[Timing] Module '{name}' loaded in {elapsed_ms:.1f} ms")
         return result
     else:
         return func()
 
 
-@cooldown(2)
-@helpers.run_in_thread
-def process_and_apply_css(app: Application):
+def compile_scss():
     if not helpers.executable_exists("sass"):
         raise ExecutableNotFoundError("sass")
 
-    logger.info("[Main] Compiling CSS")
+    logger.info("[Main] Compiling SCSS")
 
     if DEBUG:
         start = time.time()
@@ -51,16 +49,23 @@ def process_and_apply_css(app: Application):
             "sass styles/main.scss dist/main.css --no-source-map"
         )
 
-    if output == "":
-        logger.info("[Main] CSS applied")
-        app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
-    else:
-        app.set_stylesheet_from_string("")
-        logger.error("[Main] Failed to compile sass!")
+    if output != "":
+        logger.error("[Main] Failed to compile SCSS!")
+
+
+@cooldown(2)
+@helpers.run_in_thread
+def process_and_apply_css(app: Application):
+    compile_scss()
+    app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
+    logger.info("[Main] CSS applied")
 
 
 if __name__ == "__main__":
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
+
+    # Compile SCSS first to ensure styles are ready before widgets
+    compile_scss()
 
     launcher = time_module_load("AppLauncher", lambda: AppLauncher())
     bar = time_module_load("StatusBar", lambda: StatusBar(widget_config))
@@ -97,12 +102,15 @@ if __name__ == "__main__":
         windows.append(osd)
 
     app = Application(APPLICATION_NAME, windows=windows)
+    app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
+
     helpers.copy_theme(widget_config["theme"]["name"])
 
     icon_theme = Gtk.IconTheme.get_default()
     icons_dir = get_relative_path("./assets/icons/svg/gtk")
     icon_theme.append_search_path(icons_dir)
 
+    # File monitoring
     style_monitor = monitor_file(get_relative_path("./styles"))
     watch_matugen = monitor_file(get_relative_path("./styles/themes/matugen.scss"))
     watch_matugen.connect(
@@ -113,7 +121,6 @@ if __name__ == "__main__":
         ),
     )
     style_monitor.connect("changed", lambda *args: process_and_apply_css(app))
-    process_and_apply_css(app)
 
     setproctitle.setproctitle(APPLICATION_NAME)
     app.run()
