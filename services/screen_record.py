@@ -20,6 +20,7 @@ class ScreenRecorderService(Service):
     def recording(self, value: bool) -> None: ...
 
     _instance = None
+    _enabled = True  # Add enable flag
 
     def __new__(cls):
         if cls._instance is None:
@@ -30,12 +31,26 @@ class ScreenRecorderService(Service):
         super().__init__(**kwargs)
         self.home_dir = GLib.get_home_dir()
         self.shutter_sound = get_relative_path("../assets/sounds/camera-shutter.mp3")
+        self._current_screencast_path = None
+        self.screenrecord_path = None
+        self.screenshot_path = None
+
+    @classmethod
+    def set_enabled(cls, enabled: bool):
+        """Enable or disable the screen recorder service."""
+        cls._enabled = enabled
+        logger.info(f"[SCREENRECORD] Service {'enabled' if enabled else 'disabled'}")
 
     def screenrecord_start(
         self,
         config: dict,
         fullscreen=False,
     ):
+        # Check if service is enabled
+        if not self._enabled:
+            logger.warning("[SCREENRECORD] Service is disabled")
+            return
+
         path = config.get("path", "")
         """Start screen recording using wf-recorder with optional GLib-based delay."""
         if not path:
@@ -124,6 +139,11 @@ class ScreenRecorderService(Service):
         fullscreen=False,
         save_copy=True,
     ):
+        # Check if service is enabled
+        if not self._enabled:
+            logger.warning("[SCREENSHOT] Service is disabled")
+            return
+
         path = config.get("path", "")
         """Take a screenshot using grimblast and optionally annotate with satty."""
         if not path:
@@ -132,7 +152,7 @@ class ScreenRecorderService(Service):
 
         self.screenshot_path = os.path.join(self.home_dir, path)
         os.makedirs(self.screenshot_path, exist_ok=True)
-        
+
         timestamp = datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
         file_path = os.path.join(self.screenshot_path, f"{timestamp}.png")
 
@@ -169,9 +189,6 @@ class ScreenRecorderService(Service):
                         check=True,
                     )
                     os.unlink(temp_path)  # Clean up temp file after use
-
-                # if config.get("capture_sound", False):
-                #     helpers.play_sound(self.shutter_sound)
 
                 # Send notification after annotation or direct capture
                 self.send_screenshot_notification(file_path=file_path)
@@ -240,6 +257,16 @@ class ScreenRecorderService(Service):
         return helpers.is_app_running("wf-recorder")
 
     def screenrecord_stop(self):
+        # Check if service is enabled
+        if not self._enabled:
+            logger.warning("[SCREENRECORD] Service is disabled")
+            return
+
         helpers.kill_process("wf-recorder")
         self.emit("recording", False)
-        self.send_screenrecord_notification(self._current_screencast_path)
+
+        # Only send notification if a screencast was actually recorded
+        if self._current_screencast_path and os.path.exists(
+            self._current_screencast_path
+        ):
+            self.send_screenrecord_notification(self._current_screencast_path)

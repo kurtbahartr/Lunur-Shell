@@ -17,6 +17,7 @@ DEFAULT_CONFIG = {
         "format": "%b %d",
     },
     "screenshot": {
+        "enabled": True,
         "path": "Pictures/Screenshots",
         "icon": "󰕸",
         "icon_size": 16,

@@ -203,6 +203,7 @@ Recording = TypedDict(
 Screenshot = TypedDict(
     "Screenshot",
     {
+        "enabled": bool,
         "icon": str,
         "path": str,
         **BaseConfig.__annotations__,

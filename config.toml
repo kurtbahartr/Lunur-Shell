@@ -57,6 +57,7 @@ app_icon_size = 48       # Size of app icons in launcher
 show_descriptions = true
 
 [screenshot]
+enabled = true
 path = "Pictures/Screenshots"
 icon = "󰄀"
 icon_size = 16

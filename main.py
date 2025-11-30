@@ -63,8 +63,6 @@ def process_and_apply_css(app: Application):
 
 if __name__ == "__main__":
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
-
-    # Compile SCSS first to ensure styles are ready before widgets
     compile_scss()
 
     launcher = time_module_load("AppLauncher", lambda: AppLauncher())
@@ -101,6 +99,11 @@ if __name__ == "__main__":
         osd = time_module_load("OSDWindow", lambda: OSDWindow(widget_config))
         windows.append(osd)
 
+    if widget_config.get("screen_record", {}).get("enabled", True):
+        from services.screen_record import ScreenRecorderService
+
+        screen_recorder_service = ScreenRecorderService()
+
     app = Application(APPLICATION_NAME, windows=windows)
     app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
 
@@ -110,7 +113,6 @@ if __name__ == "__main__":
     icons_dir = get_relative_path("./assets/icons/svg/gtk")
     icon_theme.append_search_path(icons_dir)
 
-    # File monitoring
     style_monitor = monitor_file(get_relative_path("./styles"))
     watch_matugen = monitor_file(get_relative_path("./styles/themes/matugen.scss"))
     watch_matugen.connect(
