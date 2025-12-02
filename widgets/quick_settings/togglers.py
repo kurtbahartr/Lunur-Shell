@@ -9,6 +9,8 @@ from shared.buttons import HoverButton
 from utils.icons import icons, text_icons
 from utils.widget_utils import nerd_font_icon, get_icon
 
+import utils.functions as helpers
+
 
 class QuickSettingToggler(CommandSwitcher):
     """A button widget to toggle a command."""
@@ -105,7 +107,7 @@ class WifiQuickSetting(HoverButton):
             label="WiFi Off",
         )
         self.wifi_icon = nerd_font_icon(
-            icon=get_icon(text_icons["wifi"]["off"]),
+            icon=text_icons["wifi"]["off"],
             props={"style_classes": ["panel-font-icon"]},
         )
 
@@ -217,7 +219,7 @@ class WifiQuickSetting(HoverButton):
 
     def _set_connected_state(self, ssid: str, strength: int):
         """Set UI for WiFi connected."""
-        self.wifi_label.set_label(ssid)
+        self.wifi_label.set_label(helpers.truncate(ssid))
         self.wifi_icon.set_label(self._get_strength_icon(strength))
         self.add_style_class("active")
 
