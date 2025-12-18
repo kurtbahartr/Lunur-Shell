@@ -59,7 +59,6 @@ class NotificationQuickSetting(HoverButton):
         self.children = Box(
             orientation="h",
             spacing=10,
-            style="padding: 5px;",
             children=(
                 self.notification_icon,
                 self.notification_label,
@@ -114,7 +113,6 @@ class WifiQuickSetting(HoverButton):
         self.children = Box(
             orientation="h",
             spacing=10,
-            style="padding: 5px;",
             children=(
                 self.wifi_icon,
                 self.wifi_label,
@@ -264,7 +262,6 @@ class BluetoothQuickSetting(HoverButton):
         self.children = Box(
             orientation="h",
             spacing=10,
-            style="padding: 5px;",
             children=(
                 self.bt_icon,
                 self.bt_label,

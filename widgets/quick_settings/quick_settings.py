@@ -250,15 +250,15 @@ class QuickSettings:
         self.network_service = NetworkServiceWrapper(config)
         self.brightness_service = BrightnessService(config)
         self.bluetooth_service = BluetoothService(config)
-        
+
         # Initialize services
         self.audio_service.connect_signals()
         self.network_service.connect_signals()
         self.brightness_service.connect_signals()
-        
+
         # Start Bluetooth polling
         self.bluetooth_service._start_bluetooth_polling()
-        
+
     def get_icons_and_labels(self, bar_icons):
         icons_map = {
             "audio": self.audio_service.audio_icon,
@@ -295,7 +295,7 @@ class QuickSettings:
 
 class SliderRow(Box):
     """A reusable slider row with icon, slider, and optional percentage label."""
-    
+
     def __init__(
         self,
         icon_name: str,
@@ -305,23 +305,23 @@ class SliderRow(Box):
         on_change: callable = None,
         show_percentage: bool = True,
         style_class: str = "slider-row",
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             orientation=Gtk.Orientation.HORIZONTAL,
             spacing=10,
             style_classes=[style_class],
-            **kwargs
+            **kwargs,
         )
-        
+
         self._on_change = on_change
         self._updating = False  # Prevent feedback loops
-        
+
         # Icon
         self.icon = Image(style_classes="slider-icon")
         self.icon.set_from_icon_name(icon_name, 20)
         self.pack_start(self.icon, False, False, 0)
-        
+
         # Scale/Slider
         self.scale = Scale(
             orientation=Gtk.Orientation.HORIZONTAL,
@@ -334,7 +334,7 @@ class SliderRow(Box):
         )
         self.scale.connect("value-changed", self._on_value_changed)
         self.pack_start(self.scale, True, True, 0)
-        
+
         # Percentage label
         self.percentage_label = None
         if show_percentage:
@@ -344,19 +344,19 @@ class SliderRow(Box):
             )
             self.percentage_label.set_size_request(45, -1)  # Fixed width for alignment
             self.pack_start(self.percentage_label, False, False, 0)
-    
+
     def _on_value_changed(self, scale):
         if self._updating:
             return
-            
+
         value = scale.get_value()
-        
+
         if self.percentage_label:
             self.percentage_label.set_label(f"{int(value)}%")
-        
+
         if self._on_change:
             self._on_change(value)
-    
+
     def set_value(self, value: float):
         """Set slider value without triggering the change callback."""
         self._updating = True
@@ -364,7 +364,7 @@ class SliderRow(Box):
         if self.percentage_label:
             self.percentage_label.set_label(f"{int(value)}%")
         self._updating = False
-    
+
     def set_icon(self, icon_name: str):
         """Update the slider icon."""
         self.icon.set_from_icon_name(icon_name, 20)
@@ -372,7 +372,7 @@ class SliderRow(Box):
 
 class BrightnessSlider(SliderRow):
     """Brightness slider with automatic service integration."""
-    
+
     def __init__(self):
         self.brightness_service = Brightness()
         self._updating = False
@@ -454,15 +454,15 @@ class BrightnessSlider(SliderRow):
 
 class VolumeSlider(SliderRow):
     """Volume slider with automatic service integration."""
-    
+
     def __init__(self):
         self.audio = audio_service
-        
+
         # Get initial volume
         initial_volume = 50
         if self.audio.speaker:
             initial_volume = round(self.audio.speaker.volume)
-        
+
         super().__init__(
             icon_name=icons["audio"]["volume"]["medium"],
             min_value=0,
@@ -471,30 +471,30 @@ class VolumeSlider(SliderRow):
             on_change=self._set_volume,
             style_class="volume-slider-row",
         )
-        
+
         # Connect to audio changes
         self.audio.connect("notify::speaker", self._on_speaker_changed)
         if self.audio.speaker:
             self._connect_speaker_signals()
-        
+
         self._update_icon(initial_volume)
-    
+
     def _connect_speaker_signals(self):
         """Connect to speaker volume and mute signals."""
         if self.audio.speaker:
             self.audio.speaker.connect("notify::volume", self._on_volume_changed)
             self.audio.speaker.connect("notify::muted", self._on_volume_changed)
-    
+
     def _on_speaker_changed(self, *_):
         """Handle speaker device changes."""
         self._connect_speaker_signals()
         self._on_volume_changed()
-    
+
     def _set_volume(self, value: float):
         """Set volume from slider value."""
         if self.audio.speaker:
             self.audio.speaker.volume = value
-    
+
     def _on_volume_changed(self, *_):
         """Handle external volume changes."""
         if self.audio.speaker:
@@ -502,7 +502,7 @@ class VolumeSlider(SliderRow):
             muted = self.audio.speaker.muted
             self.set_value(volume)
             self._update_icon(volume, muted)
-    
+
     def _update_icon(self, volume: float, muted: bool = False):
         """Update icon based on volume level and mute state."""
         try:
@@ -515,18 +515,18 @@ class VolumeSlider(SliderRow):
 
 class SlidersContainer(Box):
     """Container for brightness and volume sliders."""
-    
+
     def __init__(self):
         super().__init__(
             orientation=Gtk.Orientation.VERTICAL,
             spacing=8,
             style_classes="sliders-container",
         )
-        
+
         # Add brightness slider
         self.brightness_slider = BrightnessSlider()
         self.pack_start(self.brightness_slider, False, False, 0)
-        
+
         # Add volume slider
         self.volume_slider = VolumeSlider()
         self.pack_start(self.volume_slider, False, False, 0)
@@ -534,18 +534,26 @@ class SlidersContainer(Box):
 
 class QuickSettingsMenu(Popover):
     def __init__(self, point_to_widget, config):
-        # Create the main content box
-        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        # Root container (controls global spacing)
+        content_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=0,
+        )
         content_box.set_name("quick-settings-menu")
 
-        # Add sliders container at the top
         self.sliders = SlidersContainer()
         content_box.pack_start(self.sliders, False, False, 0)
 
-        # Add a separator (optional)
+        separator_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=0,  # critical: no forced spacing
+        )
+
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         separator.get_style_context().add_class("qs-separator")
-        content_box.pack_start(separator, False, False, 5)
+
+        separator_box.pack_start(separator, False, False, 0)
+        content_box.pack_start(separator_box, False, False, 0)
 
         self.grid = Grid(
             row_spacing=10,
@@ -554,34 +562,22 @@ class QuickSettingsMenu(Popover):
             row_homogeneous=True,
         )
 
-        # Add brightness/audio slider
-        # Add wifi, bluetooth buttons
-
         self.wifi_btn = WifiQuickSetting()
-
-        self.grid.attach(self.wifi_btn, 0, 0, 1, 1)
-
         self.bt_btn = BluetoothQuickSetting()
-
-        self.grid.attach(self.bt_btn, 1, 0, 1, 1)
-
         self.notification_btn = NotificationQuickSetting()
 
+        self.grid.attach(self.wifi_btn, 0, 0, 1, 1)
+        self.grid.attach(self.bt_btn, 1, 0, 1, 1)
         self.grid.attach(self.notification_btn, 2, 0, 1, 1)
 
         content_box.pack_start(self.grid, True, True, 0)
 
         content_box.show_all()
 
-        # Initialize the popover with the content
         super().__init__(
             content=content_box,
             point_to=point_to_widget,
         )
-
-    def populate_menu(self):
-        # Future implementation for dynamic menu population
-        pass
 
 
 class QuickSettingsButtonWidget(ButtonWidget):

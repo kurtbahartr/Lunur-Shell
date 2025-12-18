@@ -3,13 +3,11 @@
 @use "variable";
 @use "common";
 
-$slider-height: 12px;
-
 #quick-settings-menu {
   @include common.floating-widget;
   @include common.spacing;
 
-  background-color: theme.$background; 
+  background-color: theme.$background;
   border-radius: variable.$radius;
   min-width: variable.$quicksettings-width;
   min-height: 50px;
@@ -19,10 +17,12 @@ $slider-height: 12px;
   background-color: theme.$background-alt;
   color: theme.$text-main;
   border-radius: variable.$radius;
-  padding: common.toEm(3) 0;
-  padding-left: common.toEm(10);
-  transition: background-color 120ms ease, color 120ms ease;
+  padding: common.toEm(8) common.toEm(12);
+
   min-width: 170px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 
   &:hover,
   &:focus {
@@ -30,7 +30,11 @@ $slider-height: 12px;
   }
 
   &:active {
-    background-color: color.mix(theme.$primary, theme.$surface-highlight, 15%);
+    background-color: color.mix(
+      theme.$primary,
+      theme.$surface-highlight,
+      15%
+    );
   }
 }
 
@@ -38,3 +42,4 @@ $slider-height: 12px;
   background-color: theme.$primary;
   color: theme.$text-muted-light;
 }
+
