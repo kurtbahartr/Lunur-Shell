@@ -124,6 +124,8 @@ low_battery = true
 low_threshold = 25
 
 [date_time]
+# To list all available timezones run: timedatectl list-timezones
+# To update timezone run the following command: sudo timedatectl set-timezone America/Denver
 clock_format = "24h" # 24h or "12h"
 format = "%b %d"
 

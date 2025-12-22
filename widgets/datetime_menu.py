@@ -1,60 +1,117 @@
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk, GLib
 from fabric.widgets.datetime import DateTime
-from shared import ButtonWidget
-from shared import Popover
+from shared import ButtonWidget, Popover
+
+import subprocess
 import time
+import os
+from loguru import logger
 
 
 class DateTimeWidget(ButtonWidget):
     def __init__(self, config):
         self.dt_config = config["date_time"]
+
         date_format = self.dt_config.get("format", "%b %d")
         clock_format = self.dt_config.get("clock_format", "24h")
 
         time_format = "%I:%M %p" if clock_format == "12h" else "%H:%M"
         combined_format = f"{date_format} {time_format}"
-        formatters = [combined_format]
 
         super().__init__(self.dt_config, name="date-time")
 
         self.datetime = DateTime(
             name="inner-date-time",
-            formatters=formatters,
+            formatters=[combined_format],
         )
+
         self.box.children = (self.datetime,)
         self.datetime.show_all()
 
         self.popup = None
+        self._last_timezone = None
+
         self.connect("clicked", self.show_popover)
 
-    def do_format(self):
-        fmt = self.datetime._formatters[self.datetime._current_index]
-        return time.strftime(fmt, time.localtime())
+        self._last_timezone = self._get_timezone()
+        logger.debug(f"[datetime] Initial timezone: {self._last_timezone}")
+
+        GLib.timeout_add_seconds(2, self._check_timezone)
+
+    def _get_timezone(self):
+        try:
+            return subprocess.check_output(
+                ["timedatectl", "show", "-p", "Timezone", "--value"],
+                text=True,
+            ).strip()
+        except Exception as e:
+            logger.error(f"[datetime] Failed to read timezone: {e}")
+            return None
+
+    def _force_refresh(self, widget):
+        widget._current_index = widget._current_index
+        widget.queue_resize()
+        widget.queue_draw()
+
+    def _check_timezone(self):
+        tz = self._get_timezone()
+
+        if tz and tz != self._last_timezone:
+            old = self._last_timezone
+            self._last_timezone = tz
+
+            logger.info(f"[datetime] Timezone changed: {old} → {tz}")
+
+            # Apply timezone change to this process NOW
+            os.environ["TZ"] = tz
+            time.tzset()
+
+            self._force_refresh(self.datetime)
+
+            if self.popup:
+                self.popup.destroy()
+                self.popup = None
+
+        return True
 
     def show_popover(self, *_):
         if self.popup:
             self.popup.destroy()
             self.popup = None
 
-        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        content_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=10,
+        )
         content_box.set_name("date-menu")
 
-        # Time + Date container with no spacing
-        time_date_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        time_date_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=0,
+        )
 
         clock_format = self.dt_config.get("clock_format", "24h")
         time_fmt = "%I:%M %p" if clock_format == "12h" else "%H:%M"
-        time_widget = DateTime(formatters=[time_fmt], name="popover-time")
+
+        time_widget = DateTime(
+            formatters=[time_fmt],
+            name="popover-time",
+        )
 
         date_format = self.dt_config.get("format", "%b %d")
         date_fmt = f"{date_format}, %Y"
-        date_widget = DateTime(formatters=[date_fmt], name="popover-date")
+
+        date_widget = DateTime(
+            formatters=[date_fmt],
+            name="popover-date",
+        )
 
         time_date_box.pack_start(time_widget, False, False, 0)
         time_date_box.pack_start(date_widget, False, False, 0)
 
-        # Wrapper box around calendar widget for styling separation
-        calendar_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        calendar_container = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+        )
         calendar_container.set_name("popover-calendar")
 
         calendar = Gtk.Calendar()
