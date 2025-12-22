@@ -2,7 +2,6 @@ from gi.repository import Gtk, GLib
 from fabric.widgets.datetime import DateTime
 from shared import ButtonWidget, Popover
 
-import subprocess
 import time
 import os
 from loguru import logger
@@ -29,21 +28,16 @@ class DateTimeWidget(ButtonWidget):
         self.datetime.show_all()
 
         self.popup = None
-        self._last_timezone = None
+        self._last_timezone = None  # Defer check to first tick
 
         self.connect("clicked", self.show_popover)
-
-        self._last_timezone = self._get_timezone()
-        logger.debug(f"[datetime] Initial timezone: {self._last_timezone}")
 
         GLib.timeout_add_seconds(2, self._check_timezone)
 
     def _get_timezone(self):
         try:
-            return subprocess.check_output(
-                ["timedatectl", "show", "-p", "Timezone", "--value"],
-                text=True,
-            ).strip()
+            # Read symlink directly - much faster than subprocess
+            return os.path.realpath("/etc/localtime").split("zoneinfo/")[-1]
         except Exception as e:
             logger.error(f"[datetime] Failed to read timezone: {e}")
             return None
@@ -56,13 +50,16 @@ class DateTimeWidget(ButtonWidget):
     def _check_timezone(self):
         tz = self._get_timezone()
 
-        if tz and tz != self._last_timezone:
+        if self._last_timezone is None:
+            # First run - just store it
+            self._last_timezone = tz
+            logger.debug(f"[datetime] Initial timezone: {tz}")
+        elif tz and tz != self._last_timezone:
             old = self._last_timezone
             self._last_timezone = tz
 
             logger.info(f"[datetime] Timezone changed: {old} → {tz}")
 
-            # Apply timezone change to this process NOW
             os.environ["TZ"] = tz
             time.tzset()
 
