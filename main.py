@@ -98,6 +98,11 @@ def _preload_optional_modules(modules):
     return classes
 
 
+# Screen recorder functions for fabric-cli (must be at module level)
+take_screenshot = None
+record_start = None
+record_stop = None
+
 if __name__ == "__main__":
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
 
@@ -151,9 +156,22 @@ if __name__ == "__main__":
 
     # Screen recorder service (doesn't need to block startup)
     if widget_config.get("screen_record", {}).get("enabled", True):
-        from services.screen_record import ScreenRecorderService
+        from services.screen_record import (
+            ScreenRecorderService,
+            take_screenshot as _take_screenshot,
+            record_start as _record_start,
+            record_stop as _record_stop,
+        )
 
         screen_recorder_service = ScreenRecorderService()
+        screen_recorder_service.set_widget_config(
+            widget_config.get("screen_record", {})
+        )
+
+        # Expose functions for fabric-cli
+        take_screenshot = _take_screenshot
+        record_start = _record_start
+        record_stop = _record_stop
 
     # Create application
     app = Application(APPLICATION_NAME, windows=windows)
