@@ -102,14 +102,13 @@
       #corner-right {
         margin-left: -4px;
       }
+
       #start,
       #center,
       #end {
         $bar-opacity-ratio: variable.$bar-opacity * .01;
-        $transparency-value: (
-          1 - $bar-opacity-ratio) * 100%;
-        background-color: color.mix(theme.$bar-background, transparent, $transparency-value
-        );
+        $transparency-value: (1 - $bar-opacity-ratio) * 100%;
+        background-color: color.mix(theme.$bar-background, transparent, $transparency-value);
 
         padding: variable.$bar-padding_y variable.$bar-padding_x;
         $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
@@ -118,14 +117,27 @@
 
         box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
       }
+
+      // Default: location-top (corners rounded at bottom)
       #start {
-        border-radius: 0 0 20px 0px;
+        border-radius: 0 0 20px 0;
       }
       #center {
         border-radius: 0 0 20px 20px;
       }
       #end {
         border-radius: 0 0 0 20px;
+      }
+
+      // Flipped: location-bottom (corners rounded at top)
+      #start.location-bottom {
+        border-radius: 0 20px 0 0;
+      }
+      #center.location-bottom {
+        border-radius: 20px 20px 0 0;
+      }
+      #end.location-bottom {
+        border-radius: 20px 0 0 0;
       }
     }
   }

@@ -13,7 +13,6 @@ from utils.widget_utils import lazy_load_widget
 from modules.corners import SideCorner
 from loguru import logger
 
-
 # Module-level cache for widget classes - persists across instances
 _widget_class_cache = {}
 
@@ -54,12 +53,16 @@ class StatusBar(Window, ToggleableWidget):
         self.debug = config.get("general", {}).get("debug", False)
         options = config["general"]
 
+        # Store bar location for corner mirroring
+        self.bar_location = options.get("location", "top")
+
         # Preload widget classes in parallel BEFORE building layout
         self._preload_widget_classes(config)
 
         layout = self.make_layout(config)
 
         # Create corners with shared size constant
+        # Corner mirroring is handled automatically in _make_corner
         corner_size = 20
         self.center_corner_left = self._make_corner(
             "corner-left", "top-right", "start", corner_size
@@ -74,6 +77,33 @@ class StatusBar(Window, ToggleableWidget):
             "corner-left", "top-right", "start", corner_size
         )
 
+        # Create section boxes with location class
+        location_class = f"location-{self.bar_location}"
+
+        start_box = Box(
+            name="start",
+            spacing=4,
+            orientation="h",
+            children=layout["left_section"],
+        )
+        start_box.add_style_class(location_class)
+
+        center_box = Box(
+            name="center",
+            spacing=4,
+            orientation="h",
+            children=layout["middle_section"],
+        )
+        center_box.add_style_class(location_class)
+
+        end_box = Box(
+            name="end",
+            spacing=4,
+            orientation="h",
+            children=layout["right_section"],
+        )
+        end_box.add_style_class(location_class)
+
         self.box = CenterBox(
             name="panel-inner",
             start_children=Box(
@@ -81,12 +111,7 @@ class StatusBar(Window, ToggleableWidget):
                 spacing=4,
                 orientation="h",
                 children=[
-                    Box(
-                        name="start",
-                        spacing=4,
-                        orientation="h",
-                        children=layout["left_section"],
-                    ),
+                    start_box,
                     self.start_corner_right,
                 ],
             ),
@@ -96,12 +121,7 @@ class StatusBar(Window, ToggleableWidget):
                 orientation="h",
                 children=[
                     self.center_corner_left,
-                    Box(
-                        name="center",
-                        spacing=4,
-                        orientation="h",
-                        children=layout["middle_section"],
-                    ),
+                    center_box,
                     self.center_corner_right,
                 ],
             ),
@@ -111,15 +131,13 @@ class StatusBar(Window, ToggleableWidget):
                 orientation="h",
                 children=[
                     self.end_corner_left,
-                    Box(
-                        name="end",
-                        spacing=4,
-                        orientation="h",
-                        children=layout["right_section"],
-                    ),
+                    end_box,
                 ],
             ),
         )
+
+        # Add location class to panel-inner as well
+        self.box.add_style_class(location_class)
 
         super().__init__(
             name="panel",
@@ -134,16 +152,44 @@ class StatusBar(Window, ToggleableWidget):
             **kwargs,
         )
 
+        # Add location class to the main panel window
+        self.add_style_class(location_class)
+
         if options.get("check_updates"):
             self.check_for_bar_updates()
 
     def _make_corner(self, name, corner_type, h_align, size):
-        """Create a corner box."""
+        """Create a corner box, automatically mirrored for bottom bar.
+
+        When bar is at top:
+            - Uses corner_type as-is (e.g., "top-right", "top-left")
+            - Corner at top edge, spacer expands below
+
+        When bar is at bottom:
+            - Flips corner_type (e.g., "top-right" → "bottom-right")
+            - Spacer expands above, corner at bottom edge
+        """
+        # Mirror corner type for bottom bar (top-* → bottom-*)
+        if self.bar_location == "bottom":
+            if corner_type.startswith("top-"):
+                corner_type = "bottom-" + corner_type[4:]
+
+        corner_widget = SideCorner(corner_type, size)
+        spacer = Box(v_expand=True)  # Spacer expands to push corner to edge
+
+        # Vertical stacking order based on bar location
+        if self.bar_location == "bottom":
+            # Spacer on top (expands), corner at bottom edge of bar
+            children = [spacer, corner_widget]
+        else:
+            # Corner on top edge of bar, spacer below (expands)
+            children = [corner_widget, spacer]
+
         return Box(
             name=name,
             orientation="v",
             h_align=h_align,
-            children=[SideCorner(corner_type, size), Box()],
+            children=children,
         )
 
     def _collect_widget_names(self, config):
@@ -179,7 +225,6 @@ class StatusBar(Window, ToggleableWidget):
     def _preload_widget_classes(self, config):
         """Preload all widget classes in parallel to reduce sequential import time."""
         widget_names = self._collect_widget_names(config)
-        # Filter out already cached
         to_load = [n for n in widget_names if n not in _widget_class_cache]
 
         if not to_load:
@@ -192,7 +237,6 @@ class StatusBar(Window, ToggleableWidget):
                 logger.error(f"Failed to preload widget '{name}': {e}")
                 return name, None
 
-        # Parallel import of widget modules
         with ThreadPoolExecutor(max_workers=min(8, len(to_load))) as executor:
             results = executor.map(load_single, to_load)
             for name, cls in results:
@@ -233,7 +277,7 @@ class StatusBar(Window, ToggleableWidget):
             for widget_name in widget_names:
                 # Module group
                 if widget_name.startswith("@group:"):
-                    group_idx = widget_name[7:]  # len("@group:") = 7
+                    group_idx = widget_name[7:]
                     if group_idx.isdigit():
                         idx = int(group_idx)
                         groups = widget_config.get("module_groups", [])
@@ -249,7 +293,7 @@ class StatusBar(Window, ToggleableWidget):
 
                 # Collapsible group
                 if widget_name.startswith("@collapsible_group:"):
-                    group_idx = widget_name[19:]  # len("@collapsible_group:") = 19
+                    group_idx = widget_name[19:]
                     if group_idx.isdigit():
                         idx = int(group_idx)
                         groups = widget_config.get("collapsible_groups", [])
