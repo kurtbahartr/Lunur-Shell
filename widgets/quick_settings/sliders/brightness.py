@@ -31,9 +31,10 @@ class BrightnessSlider(SliderRow):
         except Exception:
             initial_icon = icons["brightness"]["indicator"]
 
+        # The minimum value is rather hacky but it had to be done.
         super().__init__(
             icon_name=initial_icon,
-            min_value=1,
+            min_value=0.1,
             max_value=100,
             initial_value=initial_percent,
             on_change=self._set_brightness,
