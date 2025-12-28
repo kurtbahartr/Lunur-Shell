@@ -109,8 +109,6 @@ if __name__ == "__main__":
     optional_modules = _collect_enabled_modules()
 
     with ThreadPoolExecutor(max_workers=3) as executor:
-        # Submit SCSS compilation
-        scss_future = executor.submit(compile_scss)
 
         # Submit optional module preloading
         preload_future = executor.submit(_preload_optional_modules, optional_modules)
@@ -118,9 +116,6 @@ if __name__ == "__main__":
         # Import core modules while SCSS compiles (these are needed first)
         from modules.bar import StatusBar
         from modules.launcher import AppLauncher
-
-        # Wait for SCSS to complete before continuing
-        scss_future.result()
 
         # Get preloaded module classes
         preloaded_classes = preload_future.result()
