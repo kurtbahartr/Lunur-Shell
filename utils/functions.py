@@ -1,3 +1,4 @@
+import ctypes
 import json
 import os
 import shutil
@@ -15,27 +16,42 @@ import time
 from typing import Dict, List, Literal, Optional
 from loguru import logger
 
+
+# Function to set the process name
+def set_process_name(name: str):
+    libc = ctypes.CDLL("libc.so.6")
+    libc.prctl(15, name.encode("utf-8"), 0, 0, 0)  # 15 = PR_SET_NAME
+
+
 def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
     def wrapper(func):
         @lru_cache(maxsize)
         def inner(__ttl, *args, **kwargs):
             return func(*args, **kwargs)
-        return lambda *args, **kwargs: inner(time.time() // seconds_to_live, *args, **kwargs)
+
+        return lambda *args, **kwargs: inner(
+            time.time() // seconds_to_live, *args, **kwargs
+        )
+
     return wrapper
+
 
 # Function to escape the markup
 def parse_markup(text):
     return text.replace("\n", " ")
 
+
 # Function to exclude keys from a dictionary        )
 def exclude_keys(d: Dict, keys_to_exclude: List[str]) -> Dict:
     return {k: v for k, v in d.items() if k not in keys_to_exclude}
+
 
 # Function to format time in hours and minutes
 def format_time(secs: int):
     mm, _ = divmod(secs, 60)
     hh, mm = divmod(mm, 60)
     return "%d h %02d min" % (hh, mm)
+
 
 # Function to send a notification
 @cooldown(1)
@@ -67,6 +83,7 @@ def send_notification(
     application.send_notification(None, notification)
     return True
 
+
 # Merge the parsed data with the default configuration
 def merge_defaults(data, defaults):
     if isinstance(defaults, dict) and isinstance(data, dict):
@@ -92,10 +109,9 @@ def copy_theme(theme: str):
         shutil.copyfile(source_file, destination_file)
 
     except FileNotFoundError:
-        logger.error(
-            "Error: The theme file '{source_file}' was not found."
-        )
+        logger.error("Error: The theme file '{source_file}' was not found.")
         exit(1)
+
 
 # Validate the widgets
 def validate_widgets(parsed_data, default_config):
@@ -124,12 +140,18 @@ def validate_widgets(parsed_data, default_config):
                 idx = int(group_idx)
                 groups = parsed_data.get("module_groups", [])
                 if not isinstance(groups, list):
-                    raise ValueError("module_groups must be a list when using @group references")
+                    raise ValueError(
+                        "module_groups must be a list when using @group references"
+                    )
                 if not (0 <= idx < len(groups)):
-                    raise ValueError(f"Module group index {idx} is out of range. Available indices: 0-{len(groups)-1}")
+                    raise ValueError(
+                        f"Module group index {idx} is out of range. Available indices: 0-{len(groups)-1}"
+                    )
                 group = groups[idx]
                 if not isinstance(group, dict) or "widgets" not in group:
-                    raise ValueError(f"Invalid module group at index {idx}. Must be a dict with 'widgets' array.")
+                    raise ValueError(
+                        f"Invalid module group at index {idx}. Must be a dict with 'widgets' array."
+                    )
                 for group_widget in group["widgets"]:
                     if group_widget not in default_config:
                         raise ValueError(
@@ -146,12 +168,18 @@ def validate_widgets(parsed_data, default_config):
                 idx = int(group_idx)
                 groups = parsed_data.get("collapsible_groups", [])
                 if not isinstance(groups, list):
-                    raise ValueError("collapsible_groups must be a list when using @collapsible_group references")
+                    raise ValueError(
+                        "collapsible_groups must be a list when using @collapsible_group references"
+                    )
                 if not (0 <= idx < len(groups)):
-                    raise ValueError(f"Collapsible group index {idx} is out of range. Available indices: 0-{len(groups)-1}")
+                    raise ValueError(
+                        f"Collapsible group index {idx} is out of range. Available indices: 0-{len(groups)-1}"
+                    )
                 group = groups[idx]
                 if not isinstance(group, dict) or "widgets" not in group:
-                    raise ValueError(f"Invalid collapsible group at index {idx}. Must be a dict with 'widgets' array.")
+                    raise ValueError(
+                        f"Invalid collapsible group at index {idx}. Must be a dict with 'widgets' array."
+                    )
                 for group_widget in group["widgets"]:
                     if group_widget not in default_config:
                         raise ValueError(
@@ -164,20 +192,24 @@ def validate_widgets(parsed_data, default_config):
                     f"Invalid widget '{widget}' found in section {section}. Please check the widget name."
                 )
 
+
 @ttl_lru_cache(600, 10)
 def get_distro_icon():
     distro_id = GLib.get_os_info("ID")
     return text_icons["distro"].get(distro_id, "")  # Fallback icon
 
+
 # Function to unique list
 def unique_list(lst) -> List:
     return list(set(lst))
+
 
 # Function to check if an executable exists
 @ttl_lru_cache(600, 10)
 def executable_exists(executable_name):
     executable_path = shutil.which(executable_name)
     return bool(executable_path)
+
 
 @run_in_thread
 def write_json_file(data: Dict, path: str):
@@ -208,9 +240,11 @@ def ensure_file(path: str) -> None:
 def kill_process(process_name: str):
     exec_shell_command_async(f"pkill {process_name}", lambda *_: None)
 
+
 # Function to check if an app is running
 def is_app_running(app_name: str) -> bool:
     return len(exec_shell_command(f"pidof {app_name}")) != 0
+
 
 # Function to ensure the directory exists
 
@@ -223,6 +257,7 @@ def ensure_directory(path: str) -> None:
         except GLib.Error as e:
             print(f"Failed to create directory {path}: {e.message}")
 
+
 # Function to get the percentage of a value
 def convert_to_percent(
     current: int | float, max: int | float, is_int=True
@@ -231,6 +266,7 @@ def convert_to_percent(
         return int((current / max) * 100)
     else:
         return (current / max) * 100
+
 
 def truncate(string: str, max_length: int = 11) -> str:
     """Truncate string if it exceeds max length."""

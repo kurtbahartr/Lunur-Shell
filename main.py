@@ -1,5 +1,4 @@
 import time
-import setproctitle
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fabric import Application
 from fabric.utils import cooldown, exec_shell_command, get_relative_path, monitor_file
@@ -199,5 +198,5 @@ if __name__ == "__main__":
         total_ms = (time.perf_counter() - _start_time) * 1000
         logger.info(f"[Timing] Total startup completed in {total_ms:.1f} ms")
 
-    setproctitle.setproctitle(APPLICATION_NAME)
+    helpers.set_process_name(APPLICATION_NAME)
     app.run()
