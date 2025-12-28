@@ -20,14 +20,6 @@ _widget_class_cache = {}
 class StatusBar(Window, ToggleableWidget):
     """A widget to display the status bar panel."""
 
-    @run_in_thread
-    def check_for_bar_updates(self):
-        exec_shell_command_async(
-            get_relative_path("../assets/scripts/barupdate.sh"),
-            lambda _: None,
-        )
-        return True
-
     def __init__(self, config, **kwargs):
         self.widgets_list = {
             "app_launcher": "widgets.applauncher.AppLauncherButton",
@@ -154,9 +146,6 @@ class StatusBar(Window, ToggleableWidget):
 
         # Add location class to the main panel window
         self.add_style_class(location_class)
-
-        if options.get("check_updates"):
-            self.check_for_bar_updates()
 
     def _make_corner(self, name, corner_type, h_align, size):
         """Create a corner box, automatically mirrored for bottom bar.
