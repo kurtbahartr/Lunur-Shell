@@ -118,5 +118,5 @@ Run the following command to install the required system packages:
 
 ## Sister Projects
 
-[Lunur-Dots](https://github.com/dianaw353/Lunur-Dots)
-[Lunur-Wallpaper](https://github.com/dianaw353/Lunur-Wallpapers)
+- [Lunur-Dots](https://github.com/dianaw353/Lunur-Dots)
+- [Lunur-Wallpaper](https://github.com/dianaw353/Lunur-Wallpapers)
