@@ -98,7 +98,4 @@ echo "Installing Python requirements..."
 pip install --upgrade pip
 pip install -r requirements.txt
 
-echo "Deactivating virtual environment..."
-deactivate
-
 echo "All Lunur Shell requirements installed successfully!"
