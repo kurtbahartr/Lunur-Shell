@@ -67,27 +67,6 @@ Run the following script
   python main.py
 ```
 
-### Option 3: Manual Installation via System Packages
-
-> [!WARNING]
-> This method of installation isn't encouraged as it will render the autostart in Lunur-Dots useless. You'll need to adjust autostart entries to make use of it.
-
-#### Step 1: Install Dependencies - Arch Linux
-
-Run the following command to install the required system packages:
-```
-  cat assets/packages/arch/packages_aur.txt assets/packages/arch/packages_official.txt assets/packages/arch/packages_python.txt | yay -S --needed -
-  sudo pacman -U https://archive.archlinux.org/packages/p/python-gobject/python-gobject-3.50.0-2-x86_64.pkg.tar.zst 
-```
-> [!NOTE]
-> It's required to add `python-gobject` package to the `IgnorePkg` variable on `/etc/pacman.conf`. Failure to do so will crash the shell upon upgrading the said package until the downgrade is performed again.
-
-#### Step 2: Run Lunur-Shell
-
-```
-  python main.py
-```
-
 ## Roadmap
 
 - [x] App Launcher
