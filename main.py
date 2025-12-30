@@ -103,6 +103,7 @@ record_start = None
 record_stop = None
 
 if __name__ == "__main__":
+    helpers.check_executable_exists("sass")
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
 
     # Start module preloading
