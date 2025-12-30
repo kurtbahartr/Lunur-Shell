@@ -5,12 +5,13 @@ from fabric.core.service import Property, Service, Signal
 from fabric.utils import bulk_connect, exec_shell_command_async
 from gi.repository import Gio
 from loguru import logger
+from utils.exceptions import NetworkManagerNotFoundError
 
 try:
     gi.require_version("NM", "1.0")
     from gi.repository import NM
 except ValueError:
-    logger.error("[NetworkManager] Failed to start network manager")
+    raise NetworkManagerNotFoundError()
 
 
 class Wifi(Service):
@@ -153,9 +154,11 @@ class Wifi(Service):
                 "bssid": ap.get_bssid(),
                 # "address": ap.get_
                 "last_seen": ap.get_last_seen(),
-                "ssid": NM.utils_ssid_to_utf8(ap.get_ssid().get_data())
-                if ap.get_ssid()
-                else "Unknown",
+                "ssid": (
+                    NM.utils_ssid_to_utf8(ap.get_ssid().get_data())
+                    if ap.get_ssid()
+                    else "Unknown"
+                ),
                 "active-ap": self._ap,
                 "strength": ap.get_strength(),
                 "frequency": ap.get_frequency(),
@@ -302,11 +305,7 @@ class NetworkService(Service):
     def _get_device(self, device_type) -> Any:
         devices: List[NM.Device] = self._client.get_devices()  # type: ignore
         return next(
-            (
-                x
-                for x in devices
-                if x.get_device_type() == device_type
-            ),
+            (x for x in devices if x.get_device_type() == device_type),
             None,
         )
 
@@ -320,10 +319,12 @@ class NetworkService(Service):
             "wifi"
             if "wireless"
             in str(self._client.get_primary_connection().get_connection_type())
-            else "wired"
-            if "ethernet"
-            in str(self._client.get_primary_connection().get_connection_type())
-            else None
+            else (
+                "wired"
+                if "ethernet"
+                in str(self._client.get_primary_connection().get_connection_type())
+                else None
+            )
         )
 
     def connect_wifi_bssid(self, bssid):

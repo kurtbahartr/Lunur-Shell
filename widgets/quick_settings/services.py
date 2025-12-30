@@ -3,11 +3,16 @@
 from gi.repository import GLib
 from fabric.widgets.image import Image
 from services import Brightness, audio_service
-from services.network import NetworkService
 from services import bluetooth_service
 from utils import functions as helpers
 from utils.icons import icons
 from utils.widget_utils import get_audio_icon_name, get_brightness_icon_name
+from utils.exceptions import NetworkManagerNotFoundError
+
+try:
+    from services.network import NetworkService
+except ImportError:
+    raise NetworkManagerNotFoundError()
 
 
 class AudioService:

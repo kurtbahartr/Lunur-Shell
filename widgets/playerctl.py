@@ -1,3 +1,5 @@
+# widgets/playerctl.py
+
 import re
 import utils.functions as helpers
 from gi.repository import GLib, Playerctl, Gtk
@@ -8,7 +10,12 @@ from shared import Popover
 from utils.icons import icons
 from utils import BarConfig
 from widgets.common.resolver import create_slide_revealer, set_expanded, on_leave
-from services.playerctl import PlayerctlService
+from utils.exceptions import PlayerctlImportError
+
+try:
+    from services.playerctl import PlayerctlService
+except ImportError:
+    raise PlayerctlImportError()
 
 
 class PlayerctlMenu(Popover):

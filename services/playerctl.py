@@ -1,4 +1,13 @@
-from gi.repository import GObject, GLib, Playerctl
+import gi
+
+from gi.repository import GObject, GLib
+from utils.exceptions import PlayerctlImportError
+
+try:
+    gi.require_version("Playerctl", "2.0")
+    from gi.repository import Playerctl
+except ValueError:
+    raise PlayerctlImportError()
 
 
 class PlayerctlService(GObject.Object):
