@@ -14,6 +14,79 @@
   }
 }
 
+separator {
+  min-width: 1px;
+  min-height: 1px;
+  background-color: theme.$surface-disabled;
+}
+
+/* scrollable window config*/
+#scrolledwindow {
+  padding: .75em;
+  background-color: theme.$background-dark;
+  border-radius: variable.$radius;
+}
+
+entry {
+  background-color: theme.$background-alt;
+  border-radius: variable.$radius;
+  border: 1px solid theme.$surface-disabled;
+  padding: 6px;
+  min-width: 2em;
+  margin-bottom: .5em;
+
+  &:focus,
+  &:focus-visible {
+    border-color: theme.$primary;
+  }
+}
+
+scrolledwindow {
+  scrollbar {
+    background-color: theme.$surface-disabled;
+    border-radius: 10px;
+    padding: 2px;
+    margin-left: 0.5em;
+  }
+
+  slider {
+    border-radius: 8px;
+    min-width: 6px;
+    min-height: 6px;
+    background-color: theme.$background;
+  }
+
+  button {
+    padding: 6px;
+    background-color: theme.$background-alt;
+    border-radius: variable.$radius;
+    color: theme.$text-main;
+    transition: background-color 150ms ease, box-shadow 150ms ease;
+    border: none;
+    margin-bottom: .5em;
+
+    &:focus {
+      background-color: theme.$surface-highlight;
+      border: 1px solid theme.$primary;
+    }
+
+    &:hover {
+      background-color: theme.$surface-highlight;
+    }
+
+    &:focus label {
+      color: theme.$text-main;
+    }
+
+    label {
+      &:nth-child(2) {
+        font-size: .8em;
+        color: #888;
+      }
+    }
+  }
+}
+
 
 #window_title {
   /* border-radius: variable.$bar-widgets-window_title-border-radius; */
