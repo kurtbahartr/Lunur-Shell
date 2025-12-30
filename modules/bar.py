@@ -271,12 +271,25 @@ class StatusBar(Window, ToggleableWidget):
                         idx = int(group_idx)
                         groups = widget_config.get("module_groups", [])
                         if 0 <= idx < len(groups):
-                            group = ModuleGroup.from_config(
-                                groups[idx],
-                                self.widgets_list,
-                                bar=self,
-                                widget_config=widget_config,
-                            )
+                            if debug:
+                                start = time.perf_counter()
+                                group = ModuleGroup.from_config(
+                                    groups[idx],
+                                    self.widgets_list,
+                                    bar=self,
+                                    widget_config=widget_config,
+                                )
+                                elapsed_ms = (time.perf_counter() - start) * 1000
+                                logger.info(
+                                    f"[Timing] ModuleGroup '{idx}' loaded in {elapsed_ms:.1f} ms"
+                                )
+                            else:
+                                group = ModuleGroup.from_config(
+                                    groups[idx],
+                                    self.widgets_list,
+                                    bar=self,
+                                    widget_config=widget_config,
+                                )
                             section_widgets.append(group)
                     continue
 
@@ -287,6 +300,9 @@ class StatusBar(Window, ToggleableWidget):
                         idx = int(group_idx)
                         groups = widget_config.get("collapsible_groups", [])
                         if 0 <= idx < len(groups):
+                            if debug:
+                                group_start = time.perf_counter()
+
                             group_config = groups[idx]
                             child_widgets = []
 
@@ -321,6 +337,15 @@ class StatusBar(Window, ToggleableWidget):
                                 tooltip=group_config.get("tooltip"),
                                 icon_size=group_config.get("icon_size"),
                             )
+
+                            if debug:
+                                total_elapsed_ms = (
+                                    time.perf_counter() - group_start
+                                ) * 1000
+                                logger.info(
+                                    f"[Timing] CollapsibleGroup '{idx}' loaded in {total_elapsed_ms:.1f} ms"
+                                )
+
                             section_widgets.append(collapsible)
                     continue
 

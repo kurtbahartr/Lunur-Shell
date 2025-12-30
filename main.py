@@ -36,7 +36,7 @@ def compile_scss():
 
     output = exec_shell_command("sass styles/main.scss dist/main.css --no-source-map")
 
-    if DEBUG:
+    if DEBUG and start:
         elapsed_ms = (time.perf_counter() - start) * 1000
         logger.info(f"[Timing] SCSS compiled in {elapsed_ms:.1f} ms")
 
@@ -105,7 +105,7 @@ record_stop = None
 if __name__ == "__main__":
     helpers.ensure_directory(APP_CACHE_DIRECTORY)
 
-    # Start SCSS compilation and module preloading in parallel
+    # Start module preloading
     optional_modules = _collect_enabled_modules()
 
     with ThreadPoolExecutor(max_workers=3) as executor:
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         # Submit optional module preloading
         preload_future = executor.submit(_preload_optional_modules, optional_modules)
 
-        # Import core modules while SCSS compiles (these are needed first)
+        # Import core modules
         from modules.bar import StatusBar
         from modules.launcher import AppLauncher
 
@@ -167,15 +167,18 @@ if __name__ == "__main__":
         record_start = _record_start
         record_stop = _record_stop
 
-    # Create application
-    app = Application(APPLICATION_NAME, windows=windows)
-    app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
-
-    # Setup theme and icons
+    # Setup theme and icons BEFORE compiling SCSS
     helpers.copy_theme(widget_config["theme"]["name"])
 
     icon_theme = Gtk.IconTheme.get_default()
     icon_theme.append_search_path(get_relative_path("./assets/icons/svg/gtk"))
+
+    # Compile SCSS once at the end (after theme is copied)
+    compile_scss()
+
+    # Create application
+    app = Application(APPLICATION_NAME, windows=windows)
+    app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
 
     # File watchers for live reload
     style_monitor = monitor_file(get_relative_path("./styles"))
@@ -188,7 +191,7 @@ if __name__ == "__main__":
     watch_matugen.connect("changed", on_theme_change)
     style_monitor.connect("changed", lambda *args: process_and_apply_css(app))
 
-    # Log total startup time
+    # Log total startup time (after SCSS compilation)
     if DEBUG and _start_time:
         total_ms = (time.perf_counter() - _start_time) * 1000
         logger.info(f"[Timing] Total startup completed in {total_ms:.1f} ms")
