@@ -16,6 +16,8 @@ import time
 from typing import Dict, List, Literal, Optional
 from loguru import logger
 
+from .exceptions import ExecutableNotFoundError
+
 
 # Function to set the process name
 def set_process_name(name: str):
@@ -197,6 +199,16 @@ def validate_widgets(parsed_data, default_config):
 def get_distro_icon():
     distro_id = GLib.get_os_info("ID")
     return text_icons["distro"].get(distro_id, "")  # Fallback icon
+
+
+# Function to check if an executable exists
+@ttl_lru_cache(600, 10)
+def check_executable_exists(executable_name):
+    executable_path = GLib.find_program_in_path(executable_name)
+    if not executable_path:
+        raise ExecutableNotFoundError(
+            executable_name
+        )  # Raise an error if the executable is not found and exit the application
 
 
 # Function to unique list
