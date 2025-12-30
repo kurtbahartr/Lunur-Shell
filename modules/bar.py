@@ -1,6 +1,5 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
-from fabric.utils import exec_shell_command_async, get_relative_path
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.wayland import WaylandWindow as Window
@@ -8,7 +7,6 @@ from fabric.widgets.wayland import WaylandWindow as Window
 from shared import ToggleableWidget, ModuleGroup
 from shared.collapsible_groups import CollapsibleGroups
 from utils import HyprlandWithMonitors
-from utils.functions import run_in_thread
 from utils.widget_utils import lazy_load_widget
 from modules.corners import SideCorner
 from loguru import logger
@@ -54,7 +52,6 @@ class StatusBar(Window, ToggleableWidget):
         layout = self.make_layout(config)
 
         # Create corners with shared size constant
-        # Corner mirroring is handled automatically in _make_corner
         corner_size = 20
         self.center_corner_left = self._make_corner(
             "corner-left", "top-right", "start", corner_size
@@ -128,7 +125,6 @@ class StatusBar(Window, ToggleableWidget):
             ),
         )
 
-        # Add location class to panel-inner as well
         self.box.add_style_class(location_class)
 
         super().__init__(
@@ -144,34 +140,20 @@ class StatusBar(Window, ToggleableWidget):
             **kwargs,
         )
 
-        # Add location class to the main panel window
         self.add_style_class(location_class)
 
     def _make_corner(self, name, corner_type, h_align, size):
-        """Create a corner box, automatically mirrored for bottom bar.
-
-        When bar is at top:
-            - Uses corner_type as-is (e.g., "top-right", "top-left")
-            - Corner at top edge, spacer expands below
-
-        When bar is at bottom:
-            - Flips corner_type (e.g., "top-right" → "bottom-right")
-            - Spacer expands above, corner at bottom edge
-        """
-        # Mirror corner type for bottom bar (top-* → bottom-*)
+        """Create a corner box, automatically mirrored for bottom bar."""
         if self.bar_location == "bottom":
             if corner_type.startswith("top-"):
                 corner_type = "bottom-" + corner_type[4:]
 
         corner_widget = SideCorner(corner_type, size)
-        spacer = Box(v_expand=True)  # Spacer expands to push corner to edge
+        spacer = Box(v_expand=True)
 
-        # Vertical stacking order based on bar location
         if self.bar_location == "bottom":
-            # Spacer on top (expands), corner at bottom edge of bar
             children = [spacer, corner_widget]
         else:
-            # Corner on top edge of bar, spacer below (expands)
             children = [corner_widget, spacer]
 
         return Box(
@@ -258,7 +240,6 @@ class StatusBar(Window, ToggleableWidget):
         }
 
         new_layout = {"left_section": [], "middle_section": [], "right_section": []}
-        debug = self.debug
 
         for section, widget_names in layout.items():
             section_widgets = new_layout[section]
@@ -271,24 +252,16 @@ class StatusBar(Window, ToggleableWidget):
                         idx = int(group_idx)
                         groups = widget_config.get("module_groups", [])
                         if 0 <= idx < len(groups):
-                            if debug:
-                                start = time.perf_counter()
-                                group = ModuleGroup.from_config(
-                                    groups[idx],
-                                    self.widgets_list,
-                                    bar=self,
-                                    widget_config=widget_config,
-                                )
-                                elapsed_ms = (time.perf_counter() - start) * 1000
+                            start = time.perf_counter()
+                            group = ModuleGroup.from_config(
+                                groups[idx],
+                                self.widgets_list,
+                                bar=self,
+                                widget_config=widget_config,
+                            )
+                            if self.debug:
                                 logger.info(
-                                    f"[Timing] ModuleGroup '{idx}' loaded in {elapsed_ms:.1f} ms"
-                                )
-                            else:
-                                group = ModuleGroup.from_config(
-                                    groups[idx],
-                                    self.widgets_list,
-                                    bar=self,
-                                    widget_config=widget_config,
+                                    f"ModuleGroup {idx}: {(time.perf_counter() - start) * 1000:.1f}ms"
                                 )
                             section_widgets.append(group)
                     continue
@@ -300,29 +273,18 @@ class StatusBar(Window, ToggleableWidget):
                         idx = int(group_idx)
                         groups = widget_config.get("collapsible_groups", [])
                         if 0 <= idx < len(groups):
-                            if debug:
-                                group_start = time.perf_counter()
-
+                            group_start = time.perf_counter()
                             group_config = groups[idx]
                             child_widgets = []
 
                             for wname in group_config.get("widgets", []):
                                 if wname in self.widgets_list:
                                     cls = self._get_widget_class(wname)
-                                    if debug:
-                                        start = time.perf_counter()
-                                        child = self._instantiate_widget(
-                                            cls, widget_config
-                                        )
-                                        elapsed_ms = (
-                                            time.perf_counter() - start
-                                        ) * 1000
+                                    start = time.perf_counter()
+                                    child = self._instantiate_widget(cls, widget_config)
+                                    if self.debug:
                                         logger.info(
-                                            f"[Timing] Widget '{wname}' loaded in {elapsed_ms:.1f} ms"
-                                        )
-                                    else:
-                                        child = self._instantiate_widget(
-                                            cls, widget_config
+                                            f"  {wname}: {(time.perf_counter() - start) * 1000:.1f}ms"
                                         )
                                     child_widgets.append(child)
 
@@ -338,29 +300,22 @@ class StatusBar(Window, ToggleableWidget):
                                 icon_size=group_config.get("icon_size"),
                             )
 
-                            if debug:
-                                total_elapsed_ms = (
-                                    time.perf_counter() - group_start
-                                ) * 1000
+                            if self.debug:
                                 logger.info(
-                                    f"[Timing] CollapsibleGroup '{idx}' loaded in {total_elapsed_ms:.1f} ms"
+                                    f"CollapsibleGroup {idx}: {(time.perf_counter() - group_start) * 1000:.1f}ms"
                                 )
-
                             section_widgets.append(collapsible)
                     continue
 
                 # Regular widget
                 if widget_name in self.widgets_list:
                     cls = self._get_widget_class(widget_name)
-                    if debug:
-                        start = time.perf_counter()
-                        widget_instance = self._instantiate_widget(cls, widget_config)
-                        elapsed_ms = (time.perf_counter() - start) * 1000
+                    start = time.perf_counter()
+                    widget_instance = self._instantiate_widget(cls, widget_config)
+                    if self.debug:
                         logger.info(
-                            f"[Timing] Widget '{widget_name}' loaded in {elapsed_ms:.1f} ms"
+                            f"{widget_name}: {(time.perf_counter() - start) * 1000:.1f}ms"
                         )
-                    else:
-                        widget_instance = self._instantiate_widget(cls, widget_config)
                     section_widgets.append(widget_instance)
 
         return new_layout
