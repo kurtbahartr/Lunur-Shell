@@ -1,5 +1,4 @@
 import time
-from concurrent.futures import ThreadPoolExecutor
 from fabric.widgets.box import Box
 from fabric.widgets.centerbox import CenterBox
 from fabric.widgets.wayland import WaylandWindow as Window
@@ -10,9 +9,6 @@ from utils import HyprlandWithMonitors
 from utils.widget_utils import lazy_load_widget
 from modules.corners import SideCorner
 from loguru import logger
-
-# Module-level cache for widget classes - persists across instances
-_widget_class_cache = {}
 
 
 class StatusBar(Window, ToggleableWidget):
@@ -45,9 +41,6 @@ class StatusBar(Window, ToggleableWidget):
 
         # Store bar location for corner mirroring
         self.bar_location = options.get("location", "top")
-
-        # Preload widget classes in parallel BEFORE building layout
-        self._preload_widget_classes(config)
 
         layout = self.make_layout(config)
 
@@ -163,67 +156,81 @@ class StatusBar(Window, ToggleableWidget):
             children=children,
         )
 
-    def _collect_widget_names(self, config):
-        """Collect all widget names needed for the layout."""
-        layout_config = config.get("layout", {})
-        widget_names = set()
-
-        for section in ("start_container", "center_container", "end_container"):
-            for widget_name in layout_config.get(section, []):
-                if widget_name.startswith("@collapsible_group:"):
-                    group_idx = widget_name[len("@collapsible_group:") :]
-                    if group_idx.isdigit():
-                        groups = config.get("collapsible_groups", [])
-                        idx = int(group_idx)
-                        if 0 <= idx < len(groups):
-                            for wname in groups[idx].get("widgets", []):
-                                if wname in self.widgets_list:
-                                    widget_names.add(wname)
-                elif widget_name.startswith("@group:"):
-                    group_idx = widget_name[len("@group:") :]
-                    if group_idx.isdigit():
-                        groups = config.get("module_groups", [])
-                        idx = int(group_idx)
-                        if 0 <= idx < len(groups):
-                            for wname in groups[idx].get("widgets", []):
-                                if wname in self.widgets_list:
-                                    widget_names.add(wname)
-                elif widget_name in self.widgets_list:
-                    widget_names.add(widget_name)
-
-        return widget_names
-
-    def _preload_widget_classes(self, config):
-        """Preload all widget classes in parallel to reduce sequential import time."""
-        widget_names = self._collect_widget_names(config)
-        to_load = [n for n in widget_names if n not in _widget_class_cache]
-
-        if not to_load:
-            return
-
-        def load_single(name):
-            try:
-                return name, lazy_load_widget(name, self.widgets_list)
-            except Exception as e:
-                logger.error(f"Failed to preload widget '{name}': {e}")
-                return name, None
-
-        with ThreadPoolExecutor(max_workers=min(8, len(to_load))) as executor:
-            results = executor.map(load_single, to_load)
-            for name, cls in results:
-                if cls is not None:
-                    _widget_class_cache[name] = cls
-
     def _get_widget_class(self, name):
-        """Get widget class from cache or load it."""
-        if name in _widget_class_cache:
-            return _widget_class_cache[name]
-        cls = lazy_load_widget(name, self.widgets_list)
-        _widget_class_cache[name] = cls
-        return cls
+        """Load widget class on demand."""
+        return lazy_load_widget(name, self.widgets_list)
+
+    def _create_widget(self, widget_name, widget_config):
+        """Create a single widget instance with timing."""
+        if widget_name not in self.widgets_list:
+            return None
+
+        cls = self._get_widget_class(widget_name)
+        start = time.perf_counter()
+        widget_instance = cls(widget_config)
+
+        if self.debug:
+            logger.info(f"{widget_name}: {(time.perf_counter() - start) * 1000:.1f}ms")
+
+        return widget_instance
+
+    def _create_collapsible_group(self, idx, widget_config):
+        """Create a collapsible group with optimized widget loading."""
+        groups = widget_config.get("collapsible_groups", [])
+        if not (0 <= idx < len(groups)):
+            return None
+
+        group_start = time.perf_counter()
+        group_config = groups[idx]
+
+        # Create all child widgets
+        child_widgets = []
+        for wname in group_config.get("widgets", []):
+            widget = self._create_widget(wname, widget_config)
+            if widget:
+                child_widgets.append(widget)
+
+        # Create collapsible group
+        collapsible = CollapsibleGroups(
+            collapsed_icon=group_config.get("collapsed_icon"),
+            child_widgets=child_widgets,
+            slide_direction=group_config.get("slide_direction"),
+            transition_duration=group_config.get("transition_duration"),
+            spacing=group_config.get("spacing"),
+            tooltip=group_config.get("tooltip"),
+            icon_size=group_config.get("icon_size"),
+        )
+
+        if self.debug:
+            logger.info(
+                f"CollapsibleGroup {idx}: {(time.perf_counter() - group_start) * 1000:.1f}ms"
+            )
+
+        return collapsible
+
+    def _create_module_group(self, idx, widget_config):
+        """Create a module group."""
+        groups = widget_config.get("module_groups", [])
+        if not (0 <= idx < len(groups)):
+            return None
+
+        start = time.perf_counter()
+        group = ModuleGroup.from_config(
+            groups[idx],
+            self.widgets_list,
+            bar=self,
+            widget_config=widget_config,
+        )
+
+        if self.debug:
+            logger.info(
+                f"ModuleGroup {idx}: {(time.perf_counter() - start) * 1000:.1f}ms"
+            )
+
+        return group
 
     def make_layout(self, widget_config):
-        """Build layout with optimized widget loading."""
+        """Build layout with on-demand widget loading."""
         layout = {
             "left_section": widget_config.get("layout", {}).get("start_container", []),
             "middle_section": widget_config.get("layout", {}).get(
@@ -238,78 +245,29 @@ class StatusBar(Window, ToggleableWidget):
             section_widgets = new_layout[section]
 
             for widget_name in widget_names:
+                widget = None
+
                 # Module group
                 if widget_name.startswith("@group:"):
                     group_idx = widget_name[7:]
                     if group_idx.isdigit():
-                        idx = int(group_idx)
-                        groups = widget_config.get("module_groups", [])
-                        if 0 <= idx < len(groups):
-                            start = time.perf_counter()
-                            group = ModuleGroup.from_config(
-                                groups[idx],
-                                self.widgets_list,
-                                bar=self,
-                                widget_config=widget_config,
-                            )
-                            if self.debug:
-                                logger.info(
-                                    f"ModuleGroup {idx}: {(time.perf_counter() - start) * 1000:.1f}ms"
-                                )
-                            section_widgets.append(group)
-                    continue
+                        widget = self._create_module_group(
+                            int(group_idx), widget_config
+                        )
 
                 # Collapsible group
-                if widget_name.startswith("@collapsible_group:"):
+                elif widget_name.startswith("@collapsible_group:"):
                     group_idx = widget_name[19:]
                     if group_idx.isdigit():
-                        idx = int(group_idx)
-                        groups = widget_config.get("collapsible_groups", [])
-                        if 0 <= idx < len(groups):
-                            group_start = time.perf_counter()
-                            group_config = groups[idx]
-                            child_widgets = []
-
-                            for wname in group_config.get("widgets", []):
-                                if wname in self.widgets_list:
-                                    cls = self._get_widget_class(wname)
-                                    start = time.perf_counter()
-                                    child = cls(widget_config)
-                                    if self.debug:
-                                        logger.debug(f"{cls.__name__}: instantiated")
-                                        logger.info(
-                                            f"  {wname}: {(time.perf_counter() - start) * 1000:.1f}ms"
-                                        )
-                                    child_widgets.append(child)
-
-                            collapsible = CollapsibleGroups(
-                                collapsed_icon=group_config.get("collapsed_icon"),
-                                child_widgets=child_widgets,
-                                slide_direction=group_config.get("slide_direction"),
-                                transition_duration=group_config.get(
-                                    "transition_duration"
-                                ),
-                                spacing=group_config.get("spacing"),
-                                tooltip=group_config.get("tooltip"),
-                                icon_size=group_config.get("icon_size"),
-                            )
-
-                            if self.debug:
-                                logger.info(
-                                    f"CollapsibleGroup {idx}: {(time.perf_counter() - group_start) * 1000:.1f}ms"
-                                )
-                            section_widgets.append(collapsible)
-                    continue
+                        widget = self._create_collapsible_group(
+                            int(group_idx), widget_config
+                        )
 
                 # Regular widget
-                if widget_name in self.widgets_list:
-                    cls = self._get_widget_class(widget_name)
-                    start = time.perf_counter()
-                    widget_instance = cls(widget_config)
-                    if self.debug:
-                        logger.info(
-                            f"{widget_name}: {(time.perf_counter() - start) * 1000:.1f}ms"
-                        )
-                    section_widgets.append(widget_instance)
+                else:
+                    widget = self._create_widget(widget_name, widget_config)
+
+                if widget:
+                    section_widgets.append(widget)
 
         return new_layout
