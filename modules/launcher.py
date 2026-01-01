@@ -190,7 +190,7 @@ class AppLauncher(ScrolledView):
                 escaped_text = shlex.quote(text)
                 logger.debug(f"Copying to clipboard: {text}")
                 subprocess.run(
-                    f"echo {escaped_text} | wl-copy",
+                    f"echo -n {escaped_text} | wl-copy",
                     shell=True,
                     check=True,
                 )
