@@ -1,2 +1,3 @@
 fabric-cli-git
 grimblast-git
+python-fabric-git

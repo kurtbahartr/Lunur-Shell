@@ -1,4 +1,5 @@
 dart-sass
+gtk-layer-shell
 libnotify
 upower
 networkmanager
