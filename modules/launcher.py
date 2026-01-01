@@ -7,8 +7,10 @@ from fabric.utils import get_desktop_applications, DesktopApp
 from gi.repository import GdkPixbuf, GLib
 from utils.config import widget_config
 from shared import ScrolledView
+import utils.functions as helpers
 import re
 import subprocess
+import shlex
 from loguru import logger
 
 
@@ -174,15 +176,27 @@ class AppLauncher(ScrolledView):
 
     def _copy_to_clipboard(self, text: str):
         """Copy text to clipboard using wl-copy"""
+        try:
+            helpers.check_executable_exists("wl-copy")
+        except Exception as e:
+            logger.error(f"wl-copy not found: {e}")
+            logger.error(
+                "Please install wl-clipboard package to enable clipboard functionality."
+            )
+            return
 
         def copy():
             try:
-                subprocess.run(["wl-copy"], input=text.encode(), check=True)
+                escaped_text = shlex.quote(text)
+                logger.debug(f"Copying to clipboard: {text}")
+                subprocess.run(
+                    f"echo {escaped_text} | wl-copy",
+                    shell=True,
+                    check=True,
+                )
                 GLib.idle_add(self.hide)
             except subprocess.CalledProcessError as e:
                 logger.exception(f"Error copying to clipboard: {e}")
-            except FileNotFoundError:
-                logger.error("wl-copy not found. Please install wl-clipboard package.")
             return False
 
         GLib.idle_add(copy)
