@@ -130,63 +130,70 @@ def validate_widgets(parsed_data, default_config):
     """
     layout = parsed_data["layout"]
 
-    for section in layout:
-        for widget in layout[section]:
-            # Module groups
-            if widget.startswith("@group:"):
-                group_idx = widget.replace("@group:", "", 1)
-                if not group_idx.isdigit():
-                    raise ValueError(
-                        f"Invalid module group index '{group_idx}' in section {section}. Must be a number."
-                    )
-                idx = int(group_idx)
-                groups = parsed_data.get("module_groups", [])
-                if not isinstance(groups, list):
-                    raise ValueError(
-                        "module_groups must be a list when using @group references"
-                    )
-                if not (0 <= idx < len(groups)):
-                    raise ValueError(
-                        f"Module group index {idx} is out of range. Available indices: 0-{len(groups)-1}"
-                    )
-                group = groups[idx]
-                if not isinstance(group, dict) or "widgets" not in group:
-                    raise ValueError(
-                        f"Invalid module group at index {idx}. Must be a dict with 'widgets' array."
-                    )
-                for group_widget in group["widgets"]:
-                    if group_widget not in default_config:
-                        raise ValueError(
-                            f"Invalid widget '{group_widget}' found in module group {idx}. Please check the widget name."
-                        )
+    # Pre-fetch groups once instead of per-widget lookup
+    module_groups = parsed_data.get("module_groups", [])
+    collapsible_groups = parsed_data.get("collapsible_groups", [])
 
-            # Collapsible groups
-            elif widget.startswith("@collapsible_group:"):
-                group_idx = widget.replace("@collapsible_group:", "", 1)
-                if not group_idx.isdigit():
+    # Cache validated group indices to avoid redundant validation
+    validated_module_groups = set()
+    validated_collapsible_groups = set()
+
+    def validate_group_contents(group, idx, display_name):
+        """Validate a group's structure and its widgets."""
+        if not isinstance(group, dict) or "widgets" not in group:
+            raise ValueError(
+                f"Invalid {display_name} at index {idx}. Must be a dict with 'widgets' array."
+            )
+        for group_widget in group["widgets"]:
+            if group_widget not in default_config:
+                raise ValueError(
+                    f"Invalid widget '{group_widget}' found in {display_name} {idx}. "
+                    "Please check the widget name."
+                )
+
+    for section, widgets in layout.items():
+        for widget in widgets:
+            # Module groups (@group:X)
+            if widget.startswith("@group:"):
+                idx_str = widget[7:]  # len("@group:") == 7
+                if not idx_str.isdigit():
                     raise ValueError(
-                        f"Invalid collapsible group index '{group_idx}' in section {section}. Must be a number."
+                        f"Invalid module group index '{idx_str}' in section {section}. Must be a number."
                     )
-                idx = int(group_idx)
-                groups = parsed_data.get("collapsible_groups", [])
-                if not isinstance(groups, list):
-                    raise ValueError(
-                        "collapsible_groups must be a list when using @collapsible_group references"
-                    )
-                if not (0 <= idx < len(groups)):
-                    raise ValueError(
-                        f"Collapsible group index {idx} is out of range. Available indices: 0-{len(groups)-1}"
-                    )
-                group = groups[idx]
-                if not isinstance(group, dict) or "widgets" not in group:
-                    raise ValueError(
-                        f"Invalid collapsible group at index {idx}. Must be a dict with 'widgets' array."
-                    )
-                for group_widget in group["widgets"]:
-                    if group_widget not in default_config:
+                idx = int(idx_str)
+                if idx not in validated_module_groups:
+                    if not isinstance(module_groups, list):
                         raise ValueError(
-                            f"Invalid widget '{group_widget}' found in collapsible group {idx}. Please check the widget name."
+                            "module_groups must be a list when using @group references"
                         )
+                    if not (0 <= idx < len(module_groups)):
+                        raise ValueError(
+                            f"Module group index {idx} is out of range. Available indices: 0-{len(module_groups)-1}"
+                        )
+                    validate_group_contents(module_groups[idx], idx, "module group")
+                    validated_module_groups.add(idx)
+
+            # Collapsible groups (@collapsible_group:X)
+            elif widget.startswith("@collapsible_group:"):
+                idx_str = widget[19:]  # len("@collapsible_group:") == 19
+                if not idx_str.isdigit():
+                    raise ValueError(
+                        f"Invalid collapsible group index '{idx_str}' in section {section}. Must be a number."
+                    )
+                idx = int(idx_str)
+                if idx not in validated_collapsible_groups:
+                    if not isinstance(collapsible_groups, list):
+                        raise ValueError(
+                            "collapsible_groups must be a list when using @collapsible_group references"
+                        )
+                    if not (0 <= idx < len(collapsible_groups)):
+                        raise ValueError(
+                            f"Collapsible group index {idx} is out of range. Available indices: 0-{len(collapsible_groups)-1}"
+                        )
+                    validate_group_contents(
+                        collapsible_groups[idx], idx, "collapsible group"
+                    )
+                    validated_collapsible_groups.add(idx)
 
             # Regular widgets
             elif widget not in default_config:
