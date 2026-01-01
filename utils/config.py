@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import pytomlpp
 from fabric.utils import get_relative_path
 from loguru import logger
@@ -46,11 +47,19 @@ class LunurShellConfig:
         if not (os.path.exists(self.json_config) or os.path.exists(self.toml_config)):
             raise FileNotFoundError("Missing config.json or config.toml")
 
-        data = (
-            self.read_config_json()
-            if os.path.exists(self.json_config)
-            else self.read_config_toml()
-        )
+        use_json = os.path.exists(self.json_config)
+        start_time = time.perf_counter()
+
+        data = self.read_config_json() if use_json else self.read_config_toml()
+
+        read_time_ms = (time.perf_counter() - start_time) * 1000
+
+        # Log timing if debug is enabled
+        if data.get("general", {}).get("debug", False):
+            config_type = "JSON" if use_json else "TOML"
+            logger.info(
+                f"[Timing] Config ({config_type}) read in {read_time_ms:.1f} ms"
+            )
 
         validate_widgets(data, DEFAULT_CONFIG)
 
