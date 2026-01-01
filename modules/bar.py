@@ -222,13 +222,6 @@ class StatusBar(Window, ToggleableWidget):
         _widget_class_cache[name] = cls
         return cls
 
-    def _instantiate_widget(self, cls, widget_config):
-        """Instantiate widget, trying with config first."""
-        try:
-            return cls(widget_config)
-        except TypeError:
-            return cls()
-
     def make_layout(self, widget_config):
         """Build layout with optimized widget loading."""
         layout = {
@@ -281,8 +274,9 @@ class StatusBar(Window, ToggleableWidget):
                                 if wname in self.widgets_list:
                                     cls = self._get_widget_class(wname)
                                     start = time.perf_counter()
-                                    child = self._instantiate_widget(cls, widget_config)
+                                    child = cls(widget_config)
                                     if self.debug:
+                                        logger.debug(f"{cls.__name__}: instantiated")
                                         logger.info(
                                             f"  {wname}: {(time.perf_counter() - start) * 1000:.1f}ms"
                                         )
@@ -311,7 +305,7 @@ class StatusBar(Window, ToggleableWidget):
                 if widget_name in self.widgets_list:
                     cls = self._get_widget_class(widget_name)
                     start = time.perf_counter()
-                    widget_instance = self._instantiate_widget(cls, widget_config)
+                    widget_instance = cls(widget_config)
                     if self.debug:
                         logger.info(
                             f"{widget_name}: {(time.perf_counter() - start) * 1000:.1f}ms"

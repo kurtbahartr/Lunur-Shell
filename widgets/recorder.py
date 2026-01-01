@@ -4,17 +4,26 @@ from services.screen_record import ScreenRecorderService
 from shared.widget_container import ButtonWidget
 from utils.icons import text_icons
 from utils.widget_utils import nerd_font_icon
-from utils.config import widget_config
+
 
 class RecorderWidget(ButtonWidget):
     """A widget to record the system"""
 
-    def __init__(self, **kwargs):
-        super().__init__(config=widget_config["recorder"], name="recorder", **kwargs)
+    def __init__(self, config=None, **kwargs):
+        # Extract recorder specific config from the main config
+        if config is None:
+            recorder_config = {}
+        elif isinstance(config, dict) and "recorder" in config:
+            recorder_config = config.get("recorder", {})
+        else:
+            # Assume it's already the recorder config section
+            recorder_config = config
+
+        super().__init__(config=recorder_config, name="recorder", **kwargs)
 
         # Initial UI setup
         self.recording_idle_image = nerd_font_icon(
-            icon=text_icons["recorder"],
+            icon=text_icons.get("recorder", "󰑊"),
             props={"style_classes": "panel-font-icon"},
         )
         self.box.add(self.recording_idle_image)

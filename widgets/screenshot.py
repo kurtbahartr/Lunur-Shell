@@ -3,20 +3,28 @@ from fabric.widgets.label import Label
 from shared import ButtonWidget
 from utils.widget_utils import nerd_font_icon
 from services.screen_record import ScreenRecorderService
-from utils.config import widget_config
+
 
 class ScreenShotWidget(ButtonWidget):
-    """A widget to switch themes."""
+    """A widget to take screenshots."""
 
-    def __init__(self, **kwargs):
-        super().__init__(config=widget_config["screenshot"], name="screenshot", **kwargs)
+    def __init__(self, config=None, **kwargs):
+        # Extract screenshot specific config from the main config
+        if config is None:
+            screenshot_config = {}
+        elif isinstance(config, dict) and "screenshot" in config:
+            screenshot_config = config.get("screenshot", {})
+        else:
+            # Assume it's already the screenshot config section
+            screenshot_config = config
+
+        super().__init__(config=screenshot_config, name="screenshot", **kwargs)
 
         self.initialized = False
-
         self.recorder_service = None
 
         self.box.children = nerd_font_icon(
-            icon=self.config.get("icon"),
+            icon=self.config.get("icon", "󰹑"),
             props={"style_classes": "panel-font-icon"},
         )
 
