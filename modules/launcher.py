@@ -153,6 +153,89 @@ class AppLauncher(ScrolledView):
         if not query or not query.strip():
             return None
 
+        # Check for percentage calculations (e.g., "250 + 15%", "80 - 20%", "2 * 20%", "2 / 20%")
+        match = re.match(r"^(\d+\.?\d*)\s*([+\-*/])\s*(\d+\.?\d*)%$", query)
+        if match:
+            base, op, perc = (
+                float(match.group(1)),
+                match.group(2),
+                float(match.group(3)),
+            )
+            value = base * (perc / 100)
+            if op == "+":
+                result = base + value
+            elif op == "-":
+                result = base - value
+            elif op == "*":
+                result = base * (perc / 100)
+            else:  # op == "/"
+                result = base / (perc / 100)
+            return f"{result:.2f}"
+
+        # Check for "what is X% of Y" pattern (e.g., "15% of 200", "20% * 500")
+        match = re.match(r"^(\d+\.?\d*)%\s*(?:of|\*)\s*(\d+\.?\d*)$", query)
+        if match:
+            perc, base = float(match.group(1)), float(match.group(2))
+            result = base * (perc / 100)
+            return f"{result:.2f}"
+
+        # Check for simple percentage conversion (e.g., "15%" -> "0.15")
+        match = re.match(r"^(\d+\.?\d*)%$", query)
+        if match:
+            perc = float(match.group(1))
+            return f"{perc / 100:.4f}"
+
+        # Check for math functions (sqrt, abs, pow, etc.)
+        if re.match(r"^[\d+\-*/().^ a-z,]+$", query.lower()):
+            import math
+
+            safe_dict = {
+                "__builtins__": {},
+                "sqrt": math.sqrt,
+                "pow": pow,
+                "abs": abs,
+                "round": round,
+                "sin": math.sin,
+                "cos": math.cos,
+                "tan": math.tan,
+                "log": math.log,
+                "pi": math.pi,
+                "e": math.e,
+            }
+
+            query_normalized = query.replace("^", "**")
+
+            try:
+                result = eval(query_normalized, safe_dict, {})
+
+                # Format the result nicely
+                if isinstance(result, float):
+                    # Remove unnecessary decimals
+                    if result.is_integer():
+                        return int(result)
+                    return round(result, 10)
+                return result
+            except:
+                return None
+
+        # Check for power operations (e.g., "2^8", "5**3")
+        if re.match(r"^[\d+\-*/().^ ]+$", query):
+            query_normalized = query.replace("^", "**")
+
+            # Must contain at least one operator
+            if re.search(r"[+\-*/^]", query):
+                try:
+                    result = eval(query_normalized, {"__builtins__": {}}, {})
+
+                    # Format the result nicely
+                    if isinstance(result, float):
+                        if result.is_integer():
+                            return int(result)
+                        return round(result, 10)
+                    return result
+                except:
+                    return None
+
         # Only allow numbers, operators, parentheses, and whitespace
         if not re.match(r"^[\d+\-*/(). ]+$", query):
             return None
