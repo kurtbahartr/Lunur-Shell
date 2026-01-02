@@ -302,11 +302,11 @@ class AppLauncher(ScrolledView):
             if from_unit == "c":
                 # Celsius to Fahrenheit
                 result = (value * 9 / 5) + 32
-                return f"{result:.2f}°F (from {value}°C)"
+                return f"{result:.2f}°F"
             else:  # from_unit == "f"
                 # Fahrenheit to Celsius
                 result = (value - 32) * 5 / 9
-                return f"{result:.2f}°C (from {value}°F)"
+                return f"{result:.2f}°C"
 
         return None
 
@@ -323,16 +323,8 @@ class AppLauncher(ScrolledView):
 
         def copy():
             try:
-                # Extract just the numeric result if it's a temperature conversion
-                if "°" in text and "from" in text:
-                    # Extract the result before "(from"
-                    result_part = text.split("(from")[0].strip()
-                    text_to_copy = result_part
-                else:
-                    text_to_copy = text
-
-                escaped_text = shlex.quote(text_to_copy)
-                logger.debug(f"Copying to clipboard: {text_to_copy}")
+                escaped_text = shlex.quote(text)
+                logger.debug(f"Copying to clipboard: {text}")
                 subprocess.run(
                     f"echo -n {escaped_text} | wl-copy",
                     shell=True,
