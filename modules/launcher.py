@@ -153,6 +153,11 @@ class AppLauncher(ScrolledView):
         if not query or not query.strip():
             return None
 
+        # Check for temperature conversions
+        temp_result = self._try_temperature_conversion(query)
+        if temp_result is not None:
+            return temp_result
+
         # Check for percentage calculations (e.g., "250 + 15%", "80 - 20%", "2 * 20%", "2 / 20%")
         match = re.match(r"^(\d+\.?\d*)\s*([+\-*/])\s*(\d+\.?\d*)%$", query)
         if match:
@@ -257,6 +262,54 @@ class AppLauncher(ScrolledView):
         except:
             return None
 
+    def _try_temperature_conversion(self, query: str):
+        """Try to convert temperature units
+
+        Supported formats:
+        - 100c, 100C, 100°c, 100°C -> Celsius to Fahrenheit
+        - 212f, 212F, 212°f, 212°F -> Fahrenheit to Celsius
+        - 100c to f, 100°C to °F -> Explicit conversion
+        - 212f to c, 212°F to °C -> Explicit conversion
+        """
+        query = query.strip().lower()
+
+        # Pattern 1: Simple conversion (e.g., "100c", "212f", "100°c")
+        match = re.match(r"^(-?\d+\.?\d*)°?([cf])$", query)
+        if match:
+            value = float(match.group(1))
+            unit = match.group(2)
+
+            if unit == "c":
+                # Celsius to Fahrenheit
+                result = (value * 9 / 5) + 32
+                return f"{result:.2f}°F"
+            else:  # unit == "f"
+                # Fahrenheit to Celsius
+                result = (value - 32) * 5 / 9
+                return f"{result:.2f}°C"
+
+        # Pattern 2: Explicit conversion (e.g., "100c to f", "212°F to °C")
+        match = re.match(r"^(-?\d+\.?\d*)°?([cf])\s+(?:to|in)\s+°?([cf])$", query)
+        if match:
+            value = float(match.group(1))
+            from_unit = match.group(2)
+            to_unit = match.group(3)
+
+            # If converting to same unit, just return the value
+            if from_unit == to_unit:
+                return f"{value}°{to_unit.upper()}"
+
+            if from_unit == "c":
+                # Celsius to Fahrenheit
+                result = (value * 9 / 5) + 32
+                return f"{result:.2f}°F (from {value}°C)"
+            else:  # from_unit == "f"
+                # Fahrenheit to Celsius
+                result = (value - 32) * 5 / 9
+                return f"{result:.2f}°C (from {value}°F)"
+
+        return None
+
     def _copy_to_clipboard(self, text: str):
         """Copy text to clipboard using wl-copy"""
         try:
@@ -270,8 +323,16 @@ class AppLauncher(ScrolledView):
 
         def copy():
             try:
-                escaped_text = shlex.quote(text)
-                logger.debug(f"Copying to clipboard: {text}")
+                # Extract just the numeric result if it's a temperature conversion
+                if "°" in text and "from" in text:
+                    # Extract the result before "(from"
+                    result_part = text.split("(from")[0].strip()
+                    text_to_copy = result_part
+                else:
+                    text_to_copy = text
+
+                escaped_text = shlex.quote(text_to_copy)
+                logger.debug(f"Copying to clipboard: {text_to_copy}")
                 subprocess.run(
                     f"echo -n {escaped_text} | wl-copy",
                     shell=True,
