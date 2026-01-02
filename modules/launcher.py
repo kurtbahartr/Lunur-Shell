@@ -55,24 +55,27 @@ class Calculator:
         }
 
     def calculate(self, query: str):
-        """Try to evaluate a math expression or conversion safely"""
+        """Try to evaluate a math expression or conversion safely
+
+        Returns a tuple of (result, calculator_type_label) or None if no match
+        """
         if not query or not query.strip():
             return None
 
         # Check for temperature conversions
         temp_result = self._try_temperature_conversion(query)
         if temp_result is not None:
-            return temp_result
+            return temp_result, "🌡️ Temperature"
 
         # Check for weight conversions
         weight_result = self._try_weight_conversion(query)
         if weight_result is not None:
-            return weight_result
+            return weight_result, "⚖️ Weight"
 
         # Check for liquid conversions
         liquid_result = self._try_liquid_conversion(query)
         if liquid_result is not None:
-            return liquid_result
+            return liquid_result, "🥤 Volume"
 
         # Check for percentage calculations (e.g., "250 + 15%", "80 - 20%", "2 * 20%", "2 / 20%")
         match = re.match(r"^(\d+\.?\d*)\s*([+\-*/])\s*(\d+\.?\d*)%$", query)
@@ -91,20 +94,20 @@ class Calculator:
                 result = base * (perc / 100)
             else:  # op == "/"
                 result = base / (perc / 100)
-            return f"{result:.2f}"
+            return f"{result:.2f}", "📊 Percentage"
 
         # Check for "what is X% of Y" pattern (e.g., "15% of 200", "20% * 500")
         match = re.match(r"^(\d+\.?\d*)%\s*(?:of|\*)\s*(\d+\.?\d*)$", query)
         if match:
             perc, base = float(match.group(1)), float(match.group(2))
             result = base * (perc / 100)
-            return f"{result:.2f}"
+            return f"{result:.2f}", "📊 Percentage"
 
         # Check for simple percentage conversion (e.g., "15%" -> "0.15")
         match = re.match(r"^(\d+\.?\d*)%$", query)
         if match:
             perc = float(match.group(1))
-            return f"{perc / 100:.4f}"
+            return f"{perc / 100:.4f}", "📊 Percentage"
 
         # Check for math functions (sqrt, abs, pow, etc.)
         if re.match(r"^[\d+\-*/().^ a-z,]+$", query.lower()):
@@ -131,11 +134,11 @@ class Calculator:
                 if isinstance(result, float):
                     # Remove unnecessary decimals
                     if result.is_integer():
-                        return int(result)
-                    return round(result, 10)
-                return result
+                        return int(result), "🧮 Math"
+                    return round(result, 10), "🧮 Math"
+                return result, "🧮 Math"
             except:
-                return None
+                pass  # Try next pattern
 
         # Check for power operations (e.g., "2^8", "5**3")
         if re.match(r"^[\d+\-*/().^ ]+$", query):
@@ -149,9 +152,9 @@ class Calculator:
                     # Format the result nicely
                     if isinstance(result, float):
                         if result.is_integer():
-                            return int(result)
-                        return round(result, 10)
-                    return result
+                            return int(result), "🧮 Math"
+                        return round(result, 10), "🧮 Math"
+                    return result, "🧮 Math"
                 except:
                     return None
 
@@ -170,9 +173,9 @@ class Calculator:
             if isinstance(result, float):
                 # Remove unnecessary decimals
                 if result.is_integer():
-                    return int(result)
-                return round(result, 10)
-            return result
+                    return int(result), "🧮 Math"
+                return round(result, 10), "🧮 Math"
+            return result, "🧮 Math"
         except:
             return None
 
@@ -381,8 +384,9 @@ class AppLauncher(ScrolledView):
             # Check if query is a math expression
             calc_result = self.calculator.calculate(query)
             if calc_result is not None:
-                # Return calculator result as first item
-                yield ("calc", calc_result)
+                result, calc_type = calc_result
+                # Return calculator result as first item with type indicator
+                yield ("calc", result, calc_type)
 
             # Then show matching apps
             query_cf = query.casefold()
@@ -396,7 +400,8 @@ class AppLauncher(ScrolledView):
         def add_item_func(item) -> Button:
             # Handle calculator result
             if isinstance(item, tuple) and item[0] == "calc":
-                result = item[1]
+                _, result, calc_type = item
+
                 content_box = Box(
                     orientation="h",
                     spacing=12,
@@ -406,16 +411,34 @@ class AppLauncher(ScrolledView):
                             orientation="v",
                             spacing=2,
                             v_align="center",
+                            h_expand=True,
                             children=[
+                                # Result line
                                 Label(
                                     label=f"= {result}",
                                     h_align="start",
                                     v_align="start",
                                 ),
-                                Label(
-                                    label="Click to copy",
-                                    h_align="start",
-                                    v_align="start",
+                                # "Click to copy" and calculator type on same row
+                                Box(
+                                    orientation="h",
+                                    spacing=8,
+                                    h_expand=True,
+                                    children=[
+                                        Label(
+                                            label="Click to copy",
+                                            h_align="start",
+                                            v_align="start",
+                                            h_expand=True,
+                                            style="font-size: 0.85em; opacity: 0.7;",
+                                        ),
+                                        Label(
+                                            label=calc_type,
+                                            h_align="end",
+                                            v_align="start",
+                                            style="font-size: 0.85em;",
+                                        ),
+                                    ],
                                 ),
                             ],
                         ),
