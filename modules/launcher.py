@@ -12,144 +12,50 @@ import re
 import subprocess
 import shlex
 from loguru import logger
+import math
 
 
-class AppLauncher(ScrolledView):
-    def __init__(self, **kwargs):
-        config = widget_config["app_launcher"]
-        self.app_icon_size = config["app_icon_size"]
-        self.show_descriptions = config["show_descriptions"]
-        self._all_apps: list[DesktopApp] = []
+class Calculator:
+    """Handles all calculator and conversion operations"""
 
-        def arrange_func(query: str) -> Iterator:
-            # Check if query is a math expression
-            calc_result = self._try_calculate(query)
-            if calc_result is not None:
-                # Return calculator result as first item
-                yield ("calc", calc_result)
+    def __init__(self):
+        # Weight conversion factors to grams (base unit)
+        self.weight_to_grams = {
+            "mg": 0.001,
+            "g": 1,
+            "kg": 1000,
+            "mt": 1000000,  # metric ton
+            "ton": 1000000,  # metric ton (default)
+            "tonne": 1000000,  # metric ton
+            "t": 1000000,  # metric ton
+            "lb": 453.592,
+            "lbs": 453.592,
+            "pound": 453.592,
+            "pounds": 453.592,
+            "ust": 907185,  # US ton (short ton)
+        }
 
-            # Then show matching apps
-            query_cf = query.casefold()
-            for app in self._all_apps:
-                if (
-                    query_cf
-                    in f"{app.display_name or ''} {app.name} {app.generic_name or ''}".casefold()
-                ):
-                    yield app
+        # Liquid conversion factors to milliliters (base unit)
+        self.liquid_to_ml = {
+            "ml": 1,
+            "l": 1000,
+            "liter": 1000,
+            "liters": 1000,
+            "floz": 29.5735,  # US fluid ounce
+            "oz": 29.5735,  # fluid ounce
+            "cup": 236.588,  # US cup
+            "cups": 236.588,
+            "pint": 473.176,  # US pint
+            "pints": 473.176,
+            "quart": 946.353,  # US quart
+            "quarts": 946.353,
+            "gal": 3785.41,  # US gallon
+            "gallon": 3785.41,
+            "gallons": 3785.41,
+        }
 
-        def add_item_func(item) -> Button:
-            # Handle calculator result
-            if isinstance(item, tuple) and item[0] == "calc":
-                result = item[1]
-                content_box = Box(
-                    orientation="h",
-                    spacing=12,
-                    children=[
-                        Label(label="🔢", h_align="start", v_align="center"),
-                        Box(
-                            orientation="v",
-                            spacing=2,
-                            v_align="center",
-                            children=[
-                                Label(
-                                    label=f"= {result}",
-                                    h_align="start",
-                                    v_align="start",
-                                ),
-                                Label(
-                                    label="Click to copy",
-                                    h_align="start",
-                                    v_align="start",
-                                ),
-                            ],
-                        ),
-                    ],
-                )
-                return Button(
-                    child=content_box,
-                    tooltip_text=f"Calculator result: {result}",
-                    on_clicked=lambda *_: self._copy_to_clipboard(str(result)),
-                )
-
-            # Handle regular app
-            app = item
-            pixbuf = app.get_icon_pixbuf()
-            if pixbuf:
-                pixbuf = pixbuf.scale_simple(
-                    self.app_icon_size,
-                    self.app_icon_size,
-                    GdkPixbuf.InterpType.BILINEAR,
-                )
-
-            # Labels for app name and optional description
-            labels = [
-                Label(
-                    label=app.display_name or "Unknown",
-                    h_align="start",
-                    v_align="start",
-                )
-            ]
-            if self.show_descriptions and app.description:
-
-                def split_description(desc, max_line_length=80):
-                    words = desc.split()
-                    lines = []
-                    current_line = []
-                    for word in words:
-                        if len(" ".join(current_line + [word])) <= max_line_length:
-                            current_line.append(word)
-                        else:
-                            lines.append(" ".join(current_line))
-                            current_line = [word]
-                    if current_line:
-                        lines.append(" ".join(current_line))
-                    return "\n".join(lines)
-
-                description = split_description(app.description)
-
-                labels.append(
-                    Label(
-                        label=description,
-                        h_align="start",
-                        v_align="start",
-                    )
-                )
-
-            # Compose the button child: horizontal box with icon and vertical labels box
-            content_box = Box(
-                orientation="h",
-                spacing=12,
-                children=[
-                    Image(pixbuf=pixbuf, h_align="start", size=self.app_icon_size),
-                    Box(orientation="v", spacing=2, v_align="center", children=labels),
-                ],
-            )
-
-            # Return the button widget
-            return Button(
-                child=content_box,
-                tooltip_text=app.description if self.show_descriptions else None,
-                on_clicked=lambda *_: (app.launch(), self.hide()),
-            )
-
-        super().__init__(
-            name="app-launcher",
-            layer="top",
-            anchor="center",
-            exclusivity="none",
-            keyboard_mode="on-demand",
-            visible=False,
-            all_visible=False,
-            arrange_func=arrange_func,
-            add_item_func=add_item_func,
-            placeholder="Search Applications...",
-            min_content_size=(280, 320),
-            max_content_size=(560, 320),
-            **kwargs,
-        )
-
-    def _try_calculate(self, query: str):
-        """Try to evaluate a math expression safely"""
+    def calculate(self, query: str):
+        """Try to evaluate a math expression or conversion safely"""
         if not query or not query.strip():
             return None
 
@@ -202,8 +108,6 @@ class AppLauncher(ScrolledView):
 
         # Check for math functions (sqrt, abs, pow, etc.)
         if re.match(r"^[\d+\-*/().^ a-z,]+$", query.lower()):
-            import math
-
             safe_dict = {
                 "__builtins__": {},
                 "sqrt": math.sqrt,
@@ -335,22 +239,6 @@ class AppLauncher(ScrolledView):
         """
         query = query.strip().lower()
 
-        # Weight conversion factors to grams (base unit)
-        to_grams = {
-            "mg": 0.001,
-            "g": 1,
-            "kg": 1000,
-            "mt": 1000000,  # metric ton
-            "ton": 1000000,  # metric ton (default)
-            "tonne": 1000000,  # metric ton
-            "t": 1000000,  # metric ton
-            "lb": 453.592,
-            "lbs": 453.592,
-            "pound": 453.592,
-            "pounds": 453.592,
-            "ust": 907185,  # US ton (short ton)
-        }
-
         # Pattern 1: Simple weight (e.g., "100kg", "150 lbs")
         match = re.match(
             r"^(\d+\.?\d*)\s*(mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust)s?$", query
@@ -360,16 +248,16 @@ class AppLauncher(ScrolledView):
             unit = match.group(2)
 
             # Convert to grams first
-            grams = value * to_grams[unit]
+            grams = value * self.weight_to_grams[unit]
 
             # Decide what to convert to based on the input unit
             if unit in ["mg", "g", "kg", "mt", "ton", "tonne", "t"]:
                 # Metric to Imperial (pounds)
-                result = grams / to_grams["lb"]
+                result = grams / self.weight_to_grams["lb"]
                 return f"{result:.2f} lbs"
             else:
                 # Imperial to Metric (kilograms)
-                result = grams / to_grams["kg"]
+                result = grams / self.weight_to_grams["kg"]
                 return f"{result:.2f} kg"
 
         # Pattern 2: Explicit conversion (e.g., "100kg to lbs", "150 pounds to kg")
@@ -393,8 +281,8 @@ class AppLauncher(ScrolledView):
                 return f"{value} {to_unit}"
 
             # Convert via grams
-            grams = value * to_grams[from_unit]
-            result = grams / to_grams[to_unit]
+            grams = value * self.weight_to_grams[from_unit]
+            result = grams / self.weight_to_grams[to_unit]
 
             # Format the result
             if result >= 1000 or result < 0.01:
@@ -421,25 +309,6 @@ class AppLauncher(ScrolledView):
         """
         query = query.strip().lower()
 
-        # Liquid conversion factors to milliliters (base unit)
-        to_ml = {
-            "ml": 1,
-            "l": 1000,
-            "liter": 1000,
-            "liters": 1000,
-            "floz": 29.5735,  # US fluid ounce
-            "oz": 29.5735,  # fluid ounce
-            "cup": 236.588,  # US cup
-            "cups": 236.588,
-            "pint": 473.176,  # US pint
-            "pints": 473.176,
-            "quart": 946.353,  # US quart
-            "quarts": 946.353,
-            "gal": 3785.41,  # US gallon
-            "gallon": 3785.41,
-            "gallons": 3785.41,
-        }
-
         # Pattern 1: Simple liquid volume (e.g., "100ml", "16 floz")
         match = re.match(
             r"^(\d+\.?\d*)\s*(ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons)s?$",
@@ -450,17 +319,17 @@ class AppLauncher(ScrolledView):
             unit = match.group(2)
 
             # Convert to ml first
-            ml = value * to_ml[unit]
+            ml = value * self.liquid_to_ml[unit]
 
             # Decide what to convert to based on the input unit
             if unit in ["ml", "l", "liter", "liters"]:
                 # Metric to Imperial (fluid ounces)
-                result = ml / to_ml["floz"]
+                result = ml / self.liquid_to_ml["floz"]
                 return f"{result:.2f} fl oz"
             else:
                 # Imperial to Metric (liters or ml)
                 if ml >= 1000:
-                    result = ml / to_ml["l"]
+                    result = ml / self.liquid_to_ml["l"]
                     return f"{result:.2f} l"
                 else:
                     return f"{ml:.2f} ml"
@@ -486,8 +355,8 @@ class AppLauncher(ScrolledView):
                 return f"{value} {to_unit}"
 
             # Convert via ml
-            ml = value * to_ml[from_unit]
-            result = ml / to_ml[to_unit]
+            ml = value * self.liquid_to_ml[from_unit]
+            result = ml / self.liquid_to_ml[to_unit]
 
             # Format the result
             if result >= 1000 or result < 0.01:
@@ -498,6 +367,142 @@ class AppLauncher(ScrolledView):
                 return f"{result:.2f} {to_unit}"
 
         return None
+
+
+class AppLauncher(ScrolledView):
+    def __init__(self, **kwargs):
+        config = widget_config["app_launcher"]
+        self.app_icon_size = config["app_icon_size"]
+        self.show_descriptions = config["show_descriptions"]
+        self._all_apps: list[DesktopApp] = []
+        self.calculator = Calculator()
+
+        def arrange_func(query: str) -> Iterator:
+            # Check if query is a math expression
+            calc_result = self.calculator.calculate(query)
+            if calc_result is not None:
+                # Return calculator result as first item
+                yield ("calc", calc_result)
+
+            # Then show matching apps
+            query_cf = query.casefold()
+            for app in self._all_apps:
+                if (
+                    query_cf
+                    in f"{app.display_name or ''} {app.name} {app.generic_name or ''}".casefold()
+                ):
+                    yield app
+
+        def add_item_func(item) -> Button:
+            # Handle calculator result
+            if isinstance(item, tuple) and item[0] == "calc":
+                result = item[1]
+                content_box = Box(
+                    orientation="h",
+                    spacing=12,
+                    children=[
+                        Label(label="🔢", h_align="start", v_align="center"),
+                        Box(
+                            orientation="v",
+                            spacing=2,
+                            v_align="center",
+                            children=[
+                                Label(
+                                    label=f"= {result}",
+                                    h_align="start",
+                                    v_align="start",
+                                ),
+                                Label(
+                                    label="Click to copy",
+                                    h_align="start",
+                                    v_align="start",
+                                ),
+                            ],
+                        ),
+                    ],
+                )
+                return Button(
+                    child=content_box,
+                    tooltip_text=f"Calculator result: {result}",
+                    on_clicked=lambda *_: self._copy_to_clipboard(str(result)),
+                )
+
+            # Handle regular app
+            app = item
+            pixbuf = app.get_icon_pixbuf()
+            if pixbuf:
+                pixbuf = pixbuf.scale_simple(
+                    self.app_icon_size,
+                    self.app_icon_size,
+                    GdkPixbuf.InterpType.BILINEAR,
+                )
+
+            # Labels for app name and optional description
+            labels = [
+                Label(
+                    label=app.display_name or "Unknown",
+                    h_align="start",
+                    v_align="start",
+                )
+            ]
+            if self.show_descriptions and app.description:
+
+                def split_description(desc, max_line_length=80):
+                    words = desc.split()
+                    lines = []
+                    current_line = []
+                    for word in words:
+                        if len(" ".join(current_line + [word])) <= max_line_length:
+                            current_line.append(word)
+                        else:
+                            lines.append(" ".join(current_line))
+                            current_line = [word]
+                    if current_line:
+                        lines.append(" ".join(current_line))
+                    return "\n".join(lines)
+
+                description = split_description(app.description)
+
+                labels.append(
+                    Label(
+                        label=description,
+                        h_align="start",
+                        v_align="start",
+                    )
+                )
+
+            # Compose the button child: horizontal box with icon and vertical labels box
+            content_box = Box(
+                orientation="h",
+                spacing=12,
+                children=[
+                    Image(pixbuf=pixbuf, h_align="start", size=self.app_icon_size),
+                    Box(orientation="v", spacing=2, v_align="center", children=labels),
+                ],
+            )
+
+            # Return the button widget
+            return Button(
+                child=content_box,
+                tooltip_text=app.description if self.show_descriptions else None,
+                on_clicked=lambda *_: (app.launch(), self.hide()),
+            )
+
+        super().__init__(
+            name="app-launcher",
+            layer="top",
+            anchor="center",
+            exclusivity="none",
+            keyboard_mode="on-demand",
+            visible=False,
+            all_visible=False,
+            arrange_func=arrange_func,
+            add_item_func=add_item_func,
+            placeholder="Search Applications...",
+            min_content_size=(280, 320),
+            max_content_size=(560, 320),
+            **kwargs,
+        )
 
     def _copy_to_clipboard(self, text: str):
         """Copy text to clipboard using wl-copy"""
