@@ -109,7 +109,7 @@ def get_icon(app_icon, size=25) -> Image:
 # Function to create a text icon label
 def nerd_font_icon(icon: str, props=None, name="nerd-icon") -> Label:
     label_props = {
-        "label": icon,
+        "label": str(icon),
         "name": name,
         "h_align": "center",
         "v_align": "center",
