@@ -158,6 +158,16 @@ class AppLauncher(ScrolledView):
         if temp_result is not None:
             return temp_result
 
+        # Check for weight conversions
+        weight_result = self._try_weight_conversion(query)
+        if weight_result is not None:
+            return weight_result
+
+        # Check for liquid conversions
+        liquid_result = self._try_liquid_conversion(query)
+        if liquid_result is not None:
+            return liquid_result
+
         # Check for percentage calculations (e.g., "250 + 15%", "80 - 20%", "2 * 20%", "2 / 20%")
         match = re.match(r"^(\d+\.?\d*)\s*([+\-*/])\s*(\d+\.?\d*)%$", query)
         if match:
@@ -307,6 +317,185 @@ class AppLauncher(ScrolledView):
                 # Fahrenheit to Celsius
                 result = (value - 32) * 5 / 9
                 return f"{result:.2f}°C"
+
+        return None
+
+    def _try_weight_conversion(self, query: str):
+        """Try to convert weight units
+
+        Supported formats:
+        - Metric: kg, g, mg, mt/ton/tonne (metric ton)
+        - Imperial/US: lb/lbs/pound/pounds, ust (US ton)
+
+        Examples:
+        - 100kg, 100 kg -> converts to lbs
+        - 150lbs to kg, 150 pounds to kg
+        - 5kg to g, 5000g to kg
+        - 1mt to ust, 1 metric ton to us ton
+        """
+        query = query.strip().lower()
+
+        # Weight conversion factors to grams (base unit)
+        to_grams = {
+            "mg": 0.001,
+            "g": 1,
+            "kg": 1000,
+            "mt": 1000000,  # metric ton
+            "ton": 1000000,  # metric ton (default)
+            "tonne": 1000000,  # metric ton
+            "t": 1000000,  # metric ton
+            "lb": 453.592,
+            "lbs": 453.592,
+            "pound": 453.592,
+            "pounds": 453.592,
+            "ust": 907185,  # US ton (short ton)
+        }
+
+        # Pattern 1: Simple weight (e.g., "100kg", "150 lbs")
+        match = re.match(
+            r"^(\d+\.?\d*)\s*(mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust)s?$", query
+        )
+        if match:
+            value = float(match.group(1))
+            unit = match.group(2)
+
+            # Convert to grams first
+            grams = value * to_grams[unit]
+
+            # Decide what to convert to based on the input unit
+            if unit in ["mg", "g", "kg", "mt", "ton", "tonne", "t"]:
+                # Metric to Imperial (pounds)
+                result = grams / to_grams["lb"]
+                return f"{result:.2f} lbs"
+            else:
+                # Imperial to Metric (kilograms)
+                result = grams / to_grams["kg"]
+                return f"{result:.2f} kg"
+
+        # Pattern 2: Explicit conversion (e.g., "100kg to lbs", "150 pounds to kg")
+        match = re.match(
+            r"^(\d+\.?\d*)\s*(mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust)s?\s+(?:to|in)\s+(mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust)s?$",
+            query,
+        )
+        if match:
+            value = float(match.group(1))
+            from_unit = match.group(2)
+            to_unit = match.group(3)
+
+            # Normalize plurals
+            if from_unit == "pounds":
+                from_unit = "lb"
+            if to_unit == "pounds":
+                to_unit = "lb"
+
+            # If converting to same unit, just return the value
+            if from_unit == to_unit:
+                return f"{value} {to_unit}"
+
+            # Convert via grams
+            grams = value * to_grams[from_unit]
+            result = grams / to_grams[to_unit]
+
+            # Format the result
+            if result >= 1000 or result < 0.01:
+                return f"{result:.2e} {to_unit}"
+            elif result < 1:
+                return f"{result:.4f} {to_unit}"
+            else:
+                return f"{result:.2f} {to_unit}"
+
+        return None
+
+    def _try_liquid_conversion(self, query: str):
+        """Try to convert liquid volume units
+
+        Supported formats:
+        - Metric: ml, l (liters)
+        - Imperial/US: floz/oz (fluid ounces), cup, pint, quart, gal/gallon
+
+        Examples:
+        - 100ml -> converts to fl oz
+        - 1l to gal, 1 liter to gallon
+        - 16floz to ml
+        - 2cup to ml
+        """
+        query = query.strip().lower()
+
+        # Liquid conversion factors to milliliters (base unit)
+        to_ml = {
+            "ml": 1,
+            "l": 1000,
+            "liter": 1000,
+            "liters": 1000,
+            "floz": 29.5735,  # US fluid ounce
+            "oz": 29.5735,  # fluid ounce
+            "cup": 236.588,  # US cup
+            "cups": 236.588,
+            "pint": 473.176,  # US pint
+            "pints": 473.176,
+            "quart": 946.353,  # US quart
+            "quarts": 946.353,
+            "gal": 3785.41,  # US gallon
+            "gallon": 3785.41,
+            "gallons": 3785.41,
+        }
+
+        # Pattern 1: Simple liquid volume (e.g., "100ml", "16 floz")
+        match = re.match(
+            r"^(\d+\.?\d*)\s*(ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons)s?$",
+            query,
+        )
+        if match:
+            value = float(match.group(1))
+            unit = match.group(2)
+
+            # Convert to ml first
+            ml = value * to_ml[unit]
+
+            # Decide what to convert to based on the input unit
+            if unit in ["ml", "l", "liter", "liters"]:
+                # Metric to Imperial (fluid ounces)
+                result = ml / to_ml["floz"]
+                return f"{result:.2f} fl oz"
+            else:
+                # Imperial to Metric (liters or ml)
+                if ml >= 1000:
+                    result = ml / to_ml["l"]
+                    return f"{result:.2f} l"
+                else:
+                    return f"{ml:.2f} ml"
+
+        # Pattern 2: Explicit conversion (e.g., "100ml to floz", "1gal to l")
+        match = re.match(
+            r"^(\d+\.?\d*)\s*(ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons)s?\s+(?:to|in)\s+(ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons)s?$",
+            query,
+        )
+        if match:
+            value = float(match.group(1))
+            from_unit = match.group(2)
+            to_unit = match.group(3)
+
+            # Normalize plurals
+            if from_unit in ["liters", "cups", "pints", "quarts", "gallons"]:
+                from_unit = from_unit[:-1]  # Remove 's'
+            if to_unit in ["liters", "cups", "pints", "quarts", "gallons"]:
+                to_unit = to_unit[:-1]  # Remove 's'
+
+            # If converting to same unit, just return the value
+            if from_unit == to_unit:
+                return f"{value} {to_unit}"
+
+            # Convert via ml
+            ml = value * to_ml[from_unit]
+            result = ml / to_ml[to_unit]
+
+            # Format the result
+            if result >= 1000 or result < 0.01:
+                return f"{result:.2e} {to_unit}"
+            elif result < 1:
+                return f"{result:.4f} {to_unit}"
+            else:
+                return f"{result:.2f} {to_unit}"
 
         return None
 
