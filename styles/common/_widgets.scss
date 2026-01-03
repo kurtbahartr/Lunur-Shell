@@ -31,13 +31,25 @@ entry {
   background-color: theme.$background-alt;
   border-radius: variable.$radius;
   border: 1px solid theme.$surface-disabled;
-  padding: 6px;
+  padding: 0.5em 1em 0.5em 1em;
   min-width: 2em;
   margin-bottom: .5em;
 
   &:focus,
   &:focus-visible {
     border-color: theme.$primary;
+  }
+
+  /* Style the search icon */
+  image {
+    color: theme.$surface-disabled;
+    margin-right: 0.5em;
+    transition: color 150ms ease;
+  }
+
+  &:focus image,
+  &:focus-visible image {
+    color: theme.$primary;
   }
 }
 

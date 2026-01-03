@@ -38,7 +38,12 @@ class ScrolledView(Window):
             h_expand=True,
         )
         self.search_entry.set_name("entry")
-        self.search_entry.connect("notify::text", lambda entry, *_: self.arrange_viewport(entry.get_text()))
+        self.search_entry.set_icon_from_icon_name(
+            Gtk.EntryIconPosition.PRIMARY, "system-search"
+        )
+        self.search_entry.connect(
+            "notify::text", lambda entry, *_: self.arrange_viewport(entry.get_text())
+        )
 
         self.viewport = Box(spacing=2, orientation="v")
         self.viewport.set_name("viewport")
