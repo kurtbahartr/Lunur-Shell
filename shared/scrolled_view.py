@@ -6,12 +6,10 @@ from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import idle_add, remove_handler
 from gi.repository import GLib, Gtk, GtkLayerShell
 
-_current_scrolled_view = None  # Global singleton instance tracker
+# --- Click Interceptor Manager ---
 
 
-class ScrolledViewManager:
-    """Singleton manager to handle overlay for scrolled views."""
-
+class ClickInterceptor:
     _instance = None
 
     def __new__(cls):
@@ -25,53 +23,51 @@ class ScrolledViewManager:
             return
         self._initialized = True
 
-        # Lazy-initialized overlay window
         self._overlay = None
-        self.active_view = None
+        self._active_view = None
 
     @property
     def overlay(self):
-        """Lazily create the overlay window on first access."""
         if self._overlay is None:
+            # We set layer to 'top'. This puts it below the 'overlay' layer
+            # (where ScrolledView lives), preventing it from stealing scroll events.
             self._overlay = Window(
-                name="scrolled-view-overlay",
-                title="scrolled-view-overlay",
+                name="click-interceptor-overlay",
+                layer="top",
                 anchor="left top right bottom",
-                margin="0px",
+                margin="-50px",  # Extend past edges
                 exclusivity="auto",
-                layer="overlay",
-                type="top-level",
                 visible=False,
                 all_visible=False,
             )
-
-            # Add empty box so GTK doesn't complain
             self._overlay.add(Box())
-
-            # Close view when clicking overlay
             self._overlay.connect("button-press-event", self._on_overlay_clicked)
+
+            # Crucial: Prevent this overlay from stealing keyboard focus
+            GtkLayerShell.set_keyboard_mode(
+                self._overlay, GtkLayerShell.KeyboardMode.NONE
+            )
 
         return self._overlay
 
     def _on_overlay_clicked(self, widget, event):
-        """Close scrolled view when clicking the overlay."""
-        if self.active_view:
-            self.active_view.hide()
+        if self._active_view:
+            self._active_view.hide()
         return True
 
-    def activate_view(self, view):
-        """Set the active view and show overlay."""
-        if self.active_view and self.active_view != view:
-            self.active_view.hide()
+    def activate(self, view):
+        self._active_view = view
+        self.overlay.show_all()
 
-        self.active_view = view
-        self.overlay.show()
-
-    def deactivate_view(self):
-        """Hide overlay when view closes."""
-        self.active_view = None
+    def deactivate(self):
+        self._active_view = None
         if self._overlay:
             self._overlay.hide()
+
+
+# --- Scrolled View ---
+
+_current_scrolled_view = None
 
 
 class ScrolledView(Window):
@@ -85,6 +81,9 @@ class ScrolledView(Window):
         max_content_size: tuple[int, int],
         **kwargs,
     ):
+        # Force this window to be in the 'overlay' layer to sit strictly above the Interceptor
+        kwargs.setdefault("layer", "overlay")
+
         super().__init__(**kwargs)
 
         self.arrange_func = arrange_func
@@ -92,14 +91,8 @@ class ScrolledView(Window):
         self._arranger_handler: int = 0
         self._resized_once = False
 
-        # Get manager instance
-        self._manager = ScrolledViewManager()
-
         self.min_content_size = min_content_size
         self.set_size_request(560, 320)
-
-        # Enable keyboard interaction
-        GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.ON_DEMAND)
 
         self.scrolledwindow = Box(spacing=2, orientation="v")
         self.scrolledwindow.set_name("scrolledwindow")
@@ -127,14 +120,13 @@ class ScrolledView(Window):
         )
         self.displayitems.set_name("displayitems")
 
-        # Pack widgets
         self.scrolledwindow.add(self.search_entry)
         self.scrolledwindow.add(self.displayitems)
         self.add(self.scrolledwindow)
 
-        # Connect event handlers
         self.connect("key-press-event", self.on_key_press)
-        self.connect("focus-out-event", self.on_focus_out)
+
+        self._click_interceptor = ClickInterceptor()
 
     def show_all(self):
         global _current_scrolled_view
@@ -145,28 +137,21 @@ class ScrolledView(Window):
         self.search_entry.set_text("")
         self.arrange_viewport()
 
-        # Activate overlay
-        self._manager.activate_view(self)
+        # Activate interceptor (shows background layer first)
+        self._click_interceptor.activate(self)
 
+        # Show this window (overlay layer) on top
         super().show_all()
 
-        # Focus the search entry
+        # Explicitly grab focus so typing/scrolling works immediately
         self.search_entry.grab_focus()
 
     def hide(self):
         global _current_scrolled_view
         if _current_scrolled_view is self:
             _current_scrolled_view = None
-
-        # Deactivate overlay
-        self._manager.deactivate_view()
-
+        self._click_interceptor.deactivate()
         super().hide()
-
-    def on_focus_out(self, widget, event):
-        """Handle focus loss - close after short delay."""
-        GLib.timeout_add(100, self.hide)
-        return False
 
     def on_key_press(self, widget, event) -> bool:
         if event.keyval == 65307:
@@ -179,7 +164,6 @@ class ScrolledView(Window):
             remove_handler(self._arranger_handler)
             self._arranger_handler = 0
 
-        # Clear old children safely
         for child in self.viewport.get_children():
             self.viewport.remove(child)
 
