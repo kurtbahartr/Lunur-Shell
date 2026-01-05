@@ -56,3 +56,102 @@
     margin: 4px 8px;
     background-color: theme.$surface-highlight;
 }
+
+/* Volume Slider Container */
+.volume-slider-container {
+    padding: 0;
+}
+
+/* Expand/Collapse Button */
+.volume-expand-button {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px;
+    margin-left: 4px;
+    border-radius: 6px;
+    background-color: transparent;
+    color: theme.$text-secondary;
+    transition: all 120ms ease;
+
+    &:hover {
+        background-color: theme.$surface-highlight;
+        color: theme.$text-main;
+    }
+
+    &:active {
+        background-color: theme.$primary;
+        color: theme.$text-muted-light;
+    }
+}
+
+.volume-expand-icon {
+    min-width: 16px;
+    min-height: 16px;
+}
+
+/* App Volume Separator */
+.app-volume-separator {
+    min-height: 1px;
+    margin: 8px 12px 4px 12px;
+    background-color: theme.$surface-highlight;
+    opacity: 0.5;
+}
+
+/* App Volume Container */
+.app-volume-container {
+    padding: 8px 8px 4px 8px;
+}
+
+/* Individual App Volume Control */
+.app-volume-slider-row {
+    padding: 6px 8px;
+    margin: 2px 0;
+    border-radius: 8px;
+    background-color: transparent;
+    transition: background-color 120ms ease;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+}
+
+.app-volume-icon {
+    min-width: 20px;
+    min-height: 20px;
+    margin-right: 4px;
+    color: theme.$text-main;
+}
+
+/* App slider specific styling */
+.app-slider {
+    min-width: 140px;
+    min-height: 18px;
+    margin: 2px 0;
+}
+
+.app-slider trough {
+    min-height: 6px;
+    border-radius: 3px;
+    background-color: theme.$surface-highlight;
+}
+
+.app-slider trough highlight {
+    min-height: 6px;
+    border-radius: 3px;
+    background-color: theme.$primary;
+}
+
+.app-slider trough slider {
+    min-width: 16px;
+    min-height: 16px;
+    border-radius: 8px;
+    background-color: theme.$text-main;
+    margin: -5px;
+}
+
+/* App volume percentage label */
+.app-volume-slider-row .slider-percentage {
+    font-size: 11px;
+    min-width: 38px;
+    color: theme.$text-secondary;
+}
