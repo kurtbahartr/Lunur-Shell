@@ -4,6 +4,7 @@ from fabric.widgets.box import Box
 from fabric.widgets.scale import Scale
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
+from fabric.widgets.button import Button
 from gi.repository import Gtk, Pango
 
 
@@ -17,7 +18,9 @@ class SliderRow(Box):
         max_value: float = 100,
         initial_value: float = 50,
         on_change: callable = None,
+        on_icon_click: callable = None,
         show_percentage: bool = True,
+        clickable_icon: bool = False,
         style_class: str = "slider-row",
         **kwargs,
     ):
@@ -29,12 +32,23 @@ class SliderRow(Box):
         )
 
         self._on_change = on_change
+        self._on_icon_click = on_icon_click
         self._updating = False  # Prevent feedback loops
 
-        # Icon
-        self.icon = Image(style_classes="slider-icon")
+        # Icon (can be clickable for mute/unmute)
+        self.icon = Image(style_classes=["slider-icon"])
         self.icon.set_from_icon_name(icon_name, 20)
-        self.pack_start(self.icon, False, False, 0)
+
+        if clickable_icon and on_icon_click:
+            self.icon_button = Button(
+                child=self.icon,
+                style_classes=["slider-icon-button"],
+            )
+            self.icon_button.connect("clicked", lambda *_: on_icon_click())
+            self.pack_start(self.icon_button, False, False, 0)
+        else:
+            self.icon_button = None
+            self.pack_start(self.icon, False, False, 0)
 
         # Scale/Slider
         self.scale = Scale(
@@ -44,7 +58,7 @@ class SliderRow(Box):
             value=initial_value,
             draw_value=False,
             h_expand=True,
-            style_classes="qs-slider",
+            style_classes=["qs-slider"],
         )
         self.scale.connect("value-changed", self._on_value_changed)
         self.pack_start(self.scale, True, True, 0)
@@ -54,7 +68,7 @@ class SliderRow(Box):
         if show_percentage:
             self.percentage_label = Label(
                 label=f"{int(initial_value)}%",
-                style_classes="slider-percentage",
+                style_classes=["slider-percentage"],
             )
             self.percentage_label.set_size_request(45, -1)
 

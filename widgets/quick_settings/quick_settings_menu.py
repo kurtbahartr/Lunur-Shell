@@ -5,12 +5,13 @@ from fabric.widgets.box import Box
 from fabric.widgets.grid import Grid
 from .sliders.brightness import BrightnessSlider
 from .sliders.volume import VolumeSlider
+from .sliders.microphone import MicrophoneSlider
 from .togglers import NotificationQuickSetting, WifiQuickSetting, BluetoothQuickSetting
 from shared import Popover
 
 
 class SlidersContainer(Box):
-    """Container for brightness and volume sliders."""
+    """Container for brightness, volume, and microphone sliders."""
 
     def __init__(self):
         super().__init__(
@@ -22,6 +23,8 @@ class SlidersContainer(Box):
         self.pack_start(self.brightness_slider, False, False, 0)
         self.volume_slider = VolumeSlider()
         self.pack_start(self.volume_slider, False, False, 0)
+        self.mic_slider = MicrophoneSlider()
+        self.pack_start(self.mic_slider, False, False, 0)
 
 
 class QuickSettingsMenu(Popover):
@@ -31,10 +34,6 @@ class QuickSettingsMenu(Popover):
 
         self.sliders = SlidersContainer()
         content_box.pack_start(self.sliders, False, False, 0)
-
-        separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-        separator.get_style_context().add_class("qs-separator")
-        content_box.pack_start(separator, False, False, 0)
 
         self.grid = Grid(
             row_spacing=10,

@@ -9,7 +9,8 @@
 }
 
 .brightness-slider-row,
-.volume-slider-row {
+.volume-slider-row,
+.microphone-slider-row {
     padding: 4px 8px;
 }
 
@@ -17,6 +18,27 @@
     min-width: 24px;
     min-height: 24px;
     color: theme.$text-main;
+}
+
+.slider-icon-button {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px;
+    border-radius: 6px;
+    background-color: transparent;
+    transition: all 120ms ease;
+
+    &:hover {
+        background-color: theme.$surface-highlight;
+    }
+
+    &:active {
+        background-color: theme.$primary;
+        
+        .slider-icon {
+            color: theme.$text-muted-light;
+        }
+    }
 }
 
 .slider-percentage {
