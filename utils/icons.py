@@ -46,13 +46,16 @@ text_icons = {
         "checked": "󱇥",
     },
     "wifi": {
-        "off": "󰤭",  # WiFi disabled
-        "disconnected": "󰤯",  # WiFi enabled but not connected
-        "none": "󰤯",  # Very weak signal (0-20%)
-        "weak": "󰤟",  # Weak signal (20-40%)
-        "fair": "󰤢",  # Fair signal (40-60%)
-        "good": "󰤥",  # Good signal (60-80%)
-        "excellent": "󰤨",  # Excellent signal (80-100%)
+        "connected": "󰤨",
+        "disconnected": "󰤩",
+        "connecting": "󰤪",
+        "disabled": "󰤭",
+        "generic": "󰤬",
+        "strength_0": "󰤯",
+        "strength_1": "󰤟",
+        "strength_2": "󰤢",
+        "strength_3": "󰤥",
+        "strength_4": "󰤨",
     },
     "bluetooth": {
         "off": "󰂲",
@@ -91,7 +94,7 @@ text_icons = {
         "openbsd": "",
         "slackware": "",
     },
-    "recorder": "󰻂"
+    "recorder": "󰻂",
 }
 
 icons = {

@@ -106,7 +106,7 @@ class WifiQuickSetting(HoverButton):
             label="WiFi Off",
         )
         self.wifi_icon = nerd_font_icon(
-            icon=text_icons["wifi"]["off"],
+            icon=text_icons["wifi"]["disabled"],
             props={"style_classes": ["panel-font-icon"]},
         )
 
@@ -194,13 +194,13 @@ class WifiQuickSetting(HoverButton):
     def _set_unavailable_state(self):
         """Set UI when WiFi device is not available."""
         self.wifi_label.set_label("No WiFi")
-        self.wifi_icon.set_label(text_icons["wifi"]["off"])
+        self.wifi_icon.set_label(text_icons["wifi"]["generic"])
         self.remove_style_class("active")
 
     def _set_disabled_state(self):
         """Set UI for WiFi disabled."""
         self.wifi_label.set_label("WiFi Off")
-        self.wifi_icon.set_label(text_icons["wifi"]["off"])
+        self.wifi_icon.set_label(text_icons["wifi"]["generic"])
         self.remove_style_class("active")
 
     def _set_enabled_not_connected_state(self):
@@ -226,15 +226,15 @@ class WifiQuickSetting(HoverButton):
         wifi_icons = text_icons["wifi"]
 
         if strength >= 80:
-            return wifi_icons["excellent"]
+            return wifi_icons["strength_4"]
         elif strength >= 60:
-            return wifi_icons["good"]
+            return wifi_icons["strength_3"]
         elif strength >= 40:
-            return wifi_icons["fair"]
+            return wifi_icons["strength_2"]
         elif strength >= 20:
-            return wifi_icons["weak"]
+            return wifi_icons["strength_1"]
         else:
-            return wifi_icons["none"]
+            return wifi_icons["strength_0"]
 
 
 class BluetoothQuickSetting(HoverButton):
