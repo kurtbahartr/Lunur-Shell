@@ -1,4 +1,8 @@
-from fabric.notifications import Notification, NotificationAction, NotificationCloseReason
+from fabric.notifications import (
+    Notification,
+    NotificationAction,
+    NotificationCloseReason,
+)
 from fabric.utils import bulk_connect, get_relative_path
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
@@ -14,7 +18,7 @@ import utils.constants as constants
 import utils.functions as helpers
 from services import notification_service
 from shared.widget_container import HoverButton
-from shared.circle_image import CircleImage
+from shared.circle_image import CircularImage
 from utils.icons import text_icons
 from utils.widget_settings import BarConfig
 from utils.widget_utils import get_icon, nerd_font_icon
@@ -22,6 +26,7 @@ from utils.widget_utils import get_icon, nerd_font_icon
 
 class NotificationPopup(Window):
     """A widget to grab and display notifications."""
+
     __slots__ = ("_server", "widget_config", "config", "ignored_apps", "notifications")
 
     def __init__(self, widget_config: BarConfig, **kwargs):
@@ -59,18 +64,33 @@ class NotificationPopup(Window):
         new_box.set_reveal_child(True)
 
         logger.info(f"[Notification] New notification from {notification.app_name}")
-        self._server.cache_notification(self.widget_config, notification, self.config["max_count"])
+        self._server.cache_notification(
+            self.widget_config, notification, self.config["max_count"]
+        )
 
         if self.config.get("play_sound", False):
-            helpers.play_sound(get_relative_path(f"../assets/sounds/{self.config['sound_file']}.mp3"))
+            helpers.play_sound(
+                get_relative_path(f"../assets/sounds/{self.config['sound_file']}.mp3")
+            )
 
 
 class NotificationWidget(EventBox):
     """A widget to display a notification."""
-    __slots__ = ("config", "_notification", "_timeout_id", "notification_box", "actions_container_grid")
+
+    __slots__ = (
+        "config",
+        "_notification",
+        "_timeout_id",
+        "notification_box",
+        "actions_container_grid",
+    )
 
     def __init__(self, config, notification: Notification, **kwargs):
-        super().__init__(size=(constants.NOTIFICATION_WIDTH, -1), name="notification-eventbox", **kwargs)
+        super().__init__(
+            size=(constants.NOTIFICATION_WIDTH, -1),
+            name="notification-eventbox",
+            **kwargs,
+        )
         self.config = config
         self._notification = notification
         self._timeout_id = None
@@ -85,18 +105,25 @@ class NotificationWidget(EventBox):
         if notification.urgency == 2:
             self.notification_box.add_style_class("critical")
 
-        bulk_connect(self, {
-            "button-press-event": self.on_button_press,
-            "enter-notify-event": self.on_hover,
-            "leave-notify-event": self.on_unhover,
-        })
+        bulk_connect(
+            self,
+            {
+                "button-press-event": self.on_button_press,
+                "enter-notify-event": self.on_hover,
+                "leave-notify-event": self.on_unhover,
+            },
+        )
 
         # Header
-        header_container = Box(spacing=8, orientation="h", style_classes="notification-header")
+        header_container = Box(
+            spacing=8, orientation="h", style_classes="notification-header"
+        )
         header_container.children = (
             get_icon(notification.app_icon),
             Label(
-                markup=helpers.parse_markup(notification.summary or notification.app_name),
+                markup=helpers.parse_markup(
+                    notification.summary or notification.app_name
+                ),
                 h_align="start",
                 style_classes="summary",
                 max_chars_width=16,
@@ -105,17 +132,22 @@ class NotificationWidget(EventBox):
         )
         close_button = Button(
             style_classes="close-button",
-            child=nerd_font_icon(text_icons["ui"]["window_close"], {"style_classes": ["close-icon", "panel-font-icon"]}),
+            child=nerd_font_icon(
+                text_icons["ui"]["window_close"],
+                {"style_classes": ["close-icon", "panel-font-icon"]},
+            ),
             on_clicked=self.on_close_button_clicked,
         )
         header_container.pack_end(close_button, False, False, 0)
 
         # Body
-        body_container = Box(spacing=4, orientation="h", style_classes="notification-body")
+        body_container = Box(
+            spacing=4, orientation="h", style_classes="notification-body"
+        )
         try:
             if pixbuf := notification.image_pixbuf:
                 body_container.add(
-                    CircleImage(
+                    CircularImage(
                         pixbuf=pixbuf.scale_simple(
                             constants.NOTIFICATION_IMAGE_SIZE,
                             constants.NOTIFICATION_IMAGE_SIZE,
@@ -157,11 +189,19 @@ class NotificationWidget(EventBox):
             column_spacing=4,
         )
         self.actions_container_grid.attach_flow(
-            [ActionButton(a, i, actions_count) for i, a in enumerate(notification.actions)], 3
+            [
+                ActionButton(a, i, actions_count)
+                for i, a in enumerate(notification.actions)
+            ],
+            3,
         )
 
         # Assemble
-        self.notification_box.children = (header_container, body_container, self.actions_container_grid)
+        self.notification_box.children = (
+            header_container,
+            body_container,
+            self.actions_container_grid,
+        )
         self.add(self.notification_box)
 
         notification.connect("closed", lambda *_: (self.stop_timeout(), self.destroy()))
@@ -192,7 +232,11 @@ class NotificationWidget(EventBox):
             self.stop_timeout()
 
     def get_timeout(self):
-        return self._notification.timeout if self._notification.timeout != -1 else self.config["timeout"]
+        return (
+            self._notification.timeout
+            if self._notification.timeout != -1
+            else self.config["timeout"]
+        )
 
     def pause_timeout(self):
         self.stop_timeout()
@@ -218,6 +262,7 @@ class NotificationWidget(EventBox):
 
 class NotificationRevealer(Revealer):
     """Reveal a notification with transition."""
+
     __slots__ = ("notification_box", "_notification")
 
     def __init__(self, config, notification: Notification, **kwargs):
@@ -229,15 +274,27 @@ class NotificationRevealer(Revealer):
             transition_type=config["transition_type"],
             **kwargs,
         )
-        self.connect("notify::child-revealed", lambda *_: self.destroy() if not self.get_child_revealed() else None)
-        notification.connect("closed", lambda *_: (self.set_reveal_child(False), self.destroy()))
+        self.connect(
+            "notify::child-revealed",
+            lambda *_: self.destroy() if not self.get_child_revealed() else None,
+        )
+        notification.connect(
+            "closed", lambda *_: (self.set_reveal_child(False), self.destroy())
+        )
 
 
 class ActionButton(HoverButton):
     """Button for notification action."""
+
     __slots__ = ("action",)
 
-    def __init__(self, action: NotificationAction, action_number: int, total_actions: int, **kwargs):
+    def __init__(
+        self,
+        action: NotificationAction,
+        action_number: int,
+        total_actions: int,
+        **kwargs,
+    ):
         super().__init__(
             label=action.label,
             h_expand=True,

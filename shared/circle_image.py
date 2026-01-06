@@ -2,12 +2,17 @@ import math
 from typing import Iterable, Literal
 
 import cairo
+import gi
 from fabric.core.service import Property
 from fabric.widgets.widget import Widget
 from gi.repository import Gdk, GdkPixbuf, Gtk
 
+from .widget_container import BaseWidget
 
-class CircleImage(Gtk.DrawingArea, Widget):
+gi.require_versions({"Gtk": "3.0", "Gdk": "3.0", "GdkPixbuf": "2.0"})
+
+
+class CircularImage(Gtk.DrawingArea, BaseWidget):
     """A widget that displays an image in a circle."""
 
     @Property(int, "read-write")
@@ -16,8 +21,10 @@ class CircleImage(Gtk.DrawingArea, Widget):
 
     @angle.setter
     def angle(self, value: int):
-        self._angle = value % 360
-        self.queue_draw()
+        new_angle = value % 360
+        if new_angle != self._angle:
+            self._angle = new_angle
+            self.queue_draw()
 
     def __init__(
         self,
@@ -29,12 +36,12 @@ class CircleImage(Gtk.DrawingArea, Widget):
         style: str | None = None,
         tooltip_text: str | None = None,
         tooltip_markup: str | None = None,
-        h_align: Literal["fill", "start", "end", "center", "baseline"]
-        | Gtk.Align
-        | None = None,
-        v_align: Literal["fill", "start", "end", "center", "baseline"]
-        | Gtk.Align
-        | None = None,
+        h_align: (
+            Literal["fill", "start", "end", "center", "baseline"] | Gtk.Align | None
+        ) = None,
+        v_align: (
+            Literal["fill", "start", "end", "center", "baseline"] | Gtk.Align | None
+        ) = None,
         h_expand: bool = False,
         v_expand: bool = False,
         size: Iterable[int] | int | None = None,
@@ -62,13 +69,11 @@ class CircleImage(Gtk.DrawingArea, Widget):
         self._image: GdkPixbuf.Pixbuf | None = (
             GdkPixbuf.Pixbuf.new_from_file_at_size(image_file, size, size)
             if image_file
-            else pixbuf
-            if pixbuf
-            else None
+            else pixbuf if pixbuf else None
         )
         self.connect("draw", self.on_draw)
 
-    def on_draw(self, widget: "CircleImage", ctx: cairo.Context):
+    def on_draw(self, widget: "CircularImage", ctx: cairo.Context):
         if self._image:
             ctx.save()
             ctx.arc(self.size / 2, self.size / 2, self.size / 2, 0, 2 * math.pi)
@@ -108,6 +113,7 @@ class CircleImage(Gtk.DrawingArea, Widget):
     def set_image_size(self, size: Iterable[int] | int):
         if size is Iterable:
             x, y = size
+            self._image = self._image.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
         else:
             self._image = self._image.scale_simple(
                 size, size, GdkPixbuf.InterpType.BILINEAR
