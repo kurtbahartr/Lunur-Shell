@@ -6,7 +6,8 @@ from fabric.widgets.grid import Grid
 from .sliders.brightness import BrightnessSlider
 from .sliders.volume import VolumeSlider
 from .sliders.microphone import MicrophoneSlider
-from .togglers import NotificationQuickSetting, WifiQuickSetting, BluetoothQuickSetting
+from .togglers import NotificationQuickSetting
+from .submenu import WifiQuickSetting, BluetoothQuickSetting
 from shared import Popover
 
 

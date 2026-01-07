@@ -12,6 +12,8 @@ from utils.icons import icons, text_icons
 from utils.widget_utils import nerd_font_icon, setup_cursor_hover
 
 from .widget_container import BaseWidget
+from .circle_image import CircularImage
+from .submenu import QuickSubMenu
 
 
 class HoverButton(Button, BaseWidget):
@@ -23,6 +25,41 @@ class HoverButton(Button, BaseWidget):
         )
 
         setup_cursor_hover(self)
+
+
+class ScanButton(HoverButton):
+    """A button to start a scan action."""
+
+    def __init__(self, **kwargs):
+        super().__init__(name="scan-button", style_classes=["submenu-button"], **kwargs)
+
+        self.scan_image = CircularImage(
+            image_file=f"{ASSETS_DIR}icons/svg/refresh.svg",
+            size=20,
+        )
+        self.scan_animator = None
+
+        self.set_image(self.scan_image)
+
+    def set_notify_value(self, p, *_):
+        self.scan_image.set_angle(p.value)
+
+    def play_animation(self):
+        from .animator import Animator
+
+        if self.scan_animator is None:
+            self.scan_animator = Animator(
+                timing_function=partial(cubic_bezier, 0, 0, 1, 1),
+                duration=4,
+                min_value=0,
+                max_value=360,
+                tick_widget=self,
+                notify_value=self.set_notify_value,
+            )
+        self.scan_animator.play()
+
+    def stop_animation(self):
+        self.scan_animator.stop()
 
 
 class QSToggleButton(Box, BaseWidget):
@@ -97,3 +134,53 @@ class QSToggleButton(Box, BaseWidget):
 
     def set_action_icon(self, icon: str):
         self.action_icon.set_label(icon)
+
+
+class QSChevronButton(QSToggleButton):
+    """A widget to display a toggle button for quick settings."""
+
+    @Signal
+    def reveal_clicked(self) -> None: ...
+
+    def __init__(
+        self,
+        action_label: str = "My Label",
+        action_icon: str = icons["fallback"]["package"],
+        pixel_size: int = 18,
+        submenu: QuickSubMenu | None = None,
+        **kwargs,
+    ):
+        self.submenu = submenu
+
+        self.button_image = Image(icon_name=icons["ui"]["arrow"]["right"], icon_size=20)
+
+        self.reveal_button = HoverButton(
+            style_classes=["toggle-revealer"],
+            image=self.button_image,
+            h_expand=True,
+            on_clicked=self._reveal_toggle,
+        )
+
+        super().__init__(
+            action_label,
+            action_icon,
+            pixel_size,
+            **kwargs,
+        )
+        self.box.add(self.reveal_button)
+
+        self.submenu.revealer.connect(
+            "notify::reveal-child",
+            self.set_chevron_icon,
+        )
+
+    def set_chevron_icon(self, *_):
+        icon_name = (
+            icons["ui"]["arrow"]["down"]
+            if self.submenu.revealer.get_reveal_child()
+            else icons["ui"]["arrow"]["right"]
+        )
+        self.button_image.set_from_icon_name(icon_name, 20)
+
+    def _reveal_toggle(self, *_):
+        self.emit("reveal-clicked")
