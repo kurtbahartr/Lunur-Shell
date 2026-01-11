@@ -8,7 +8,7 @@ from .sliders.volume import VolumeSlider
 from .sliders.microphone import MicrophoneSlider
 from .togglers import NotificationQuickSetting
 from .submenu import WifiQuickSetting, BluetoothQuickSetting
-from shared import Popover
+from shared.pop_over import Popover
 
 
 class SlidersContainer(Box):

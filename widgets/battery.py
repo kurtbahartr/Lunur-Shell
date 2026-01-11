@@ -5,7 +5,7 @@ from fabric.widgets.label import Label
 from gi.repository import GdkPixbuf, GLib, Gio, Gtk
 
 from services import BatteryService
-from shared import ButtonWidget
+from shared.widget_container import ButtonWidget
 from utils import BarConfig
 from utils.functions import format_time, send_notification
 from utils.icons import icons
@@ -52,7 +52,9 @@ class BatteryWidget(ButtonWidget):
 
     def update_ui(self, *_):
         is_present = self.client.get_property("IsPresent") == 1
-        battery_percent = round(self.client.get_property("Percentage")) if is_present else 0
+        battery_percent = (
+            round(self.client.get_property("Percentage")) if is_present else 0
+        )
         battery_state = self.client.get_property("State")
         is_charging = battery_state == 1 if is_present else False
 
@@ -65,6 +67,7 @@ class BatteryWidget(ButtonWidget):
             and battery_percent == self.full_battery_level
             and self.config.get("notifications", {}).get("full_battery")
         ):
+
             def notify_full_battery():
                 if self._can_send_notifications():
                     send_notification(
@@ -106,19 +109,32 @@ class BatteryWidget(ButtonWidget):
 
         if self.config["label"]:
             self.battery_label.set_visible(True)
-            if self.config.get("hide_label_when_full") and battery_percent == self.full_battery_level:
+            if (
+                self.config.get("hide_label_when_full")
+                and battery_percent == self.full_battery_level
+            ):
                 self.battery_label.hide()
 
         if self.config.get("tooltip"):
-            status_text = "󱠴 Status: Charging" if is_charging else "󱠴 Status: Discharging"
-            tool_tip_text = f"󱐋 Energy : {round(energy, 2)} Wh\n Temperature: {temperature}°C"
+            status_text = (
+                "󱠴 Status: Charging" if is_charging else "󱠴 Status: Discharging"
+            )
+            tool_tip_text = (
+                f"󱐋 Energy : {round(energy, 2)} Wh\n Temperature: {temperature}°C"
+            )
             formatted_time = format_time(time_remaining)
             if battery_percent == self.full_battery_level:
-                self.set_tooltip_text(f"{status_text}\n󰄉 Time to full: 0\n{tool_tip_text}")
+                self.set_tooltip_text(
+                    f"{status_text}\n󰄉 Time to full: 0\n{tool_tip_text}"
+                )
             elif is_charging:
-                self.set_tooltip_text(f"{status_text}\n󰄉 Time to full: {formatted_time}\n{tool_tip_text}")
+                self.set_tooltip_text(
+                    f"{status_text}\n󰄉 Time to full: {formatted_time}\n{tool_tip_text}"
+                )
             else:
-                self.set_tooltip_text(f"{status_text}\n󰄉 Time to empty: {formatted_time}\n{tool_tip_text}")
+                self.set_tooltip_text(
+                    f"{status_text}\n󰄉 Time to empty: {formatted_time}\n{tool_tip_text}"
+                )
 
         if self.initialized:
             self._check_notifications(battery_percent, is_charging)
@@ -138,7 +154,11 @@ class BatteryWidget(ButtonWidget):
 
         # Charger disconnected
         if not is_charging and self.last_charging_state:
-            if is_full and notifications.get("full_battery") and not self.full_battery_notified:
+            if (
+                is_full
+                and notifications.get("full_battery")
+                and not self.full_battery_notified
+            ):
                 if self._can_send_notifications():
                     send_notification(
                         title="Battery Full",
@@ -150,7 +170,11 @@ class BatteryWidget(ButtonWidget):
                 self.full_battery_notified = True
                 self.charging_notified = False
                 self.discharging_notified = False
-            elif not is_full and notifications.get("charging") and not self.discharging_notified:
+            elif (
+                not is_full
+                and notifications.get("charging")
+                and not self.discharging_notified
+            ):
                 if self._can_send_notifications():
                     send_notification(
                         title="Charger Disconnected",
@@ -163,7 +187,12 @@ class BatteryWidget(ButtonWidget):
                 self.charging_notified = False
 
         # Charger connected
-        elif is_charging and not self.last_charging_state and notifications.get("charging") and not self.charging_notified:
+        elif (
+            is_charging
+            and not self.last_charging_state
+            and notifications.get("charging")
+            and not self.charging_notified
+        ):
             if self._can_send_notifications():
                 send_notification(
                     title="Charger Connected",

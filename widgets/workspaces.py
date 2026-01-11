@@ -1,5 +1,5 @@
 from fabric.hyprland.widgets import WorkspaceButton as WsButton, HyprlandWorkspaces
-from shared import BoxWidget
+from shared.widget_container import BoxWidget
 from utils import BarConfig
 from utils.functions import unique_list
 from utils.widget_utils import setup_cursor_hover
@@ -44,13 +44,17 @@ class WorkspacesWidget(BoxWidget):
             return button
 
         # Generate pre-set buttons if showing unoccupied workspaces
-        buttons = None if hide_unoccupied else [
-            setup_button_empty_state(
-                WorkspaceButton(id=i, label=create_workspace_label(i))
-            )
-            for i in range(1, count + 1)
-            if i not in ignored_ws
-        ]
+        buttons = (
+            None
+            if hide_unoccupied
+            else [
+                setup_button_empty_state(
+                    WorkspaceButton(id=i, label=create_workspace_label(i))
+                )
+                for i in range(1, count + 1)
+                if i not in ignored_ws
+            ]
+        )
 
         self.workspace = HyprlandWorkspaces(
             name="workspaces",

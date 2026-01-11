@@ -12,7 +12,7 @@ from fabric.widgets.stack import Stack
 from gi.repository import Gdk
 from loguru import logger
 
-from shared import Popover
+from shared.pop_over import Popover
 from shared.widget_container import ButtonWidget
 from utils.widget_utils import nerd_font_icon
 
@@ -96,7 +96,6 @@ class EmojiPickerMenu(Box):
         self.arrange_viewport()
         self.search_entry.grab_focus()
 
-
     def arrange_viewport(self, query: str = ""):
         remove_handler(self._arranger_handler) if self._arranger_handler else None
         self.stack.children = []
@@ -128,37 +127,36 @@ class EmojiPickerMenu(Box):
             self.update_selection(0)
 
     def load_page(self, page_index):
-         self.update_selection(-1)
+        self.update_selection(-1)
 
-         if page_index in self._page_cache:
-             self.stack.set_visible_child_name(f"page-{page_index}")
-             return
+        if page_index in self._page_cache:
+            self.stack.set_visible_child_name(f"page-{page_index}")
+            return
 
-         page_box = Box(name=f"page-box-{page_index}", orientation="v", spacing=4)
+        page_box = Box(name=f"page-box-{page_index}", orientation="v", spacing=4)
 
-         start_index = page_index * self.emojis_per_page
-         end_index = min(
-             (page_index + 1) * self.emojis_per_page, len(self.filtered_emojis)
-         )
-         page_emojis = self.filtered_emojis[start_index:end_index]
+        start_index = page_index * self.emojis_per_page
+        end_index = min(
+            (page_index + 1) * self.emojis_per_page, len(self.filtered_emojis)
+        )
+        page_emojis = self.filtered_emojis[start_index:end_index]
 
-         grid_box = Box(name="emoji-grid-box", orientation="v", spacing=2)
-         row_box = None
+        grid_box = Box(name="emoji-grid-box", orientation="v", spacing=2)
+        row_box = None
 
-         for i, (emoji_char, emoji_info) in enumerate(page_emojis):
-             if i % 9 == 0:
-                 row_box = Box(name="emoji-row-box", orientation="h", spacing=2)
-                 grid_box.add(row_box)
-             if row_box is not None:
-                 row_box.add(self.bake_emoji_slot(emoji_char, emoji_info))
+        for i, (emoji_char, emoji_info) in enumerate(page_emojis):
+            if i % 9 == 0:
+                row_box = Box(name="emoji-row-box", orientation="h", spacing=2)
+                grid_box.add(row_box)
+            if row_box is not None:
+                row_box.add(self.bake_emoji_slot(emoji_char, emoji_info))
 
-         page_box.add(grid_box)
+        page_box.add(grid_box)
 
-         self.stack.add_named(page_box, f"page-{page_index}")
-         self.stack.set_visible_child_name(f"page-{page_index}")
-         self._page_cache[page_index] = page_box
-    
-    
+        self.stack.add_named(page_box, f"page-{page_index}")
+        self.stack.set_visible_child_name(f"page-{page_index}")
+        self._page_cache[page_index] = page_box
+
     def resize_viewport(self):
         return False
 
@@ -373,4 +371,3 @@ class EmojiPickerWidget(ButtonWidget):
                 point_to=self,
             )
         self.popup.open()
-

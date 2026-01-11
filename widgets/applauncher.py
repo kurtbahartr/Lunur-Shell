@@ -4,7 +4,7 @@ from utils.functions import get_distro_icon
 from utils.widget_utils import text_icon
 from utils.config import widget_config
 from utils import BarConfig
-from shared import ButtonWidget
+from shared.widget_container import ButtonWidget
 
 
 app_launcher = widget_config["app_launcher"]

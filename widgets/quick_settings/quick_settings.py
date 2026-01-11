@@ -2,7 +2,7 @@
 
 from fabric.widgets.box import Box
 from utils import BarConfig
-from shared import ButtonWidget
+from shared.widget_container import ButtonWidget
 from .services import (
     AudioService,
     NetworkServiceWrapper,

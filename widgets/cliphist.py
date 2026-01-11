@@ -15,7 +15,7 @@ from gi.repository import Gdk, GdkPixbuf, GLib
 from loguru import logger
 
 from shared.list import ListBox
-from shared import Popover
+from shared.pop_over import Popover
 from shared.widget_container import ButtonWidget
 from utils.widget_utils import nerd_font_icon
 
@@ -427,9 +427,15 @@ class ClipHistoryMenu(Box):
                 data = result.stdout
 
                 # Heuristics for detecting image
-                if data.startswith(b"\x89PNG") or data.startswith(b"\xff\xd8\xff") or data.startswith(b"GIF8"):
+                if (
+                    data.startswith(b"\x89PNG")
+                    or data.startswith(b"\xff\xd8\xff")
+                    or data.startswith(b"GIF8")
+                ):
                     # PNG, JPEG, or GIF
-                    subprocess.run(["wl-copy", "--type", "image/png"], input=data, check=True)
+                    subprocess.run(
+                        ["wl-copy", "--type", "image/png"], input=data, check=True
+                    )
                 else:
                     # Treat as text
                     subprocess.run(["wl-copy"], input=data, check=True)
@@ -640,4 +646,3 @@ class ClipHistoryWidget(ButtonWidget):
             point_to=self,
         )
         self.popup.open()
-

@@ -1,6 +1,7 @@
 from gi.repository import Gtk, GLib
 from fabric.widgets.datetime import DateTime
-from shared import ButtonWidget, Popover
+from shared.widget_container import ButtonWidget
+from shared.pop_over import Popover
 
 import time
 import os

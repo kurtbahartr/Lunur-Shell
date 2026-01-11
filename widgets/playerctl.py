@@ -6,7 +6,7 @@ from gi.repository import GLib, Playerctl, Gtk
 from fabric.widgets.label import Label
 from fabric.widgets.image import Image
 from shared.widget_container import EventBoxWidget
-from shared import Popover
+from shared.pop_over import Popover
 from utils.icons import icons
 from utils import BarConfig
 from widgets.common.resolver import create_slide_revealer, set_expanded, on_leave

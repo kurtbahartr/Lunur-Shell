@@ -6,7 +6,7 @@ from fabric.widgets.box import Box
 from fabric.utils import get_desktop_applications, DesktopApp
 from gi.repository import GdkPixbuf, GLib
 from utils.config import widget_config
-from shared import ScrolledView
+from shared.scrolled_view import ScrolledView
 import utils.functions as helpers
 import re
 import subprocess

@@ -1,6 +1,6 @@
 from gi.repository import Gtk, Gdk
 from fabric.widgets.label import Label
-from shared import ButtonWidget
+from shared.widget_container import ButtonWidget
 from utils.widget_utils import nerd_font_icon
 from services.screen_record import ScreenRecorderService
 

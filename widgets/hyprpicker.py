@@ -3,11 +3,12 @@ from fabric.widgets.label import Label
 from fabric.utils import exec_shell_command_async, get_relative_path
 from utils.config import widget_config
 from utils import BarConfig
-from shared import ButtonWidget
+from shared.widget_container import ButtonWidget
 from utils.icons import text_icons
 import os
 
 hyprpicker = widget_config["hyprpicker"]
+
 
 class HyprPickerButton(ButtonWidget):
     def __init__(self, widget_config: BarConfig, **kwargs):

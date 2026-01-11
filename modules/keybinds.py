@@ -2,9 +2,9 @@ from typing import Iterator
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
 from fabric.widgets.button import Button
-from shared import ScrolledView
+from shared.scrolled_view import ScrolledView
 
-from utils import KeybindLoader
+from utils.gen_keybinds import KeybindLoader
 
 
 class KeybindsWidget(ScrolledView):
