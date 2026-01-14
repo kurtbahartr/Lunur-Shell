@@ -275,22 +275,31 @@ def create_scale(
 _widget_class_cache = {}
 
 
-# Function to get the widget class dynamically
-def lazy_load_widget(widget_name: str, widgets_list: dict[str, str]):
-    # Check cache first
-    if widget_name in _widget_class_cache:
-        return _widget_class_cache[widget_name]
+def lazy_load_widget(widget_name: str, widgets_list: dict[str, str]) -> type:
+    """
+    Dynamically loads a widget class from a registry dict.
+    Returns cached class if available.
+    """
+    # Fast path: Return immediately if cached
+    if (widget_class := _widget_class_cache.get(widget_name)) is not None:
+        return widget_class
 
-    if widget_name not in widgets_list:
-        raise KeyError(f"Widget {widget_name} not found in the dictionary.")
+    # Validate widget existence in the mapping
+    if not (class_path := widgets_list.get(widget_name)):
+        raise KeyError(
+            f"Widget '{widget_name}' not found in the configuration dictionary."
+        )
 
-    class_path = widgets_list[widget_name]
-    module_name, class_name = class_path.rsplit(".", 1)
+    try:
+        module_name, class_name = class_path.rsplit(".", 1)
+        module = importlib.import_module(module_name)
+        widget_class = getattr(module, class_name)
+    except (ImportError, AttributeError, ValueError) as e:
+        # Catch import errors, missing attributes, or bad strings (no dot in split)
+        raise ImportError(
+            f"Failed to load widget '{widget_name}' from '{class_path}': {e}"
+        ) from e
 
-    module = importlib.import_module(module_name)
-    widget_class = getattr(module, class_name)
-
-    # Cache the class
+    # Update cache
     _widget_class_cache[widget_name] = widget_class
-
     return widget_class
