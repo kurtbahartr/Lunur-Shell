@@ -1,6 +1,6 @@
 import json
 import subprocess
-from typing import Iterator
+from typing import Iterator, List, Tuple
 
 modmask_map = {
     64: "SUPER",
@@ -8,6 +8,7 @@ modmask_map = {
     4: "CTRL",
     1: "SHIFT",
 }
+
 
 def modmask_to_key(modmask: int) -> str:
     keys = [key for bf, key in modmask_map.items() if (modmask & bf) == bf]
@@ -17,11 +18,12 @@ def modmask_to_key(modmask: int) -> str:
         keys.append(f"({unknown_bits})")
     return " + ".join(keys)
 
+
 class KeybindLoader:
     def __init__(self):
-        self.keybinds = []
+        self.keybinds: List[Tuple[str, str, str]] = []
 
-    def load_keybinds(self):
+    def load_keybinds(self) -> None:
         try:
             output = subprocess.check_output(["hyprctl", "binds", "-j"], text=True)
             binds = json.loads(output)
@@ -30,19 +32,21 @@ class KeybindLoader:
             self.keybinds = []
             return
 
-        self.keybinds.clear()
-        for bind in binds:
-            mod_keys = modmask_to_key(bind['modmask'])
-            if mod_keys:
-                key_combo = f"{mod_keys} + {bind['key']}:"
-            else:
-                key_combo = f"{bind['key']}:"
-            description = bind.get('description', '').strip()
-            dispatcher = bind.get('dispatcher', '').strip()
-            arg = bind.get('arg', '').strip()
-            cmd = f"{dispatcher}: {arg}".strip(": ")
-            self.keybinds.append((key_combo.strip(), description, cmd))
+        self.keybinds = [
+            (
+                (
+                    f"{modmask_to_key(bind['modmask'])} + {bind['key']}:"
+                    if modmask_to_key(bind["modmask"])
+                    else f"{bind['key']}:"
+                ).strip(),
+                bind.get("description", "").strip(),
+                f"{bind.get('dispatcher', '').strip()}: {bind.get('arg', '').strip()}".strip(
+                    ": "
+                ),
+            )
+            for bind in binds
+        ]
 
-    def filter_keybinds(self, query: str = "") -> Iterator[tuple]:
+    def filter_keybinds(self, query: str = "") -> Iterator[Tuple[str, str, str]]:
         query_cf = query.casefold()
         return (kb for kb in self.keybinds if query_cf in " ".join(kb).casefold())

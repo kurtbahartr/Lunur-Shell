@@ -1,3 +1,4 @@
+import textwrap
 from typing import Iterator
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
@@ -10,20 +11,6 @@ from utils.gen_keybinds import KeybindLoader
 class KeybindsWidget(ScrolledView):
     def __init__(self, config=None, **kwargs):
         self.loader = KeybindLoader()
-
-        def split_text(text, max_line_length=80):
-            words = text.split()
-            lines = []
-            current_line = []
-            for word in words:
-                if len(" ".join(current_line + [word])) <= max_line_length:
-                    current_line.append(word)
-                else:
-                    lines.append(" ".join(current_line))
-                    current_line = [word]
-            if current_line:
-                lines.append(" ".join(current_line))
-            return "\n".join(lines)
 
         def arrange_func(query: str) -> Iterator[tuple]:
             return self.loader.filter_keybinds(query)
@@ -41,7 +28,8 @@ class KeybindsWidget(ScrolledView):
                 ellipsize=0,
             )
 
-            cmd_wrapped = split_text(cmd, max_line_length=80)
+            cmd_wrapped = textwrap.fill(cmd, width=80)
+
             cmd_label = Label(
                 label=cmd_wrapped,
                 x_align=0,
