@@ -48,6 +48,7 @@ def compile_scss():
 def setup_initial_styles(target_theme: str):
     state_file = os.path.join(APP_CACHE_DIRECTORY, "current_theme_state")
     css_output = get_relative_path("dist/main.css")
+    styles_dir = get_relative_path("styles")
 
     # The file currently being used by main.scss
     current_active_theme_file = get_relative_path("styles/theme.scss")
@@ -74,30 +75,39 @@ def setup_initial_styles(target_theme: str):
         should_compile = True
         reason = "First run (no state file)"
 
-    # 3. Check if file content differs (Content check)
-    # If we haven't decided to compile yet, check if the actual scss files match.
+    # 3. Check if the specific theme file content differs (Content check)
     if not should_compile:
         if not os.path.exists(current_active_theme_file):
             should_compile = True
             reason = "Active theme file missing"
         elif os.path.exists(source_theme_file):
-            # shallow=False forces the module to read the file contents, not just file stats
             if not filecmp.cmp(
                 source_theme_file, current_active_theme_file, shallow=False
             ):
                 should_compile = True
                 reason = "Theme content mismatch"
 
+    # 4. Global Timestamp Check (List Comprehension)
+    # If not compiling yet, check if ANY scss file in the directory is newer than dist/main.css
+    if not should_compile:
+        output_mtime = os.path.getmtime(css_output)
+
+        modified_files = [
+            f
+            for root, _, files in os.walk(styles_dir)
+            for f in files
+            if f.endswith(".scss")
+            and os.path.getmtime(os.path.join(root, f)) > output_mtime
+        ]
+
+        if modified_files:
+            should_compile = True
+            reason = f"Source file modified ({modified_files[0]})"
+
     if should_compile:
         logger.info(f"[Main] Compiling styles. Reason: {reason}")
-
-        # 1. Copy/Link the theme
         helpers.copy_theme(target_theme)
-
-        # 2. Compile SCSS
         compile_scss()
-
-        # 3. Update state
         with open(state_file, "w") as f:
             f.write(target_theme)
     else:
