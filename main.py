@@ -1,4 +1,6 @@
 import time
+import os
+import filecmp
 from fabric import Application
 from fabric.utils import cooldown, exec_shell_command, get_relative_path, monitor_file
 from loguru import logger
@@ -41,6 +43,65 @@ def compile_scss():
 
     if output:
         logger.error("[Main] Failed to compile SCSS!")
+
+
+def setup_initial_styles(target_theme: str):
+    state_file = os.path.join(APP_CACHE_DIRECTORY, "current_theme_state")
+    css_output = get_relative_path("dist/main.css")
+
+    # The file currently being used by main.scss
+    current_active_theme_file = get_relative_path("styles/theme.scss")
+    # The source file for the requested theme
+    source_theme_file = get_relative_path(f"styles/themes/{target_theme}.scss")
+
+    should_compile = False
+    reason = ""
+
+    # 1. Check if output CSS exists
+    if not os.path.exists(css_output):
+        should_compile = True
+        reason = "Output CSS missing"
+
+    # 2. Check if the theme name changed (State check)
+    elif os.path.exists(state_file):
+        with open(state_file, "r") as f:
+            last_theme = f.read().strip()
+        if last_theme != target_theme:
+            should_compile = True
+            reason = f"Theme changed ({last_theme} -> {target_theme})"
+    else:
+        # No state file means first run
+        should_compile = True
+        reason = "First run (no state file)"
+
+    # 3. Check if file content differs (Content check)
+    # If we haven't decided to compile yet, check if the actual scss files match.
+    if not should_compile:
+        if not os.path.exists(current_active_theme_file):
+            should_compile = True
+            reason = "Active theme file missing"
+        elif os.path.exists(source_theme_file):
+            # shallow=False forces the module to read the file contents, not just file stats
+            if not filecmp.cmp(
+                source_theme_file, current_active_theme_file, shallow=False
+            ):
+                should_compile = True
+                reason = "Theme content mismatch"
+
+    if should_compile:
+        logger.info(f"[Main] Compiling styles. Reason: {reason}")
+
+        # 1. Copy/Link the theme
+        helpers.copy_theme(target_theme)
+
+        # 2. Compile SCSS
+        compile_scss()
+
+        # 3. Update state
+        with open(state_file, "w") as f:
+            f.write(target_theme)
+    else:
+        logger.info(f"[Main] Theme '{target_theme}' is up to date. Skipping compile.")
 
 
 @cooldown(2)
@@ -118,13 +179,12 @@ if __name__ == "__main__":
         record_start = _record_start
         record_stop = _record_stop
 
-    # Setup theme and icons BEFORE compiling SCSS
-    helpers.copy_theme(widget_config["theme"]["name"])
-
+    # Setup Icons
     icon_theme = Gtk.IconTheme.get_default()
     icon_theme.append_search_path(get_relative_path("./assets/icons/svg/gtk"))
 
-    compile_scss()
+    # Smart Setup (Checks name, file existence, and content differences)
+    setup_initial_styles(widget_config["theme"]["name"])
 
     # Create application
     app = Application(APPLICATION_NAME, windows=windows)
