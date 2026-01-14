@@ -2,30 +2,42 @@ import ctypes
 import json
 import os
 import shutil
+import time
 from functools import lru_cache
+from typing import Dict, List, Literal, Optional, Union, Any
+
 from gi.repository import GLib, Gio
-from .icons import text_icons
-from .thread import run_in_thread
+from loguru import logger
+
 from fabric.utils import (
     cooldown,
     get_relative_path,
-    exec_shell_command,
     exec_shell_command_async,
 )
-import time
-from typing import Dict, List, Literal, Optional
-from loguru import logger
 
+from .icons import text_icons
+from .thread import run_in_thread
 from .exceptions import ExecutableNotFoundError
 
 
-# Function to set the process name
 def set_process_name(name: str):
-    libc = ctypes.CDLL("libc.so.6")
-    libc.prctl(15, name.encode("utf-8"), 0, 0, 0)  # 15 = PR_SET_NAME
+    """
+    Sets the process name using libc prctl.
+    This helps the window manager identify the application.
+    """
+    try:
+        libc = ctypes.CDLL("libc.so.6")
+        # 15 = PR_SET_NAME
+        libc.prctl(15, name.encode("utf-8"), 0, 0, 0)
+    except Exception as e:
+        logger.warning(f"Failed to set process name: {e}")
 
 
 def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
+    """
+    Decorator: LRU cache that expires after a set time.
+    """
+
     def wrapper(func):
         @lru_cache(maxsize)
         def inner(__ttl, *args, **kwargs):
@@ -38,56 +50,72 @@ def ttl_lru_cache(seconds_to_live: int, maxsize: int = 128):
     return wrapper
 
 
-# Function to escape the markup
-def parse_markup(text):
-    return text.replace("\n", " ")
+def is_app_running(app_name: str) -> bool:
+    """
+    Checks if an application is running by reading /proc.
+    Significantly faster than spawning a shell for 'pidof'.
+    """
+    try:
+        # Iterate over pids in /proc
+        for pid in os.listdir("/proc"):
+            if pid.isdigit():
+                try:
+                    with open(f"/proc/{pid}/comm", "r") as f:
+                        # comm file contains the short process name
+                        if f.read().strip() == app_name:
+                            return True
+                except (FileNotFoundError, PermissionError):
+                    continue
+    except Exception:
+        pass
+    return False
 
 
-# Function to exclude keys from a dictionary        )
+def kill_process(process_name: str):
+    """Kills a process by name asynchronously."""
+    exec_shell_command_async(f"pkill {process_name}", lambda *_: None)
+
+
+@ttl_lru_cache(600, 10)
+def check_executable_exists(executable_name: str):
+    """
+    Checks if an executable exists in PATH.
+    Raises ExecutableNotFoundError if missing.
+    """
+    if not shutil.which(executable_name):
+        raise ExecutableNotFoundError(executable_name)
+
+
+@ttl_lru_cache(600, 10)
+def executable_exists(executable_name: str) -> bool:
+    """Returns True if executable exists in PATH, else False."""
+    return bool(shutil.which(executable_name))
+
+
+@ttl_lru_cache(600, 10)
+def get_distro_icon() -> str:
+    """Gets the icon for the current Linux distribution."""
+    distro_id = GLib.get_os_info("ID")
+    return text_icons["distro"].get(distro_id, "")
+
+
+def parse_markup(text: Optional[str]) -> str:
+    """Removes newlines to make text safe for Pango markup labels."""
+    return text.replace("\n", " ") if text else ""
+
+
 def exclude_keys(d: Dict, keys_to_exclude: List[str]) -> Dict:
+    """Returns a new dictionary without the specified keys."""
     return {k: v for k, v in d.items() if k not in keys_to_exclude}
 
 
-# Function to format time in hours and minutes
-def format_time(secs: int):
-    mm, _ = divmod(secs, 60)
-    hh, mm = divmod(mm, 60)
-    return "%d h %02d min" % (hh, mm)
+def unique_list(lst: List) -> List:
+    """Returns a list with unique elements."""
+    return list(set(lst))
 
 
-# Function to send a notification
-@cooldown(1)
-def send_notification(
-    title: str,
-    body: str,
-    urgency: Literal["low", "normal", "critical"] = "normal",
-    icon: Optional[str] = None,
-    app_name: str = "Application",
-):
-    # Create a notification with the title
-    notification = Gio.Notification.new(title)
-    notification.set_body(body)
-
-    # Set the urgency level if provided
-    if urgency in ["low", "normal", "critical"]:
-        notification.set_urgent(urgency)
-
-    # Set the icon if provided
-    if icon:
-        notification.set_icon(Gio.ThemedIcon.new(icon))
-
-    # Optionally, set the application name
-    notification.set_title(app_name)
-
-    application = Gio.Application.get_default()
-
-    # Send the notification to the application
-    application.send_notification(None, notification)
-    return True
-
-
-# Merge the parsed data with the default configuration
-def merge_defaults(data, defaults):
+def merge_defaults(data: Any, defaults: Any) -> Any:
+    """Recursively merges configuration data with defaults."""
     if isinstance(defaults, dict) and isinstance(data, dict):
         return {**defaults, **data}
     elif isinstance(defaults, list) and isinstance(data, list):
@@ -96,202 +124,181 @@ def merge_defaults(data, defaults):
         return data if data is not None else defaults
 
 
-@run_in_thread
+def format_time(secs: int) -> str:
+    """Formats seconds into 'X h Y min'."""
+    mm, _ = divmod(secs, 60)
+    hh, mm = divmod(mm, 60)
+    return f"{hh} h {mm:02d} min"
+
+
+def convert_to_percent(
+    current: Union[int, float], max_val: Union[int, float], is_int: bool = True
+) -> Union[int, float]:
+    """Calculates percentage safely."""
+    if max_val == 0:
+        return 0
+    val = (current / max_val) * 100
+    return int(val) if is_int else val
+
+
+def truncate(string: Optional[str], max_length: int = 11) -> str:
+    """Truncates a string and adds ellipsis if it exceeds max_length."""
+    if not string:
+        return ""
+    if len(string) > max_length:
+        return string[: max_length - 1] + "…"
+    return string
+
+
 def copy_theme(theme: str):
+    """
+    Copies the selected theme SCSS file to the active theme location.
+    """
     destination_file = get_relative_path("../styles/theme.scss")
     source_file = get_relative_path(f"../styles/themes/{theme}.scss")
 
+    # Fallback to catppuccin if theme doesn't exist
     if not os.path.exists(source_file):
         logger.warning(
-            "Warning: The theme file '{theme}.scss' was not found. Using default theme."  # noqa: E501
+            f"Warning: Theme '{theme}' not found. Defaulting to catpuccin-mocha."
         )
         source_file = get_relative_path("../styles/themes/catpuccin-mocha.scss")
 
     try:
         shutil.copyfile(source_file, destination_file)
-
-    except FileNotFoundError:
-        logger.error("Error: The theme file '{source_file}' was not found.")
+    except Exception as e:
+        logger.critical(f"Failed to copy theme file: {e}")
         exit(1)
-
-
-# Validate the widgets
-def validate_widgets(parsed_data, default_config):
-    """Validates the widgets defined in the layout configuration.
-
-    Supports regular widgets, module groups (@group:X), and collapsible groups (@collapsible_group:X).
-
-    Args:
-        parsed_data (dict): The parsed configuration data
-        default_config (dict): The default configuration data
-
-    Raises:
-        ValueError: If an invalid widget or group reference is found in the layout
-    """
-    layout = parsed_data["layout"]
-
-    # Pre-fetch groups once instead of per-widget lookup
-    module_groups = parsed_data.get("module_groups", [])
-    collapsible_groups = parsed_data.get("collapsible_groups", [])
-
-    # Cache validated group indices to avoid redundant validation
-    validated_module_groups = set()
-    validated_collapsible_groups = set()
-
-    def validate_group_contents(group, idx, display_name):
-        """Validate a group's structure and its widgets."""
-        if not isinstance(group, dict) or "widgets" not in group:
-            raise ValueError(
-                f"Invalid {display_name} at index {idx}. Must be a dict with 'widgets' array."
-            )
-        for group_widget in group["widgets"]:
-            if group_widget not in default_config:
-                raise ValueError(
-                    f"Invalid widget '{group_widget}' found in {display_name} {idx}. "
-                    "Please check the widget name."
-                )
-
-    for section, widgets in layout.items():
-        for widget in widgets:
-            # Module groups (@group:X)
-            if widget.startswith("@group:"):
-                idx_str = widget[7:]  # len("@group:") == 7
-                if not idx_str.isdigit():
-                    raise ValueError(
-                        f"Invalid module group index '{idx_str}' in section {section}. Must be a number."
-                    )
-                idx = int(idx_str)
-                if idx not in validated_module_groups:
-                    if not isinstance(module_groups, list):
-                        raise ValueError(
-                            "module_groups must be a list when using @group references"
-                        )
-                    if not (0 <= idx < len(module_groups)):
-                        raise ValueError(
-                            f"Module group index {idx} is out of range. Available indices: 0-{len(module_groups)-1}"
-                        )
-                    validate_group_contents(module_groups[idx], idx, "module group")
-                    validated_module_groups.add(idx)
-
-            # Collapsible groups (@collapsible_group:X)
-            elif widget.startswith("@collapsible_group:"):
-                idx_str = widget[19:]  # len("@collapsible_group:") == 19
-                if not idx_str.isdigit():
-                    raise ValueError(
-                        f"Invalid collapsible group index '{idx_str}' in section {section}. Must be a number."
-                    )
-                idx = int(idx_str)
-                if idx not in validated_collapsible_groups:
-                    if not isinstance(collapsible_groups, list):
-                        raise ValueError(
-                            "collapsible_groups must be a list when using @collapsible_group references"
-                        )
-                    if not (0 <= idx < len(collapsible_groups)):
-                        raise ValueError(
-                            f"Collapsible group index {idx} is out of range. Available indices: 0-{len(collapsible_groups)-1}"
-                        )
-                    validate_group_contents(
-                        collapsible_groups[idx], idx, "collapsible group"
-                    )
-                    validated_collapsible_groups.add(idx)
-
-            # Regular widgets
-            elif widget not in default_config:
-                raise ValueError(
-                    f"Invalid widget '{widget}' found in section {section}. Please check the widget name."
-                )
-
-
-@ttl_lru_cache(600, 10)
-def get_distro_icon():
-    distro_id = GLib.get_os_info("ID")
-    return text_icons["distro"].get(distro_id, "")  # Fallback icon
-
-
-# Function to check if an executable exists
-@ttl_lru_cache(600, 10)
-def check_executable_exists(executable_name):
-    executable_path = GLib.find_program_in_path(executable_name)
-    if not executable_path:
-        raise ExecutableNotFoundError(
-            executable_name
-        )  # Raise an error if the executable is not found and exit the application
-
-
-# Function to unique list
-def unique_list(lst) -> List:
-    return list(set(lst))
-
-
-# Function to check if an executable exists
-@ttl_lru_cache(600, 10)
-def executable_exists(executable_name):
-    executable_path = shutil.which(executable_name)
-    return bool(executable_path)
 
 
 @run_in_thread
 def write_json_file(data: Dict, path: str):
+    """Writes a dictionary to a JSON file asynchronously."""
     try:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
     except Exception as e:
-        logger.warning(f"Failed to write json: {e}")
+        logger.warning(f"Failed to write json to {path}: {e}")
 
 
-# Function to ensure the file exists
 @run_in_thread
 def ensure_file(path: str) -> None:
-    file = Gio.File.new_for_path(path)
-    parent = file.get_parent()
-
+    """Ensures a file exists (creating parent directories if needed)."""
     try:
-        if parent and not parent.query_exists(None):
-            parent.make_directory_with_parents(None)
-
-        if not file.query_exists(None):
-            file.create(Gio.FileCreateFlags.NONE, None)
-    except GLib.Error as e:
-        print(f"Failed to ensure file '{path}': {e.message}")
-
-
-## Function to execute a shell command asynchronously
-def kill_process(process_name: str):
-    exec_shell_command_async(f"pkill {process_name}", lambda *_: None)
-
-
-# Function to check if an app is running
-def is_app_running(app_name: str) -> bool:
-    return len(exec_shell_command(f"pidof {app_name}")) != 0
-
-
-# Function to ensure the directory exists
+        if not os.path.exists(path):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "a"):
+                os.utime(path, None)
+    except Exception as e:
+        logger.error(f"Failed to ensure file '{path}': {e}")
 
 
 @run_in_thread
 def ensure_directory(path: str) -> None:
-    if not GLib.file_test(path, GLib.FileTest.EXISTS):
-        try:
-            Gio.File.new_for_path(path).make_directory_with_parents(None)
-        except GLib.Error as e:
-            print(f"Failed to create directory {path}: {e.message}")
+    """Ensures a directory exists."""
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception as e:
+        logger.error(f"Failed to create directory {path}: {e}")
 
 
-# Function to get the percentage of a value
-def convert_to_percent(
-    current: int | float, max: int | float, is_int=True
-) -> int | float:
-    if is_int:
-        return int((current / max) * 100)
-    else:
-        return (current / max) * 100
+@cooldown(1)
+def send_notification(
+    title: str,
+    body: str,
+    urgency: Literal["low", "normal", "critical"] = "normal",
+    icon: Optional[str] = None,
+    app_name: str = "Application",
+):
+    """Sends a desktop notification using GObject."""
+    notification = Gio.Notification.new(title)
+    notification.set_body(body)
+
+    if urgency in {"low", "normal", "critical"}:
+        notification.set_urgent(urgency)
+
+    if icon:
+        notification.set_icon(Gio.ThemedIcon.new(icon))
+
+    notification.set_title(app_name)
+
+    app = Gio.Application.get_default()
+    if app:
+        app.send_notification(None, notification)
+        return True
+    return False
 
 
-def truncate(string: str, max_length: int = 11) -> str:
-    """Truncate string if it exceeds max length."""
-    if string != None:
-        if len(string) > max_length:
-            return string[: max_length - 1] + "…"  # Using ellipsis character
-        return string
-    else:
-        return ""
+def validate_widgets(parsed_data: Dict, default_config: Dict):
+    """
+    Validates the layout configuration for modules and groups.
+    Raises ValueError if configuration is invalid.
+    """
+    layout = parsed_data.get("layout", {})
+    module_groups = parsed_data.get("module_groups", [])
+    collapsible_groups = parsed_data.get("collapsible_groups", [])
+
+    # Cache checked indices to avoid re-checking in loops
+    validated_mods = set()
+    validated_cols = set()
+
+    def check_group_validity(groups_list, idx, name, validated_set):
+        """Helper to validate group structure and content."""
+        if idx in validated_set:
+            return
+
+        if not isinstance(groups_list, list):
+            raise ValueError(f"{name}s must be a list.")
+
+        if not (0 <= idx < len(groups_list)):
+            raise ValueError(
+                f"{name} index {idx} out of range (0-{len(groups_list)-1})."
+            )
+
+        group = groups_list[idx]
+        if not isinstance(group, dict) or "widgets" not in group:
+            raise ValueError(
+                f"{name} at index {idx} must be a dict with a 'widgets' list."
+            )
+
+        for w in group["widgets"]:
+            if w not in default_config:
+                raise ValueError(f"Invalid widget '{w}' inside {name} {idx}.")
+
+        validated_set.add(idx)
+
+    for section_name, widgets in layout.items():
+        if not isinstance(widgets, list):
+            continue
+
+        for widget in widgets:
+            # Check Module Groups
+            if widget.startswith("@group:"):
+                try:
+                    idx = int(widget[7:])
+                    check_group_validity(
+                        module_groups, idx, "Module group", validated_mods
+                    )
+                except ValueError:
+                    raise ValueError(
+                        f"Invalid module group syntax: {widget} in {section_name}"
+                    )
+
+            # Check Collapsible Groups
+            elif widget.startswith("@collapsible_group:"):
+                try:
+                    idx = int(widget[19:])
+                    check_group_validity(
+                        collapsible_groups, idx, "Collapsible group", validated_cols
+                    )
+                except ValueError:
+                    raise ValueError(
+                        f"Invalid collapsible group syntax: {widget} in {section_name}"
+                    )
+
+            # Check Standard Widgets
+            elif widget not in default_config:
+                raise ValueError(
+                    f"Invalid widget '{widget}' found in section '{section_name}'. "
+                    "Check spelling or config."
+                )
