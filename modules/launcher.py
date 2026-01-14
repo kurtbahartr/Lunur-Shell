@@ -1,3 +1,5 @@
+import textwrap
+import shutil
 from typing import Iterator
 from fabric.widgets.button import Button
 from fabric.widgets.label import Label
@@ -377,139 +379,10 @@ class AppLauncher(ScrolledView):
         config = widget_config["app_launcher"]
         self.app_icon_size = config["app_icon_size"]
         self.show_descriptions = config["show_descriptions"]
-        self._all_apps: list[DesktopApp] = []
+
+        # Pre-allocate list
+        self._all_apps: list = []
         self.calculator = Calculator()
-
-        def arrange_func(query: str) -> Iterator:
-            # Check if query is a math expression
-            calc_result = self.calculator.calculate(query)
-            if calc_result is not None:
-                result, calc_type = calc_result
-                # Return calculator result as first item with type indicator
-                yield ("calc", result, calc_type)
-
-            # Then show matching apps
-            query_cf = query.casefold()
-            for app in self._all_apps:
-                if (
-                    query_cf
-                    in f"{app.display_name or ''} {app.name} {app.generic_name or ''}".casefold()
-                ):
-                    yield app
-
-        def add_item_func(item) -> Button:
-            # Handle calculator result
-            if isinstance(item, tuple) and item[0] == "calc":
-                _, result, calc_type = item
-
-                content_box = Box(
-                    orientation="h",
-                    spacing=12,
-                    children=[
-                        Label(label="🔢", h_align="start", v_align="center"),
-                        Box(
-                            orientation="v",
-                            spacing=2,
-                            v_align="center",
-                            h_expand=True,
-                            children=[
-                                # Result line
-                                Label(
-                                    label=f"= {result}",
-                                    h_align="start",
-                                    v_align="start",
-                                ),
-                                # "Click to copy" and calculator type on same row
-                                Box(
-                                    orientation="h",
-                                    spacing=8,
-                                    h_expand=True,
-                                    children=[
-                                        Label(
-                                            label="Click to copy",
-                                            h_align="start",
-                                            v_align="start",
-                                            h_expand=True,
-                                            style="font-size: 0.85em; opacity: 0.7;",
-                                        ),
-                                        Label(
-                                            label=calc_type,
-                                            h_align="end",
-                                            v_align="start",
-                                            style="font-size: 0.85em;",
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        ),
-                    ],
-                )
-                return Button(
-                    child=content_box,
-                    tooltip_text=f"Calculator result: {result}",
-                    on_clicked=lambda *_: self._copy_to_clipboard(str(result)),
-                )
-
-            # Handle regular app
-            app = item
-            pixbuf = app.get_icon_pixbuf()
-            if pixbuf:
-                pixbuf = pixbuf.scale_simple(
-                    self.app_icon_size,
-                    self.app_icon_size,
-                    GdkPixbuf.InterpType.BILINEAR,
-                )
-
-            # Labels for app name and optional description
-            labels = [
-                Label(
-                    label=app.display_name or "Unknown",
-                    h_align="start",
-                    v_align="start",
-                )
-            ]
-            if self.show_descriptions and app.description:
-
-                def split_description(desc, max_line_length=80):
-                    words = desc.split()
-                    lines = []
-                    current_line = []
-                    for word in words:
-                        if len(" ".join(current_line + [word])) <= max_line_length:
-                            current_line.append(word)
-                        else:
-                            lines.append(" ".join(current_line))
-                            current_line = [word]
-                    if current_line:
-                        lines.append(" ".join(current_line))
-                    return "\n".join(lines)
-
-                description = split_description(app.description)
-
-                labels.append(
-                    Label(
-                        label=description,
-                        h_align="start",
-                        v_align="start",
-                    )
-                )
-
-            # Compose the button child: horizontal box with icon and vertical labels box
-            content_box = Box(
-                orientation="h",
-                spacing=12,
-                children=[
-                    Image(pixbuf=pixbuf, h_align="start", size=self.app_icon_size),
-                    Box(orientation="v", spacing=2, v_align="center", children=labels),
-                ],
-            )
-
-            # Return the button widget
-            return Button(
-                child=content_box,
-                tooltip_text=app.description if self.show_descriptions else None,
-                on_clicked=lambda *_: (app.launch(), self.hide()),
-            )
 
         super().__init__(
             name="app-launcher",
@@ -519,46 +392,166 @@ class AppLauncher(ScrolledView):
             keyboard_mode="on-demand",
             visible=False,
             all_visible=False,
-            arrange_func=arrange_func,
-            add_item_func=add_item_func,
+            arrange_func=self._arrange_items,
+            add_item_func=self._create_item_widget,
             placeholder="Search Applications...",
             min_content_size=(280, 320),
             max_content_size=(560, 320),
             **kwargs,
         )
 
-    def _copy_to_clipboard(self, text: str):
-        """Copy text to clipboard using wl-copy"""
-        try:
-            helpers.check_executable_exists("wl-copy")
-        except Exception as e:
-            logger.error(f"wl-copy not found: {e}")
-            logger.error(
-                "Please install wl-clipboard package to enable clipboard functionality."
+    def _arrange_items(self, query: str) -> Iterator:
+        """Filter items based on query. Optimized for speed."""
+
+        if any(c.isdigit() for c in query):
+            calc_result = self.calculator.calculate(query)
+            if calc_result is not None:
+                yield ("calc", *calc_result)
+
+        query_cf = query.casefold()
+
+        for app in self._all_apps:
+            # _search_string is pre-computed. No string concatenation here!
+            if query_cf in app._search_string:
+                yield app
+
+    def _create_item_widget(self, item) -> Button:
+        """Creates the UI row for a search result."""
+
+        if isinstance(item, tuple) and item[0] == "calc":
+            return self._build_calc_row(item)
+
+        app = item
+
+        pixbuf = app.get_icon_pixbuf()
+        if pixbuf:
+            pixbuf = pixbuf.scale_simple(
+                self.app_icon_size,
+                self.app_icon_size,
+                GdkPixbuf.InterpType.BILINEAR,
             )
+
+        labels_box = Box(orientation="v", spacing=2, v_align="center")
+
+        labels_box.add(
+            Label(
+                label=app.display_name or "Unknown",
+                h_align="start",
+                v_align="start",
+                style="font-weight: bold;",  # Optional styling
+            )
+        )
+
+        if self.show_descriptions and app.description:
+            wrapped_desc = textwrap.fill(app.description, width=60)
+            labels_box.add(
+                Label(
+                    label=wrapped_desc,
+                    h_align="start",
+                    v_align="start",
+                    style="font-size: 0.85em; opacity: 0.7;",
+                )
+            )
+
+        content_box = Box(
+            orientation="h",
+            spacing=12,
+            children=[
+                Image(pixbuf=pixbuf, h_align="start", size=self.app_icon_size),
+                labels_box,
+            ],
+        )
+
+        return Button(
+            child=content_box,
+            tooltip_text=app.description if self.show_descriptions else None,
+            on_clicked=lambda *_: (app.launch(), self.hide()),
+        )
+
+    def _build_calc_row(self, item: Tuple) -> Button:
+        """Helper to build calculator UI row."""
+        _, result, calc_type = item
+
+        content_box = Box(
+            orientation="h",
+            spacing=12,
+            children=[
+                Label(
+                    label="🔢",
+                    h_align="start",
+                    v_align="center",
+                    style="font-size: 20px;",
+                ),
+                Box(
+                    orientation="v",
+                    spacing=2,
+                    v_align="center",
+                    h_expand=True,
+                    children=[
+                        Label(
+                            label=f"= {result}",
+                            h_align="start",
+                            v_align="start",
+                            style="font-weight: bold;",
+                        ),
+                        Box(
+                            orientation="h",
+                            spacing=8,
+                            h_expand=True,
+                            children=[
+                                Label(
+                                    label="Click to copy",
+                                    h_align="start",
+                                    style="font-size: 0.85em; opacity: 0.7;",
+                                ),
+                                Label(
+                                    label=str(calc_type),
+                                    h_align="end",
+                                    h_expand=True,
+                                    style="font-size: 0.85em; opacity: 0.5;",
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+        return Button(
+            child=content_box,
+            tooltip_text=f"Copy result: {result}",
+            on_clicked=lambda *_: self._copy_to_clipboard(str(result)),
+        )
+
+    def _copy_to_clipboard(self, text: str):
+        """Optimized clipboard copy."""
+        if not shutil.which("wl-copy"):
+            logger.error("wl-copy not found. Install wl-clipboard.")
             return
 
-        def copy():
+        def copy_task():
             try:
-                escaped_text = shlex.quote(text)
-                logger.debug(f"Copying to clipboard: {text}")
-                subprocess.run(
-                    f"echo -n {escaped_text} | wl-copy",
-                    shell=True,
-                    check=True,
-                )
-                GLib.idle_add(self.hide)
-            except subprocess.CalledProcessError as e:
-                logger.exception(f"Error copying to clipboard: {e}")
-            return False
+                p = subprocess.Popen(["wl-copy"], stdin=subprocess.PIPE)
+                p.communicate(input=text.encode("utf-8"))
 
-        GLib.idle_add(copy)
+                # Close launcher on success
+                GLib.idle_add(self.hide)
+            except Exception as e:
+                logger.error(f"Clipboard error: {e}")
+
+        # Run in thread to not block UI
+        helpers.run_in_thread(copy_task)
 
     def show_all(self):
+        """Refreshes app list and pre-calculates search strings."""
         apps = get_desktop_applications()
-        if not self.show_descriptions:
-            # Clear descriptions if disabled in config
-            for app in apps:
+
+        for app in apps:
+            if not self.show_descriptions:
                 app.description = ""
+
+            app._search_string = (
+                f"{app.display_name or ''} {app.name} {app.generic_name or ''}"
+            ).casefold()
+
         self._all_apps = apps
         super().show_all()
