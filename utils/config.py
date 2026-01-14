@@ -43,7 +43,7 @@ class LunurShellConfig:
         with open(self.toml_config, "r", encoding="utf-8") as file:
             return pytomlpp.load(file)
 
-    def default_config(self) -> BarConfig:
+    def default_config(self) -> None:
         if not (os.path.exists(self.json_config) or os.path.exists(self.toml_config)):
             raise FileNotFoundError("Missing config.json or config.toml")
 
@@ -54,7 +54,6 @@ class LunurShellConfig:
 
         read_time_ms = (time.perf_counter() - start_time) * 1000
 
-        # Log timing if debug is enabled
         if data.get("general", {}).get("debug", False):
             config_type = "JSON" if use_json else "TOML"
             logger.info(
@@ -63,11 +62,17 @@ class LunurShellConfig:
 
         validate_widgets(data, DEFAULT_CONFIG)
 
-        for key in exclude_keys(DEFAULT_CONFIG, ["$schema"]):
-            if key == "module_groups":
-                data[key] = data.get(key, DEFAULT_CONFIG[key])
-            else:
-                data[key] = merge_defaults(data.get(key, {}), DEFAULT_CONFIG[key])
+        # Replaced explicit for-loop with dictionary comprehension update
+        data.update(
+            {
+                key: (
+                    data.get(key, DEFAULT_CONFIG[key])
+                    if key == "module_groups"
+                    else merge_defaults(data.get(key, {}), DEFAULT_CONFIG[key])
+                )
+                for key in exclude_keys(DEFAULT_CONFIG, ["$schema"])
+            }
+        )
 
         self.config = data
 
