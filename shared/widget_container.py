@@ -8,87 +8,103 @@ from fabric.widgets.widget import Widget
 from utils.config import widget_config
 from utils.widget_utils import setup_cursor_hover
 
-class ToggleableWidget(Widget):
-    """A widget that can be toggled on and off."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+class ConfigStyleMixin:
+    """
+    Mixin to handle config storage and consistent style class merging.
+    Used to reduce boilerplate in panel widgets.
+    """
 
-    def toggle(self):
-        """Toggle the visibility of the bar."""
-        if self.is_visible():
-            self.hide()
-        else:
-            self.show()
+    def __init__(
+        self,
+        style_classes: str | Iterable[str] | None = None,
+        default_styles: list[str] | None = None,
+        config: dict | None = None,
+        **kwargs
+    ):
+
+        # Store config safely
+        self.config = config or {}
+
+        # Normalize style_classes to a list and merge with defaults
+        final_styles = list(default_styles) if default_styles else []
+        if style_classes:
+            if isinstance(style_classes, str):
+                final_styles.append(style_classes)
+            else:
+                final_styles.extend(style_classes)
+
+        # Pass the fully prepared list to the parent Widget
+        super().__init__(style_classes=final_styles, **kwargs)
+
 
 class BaseWidget(Widget):
-    """A base widget class that can be extended for custom widgets."""
-
-    """A widget that can be toggled on and off."""
+    """A base widget class. Preserved for compatibility with other files."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def toggle(self):
-        """Toggle the visibility of the bar."""
+        """Toggle the visibility of the widget."""
         if self.is_visible():
             self.hide()
         else:
             self.show()
 
     def set_has_class(self, class_name: str | Iterable[str], condition: bool):
+        """Conditionally add or remove style classes."""
         if condition:
             self.add_style_class(class_name)
         else:
             self.remove_style_class(class_name)
 
-class BoxWidget(Box, ToggleableWidget):
-    """A container for box widgets."""
 
-    def __init__(self, spacing=None, style_classes=None, config=None, **kwargs):
-        # Handle style classes
-        all_styles = ["panel-box"]
-        if style_classes:
-            if isinstance(style_classes, str):
-                all_styles.append(style_classes)
-            else:
-                all_styles.extend(style_classes)
+class ToggleableWidget:
+    """
+    A lightweight mixin specifically for the toggle behavior.
+    Separated to avoid diamond inheritance issues when mixing with Fabric widgets.
+    """
 
+    def toggle(self):
+        if self.is_visible():
+            self.hide()
+        else:
+            self.show()
+
+
+class BoxWidget(ConfigStyleMixin, ToggleableWidget, Box):
+    """A container for box widgets with default styling and config support."""
+
+    def __init__(
+        self,
+        spacing: int | None = None,
+        style_classes: str | list[str] | None = None,
+        config: dict | None = None,
+        **kwargs
+    ):
         super().__init__(
             spacing=4 if spacing is None else spacing,
-            style_classes=all_styles,
-            **kwargs,
+            default_styles=["panel-box"],
+            style_classes=style_classes,
+            config=config,
+            **kwargs
         )
 
-        self.config = config or {}
 
+class EventBoxWidget(ConfigStyleMixin, ToggleableWidget, EventBox):
+    """A container for eventbox widgets with a default child Box."""
 
-class EventBoxWidget(EventBox, ToggleableWidget):
-    """A container for box widgets."""
-
-    def __init__(self, config=None, **kwargs):
-        super().__init__(
-            style_classes="panel-eventbox",
-            **kwargs,
-        )
-
-        self.config = config or {}
-
+    def __init__(self, config: dict | None = None, **kwargs):
+        super().__init__(default_styles=["panel-eventbox"], config=config, **kwargs)
         self.box = Box(style_classes="panel-box")
         self.add(self.box)
 
 
-class ButtonWidget(Button, ToggleableWidget):
-    """A container for button widgets. Only used for new widgets that are used on bar"""
+class ButtonWidget(ConfigStyleMixin, ToggleableWidget, Button):
+    """A button widget with a default child Box."""
 
-    def __init__(self, config=None, **kwargs):
-        super().__init__(
-            style_classes="panel-button",
-            **kwargs,
-        )
-
-        self.config = config or {}
-
+    def __init__(self, config: dict | None = None, **kwargs):
+        super().__init__(default_styles=["panel-button"], config=config, **kwargs)
         self.box = Box()
         self.add(self.box)
 
@@ -96,23 +112,29 @@ class ButtonWidget(Button, ToggleableWidget):
 class WidgetGroup(BoxWidget):
     """A group of widgets that can be managed and styled together."""
 
-    def __init__(self, children=None, spacing=4, style_classes=None, config=None, **kwargs):
-        # Build our list of CSS classes
-        css_classes = ["panel-module-group"]
+    def __init__(
+        self,
+        children: list[Widget] | None = None,
+        spacing: int = 4,
+        style_classes: str | list[str] | None = None,
+        config: dict | None = None,
+        **kwargs
+    ):
 
-        # Add any custom style classes
+        # Merge WidgetGroup specific styles with user provided styles
+        # before passing to BoxWidget (which will add "panel-box")
+        merged_styles = ["panel-module-group"]
         if style_classes:
-            if isinstance(style_classes, str):
-                css_classes.append(style_classes)
-            elif isinstance(style_classes, list):
-                css_classes.extend(style_classes)
+            merged_styles.extend(
+                [style_classes] if isinstance(style_classes, str) else style_classes
+            )
 
         super().__init__(
             spacing=spacing,
-            style_classes=css_classes,
+            style_classes=merged_styles,
             config=config,
-            orientation="h",  # Default to horizontal for panel layout
-            **kwargs,
+            orientation="h",
+            **kwargs
         )
 
         if children:
@@ -120,30 +142,27 @@ class WidgetGroup(BoxWidget):
                 self.add(child)
 
     @classmethod
-    def from_config(cls, config, widgets_map):
+    def from_config(cls, config: dict, widgets_map: dict):
         children = []
         for widget_name in config.get("widgets", []):
             if widget_name in widgets_map:
-                # Create widget instance using the constructor from widgets_map
-                # Pass specific widget config if available
-                widget_config = config.get("widget_configs", {}).get(widget_name, {})
+                widget_configs = config.get("widget_configs", {})
+                # Renamed variable to avoid shadowing imported 'widget_config'
+                widget_specific_config = widget_configs.get(widget_name, {})
                 widget_class = widgets_map[widget_name]
-                children.append(widget_class(config=widget_config))
+                children.append(widget_class(config=widget_specific_config))
 
         return cls(
             children=children,
             spacing=config.get("spacing", 4),
-            style_classes=config.get("style_classes", []),
+            style_classes=config.get("style_classes"),
             config=config,
         )
 
 
 class HoverButton(Button):
-    """A container for button with hover effects."""
+    """A button with hover cursor effects."""
 
     def __init__(self, **kwargs):
-        super().__init__(
-            **kwargs,
-        )
-
+        super().__init__(**kwargs)
         setup_cursor_hover(self)
