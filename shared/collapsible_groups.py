@@ -1,4 +1,4 @@
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gdk
 from fabric.widgets.revealer import Revealer
 from shared.widget_container import EventBoxWidget
 from utils.widget_utils import text_icon
@@ -23,18 +23,14 @@ class CollapsibleGroups(EventBoxWidget):
         self.slide_direction = slide_direction
         self.transition_duration = transition_duration
 
-        # Create the collapsed icon manually
         self.icon_widget = text_icon(collapsed_icon, {"size": icon_size})
 
-        # Box of child widgets to reveal
         children_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=spacing)
         for widget in child_widgets:
             children_box.add(widget)
 
-        # Convert direction to Gtk style
         gtk_direction = "slide_right" if slide_direction == "right" else "slide_left"
 
-        # Revealer for child widgets
         self.revealer = Revealer(
             child=children_box,
             transition_type=gtk_direction,
@@ -42,7 +38,6 @@ class CollapsibleGroups(EventBoxWidget):
             reveal_child=False,
         )
 
-        # Pack icon and revealer according to slide_direction
         if slide_direction == "right":
             self.box.add(self.icon_widget)
             self.box.add(self.revealer)
@@ -50,43 +45,43 @@ class CollapsibleGroups(EventBoxWidget):
             self.box.add(self.revealer)
             self.box.add(self.icon_widget)
 
-        # Show widgets
         self.icon_widget.show()
         self.revealer.show()
         self.box.show_all()
 
-        # Mouse hover events to trigger reveal
         self.connect("enter-notify-event", lambda *_: self.set_expanded(True))
-        self.connect("leave-notify-event", self.on_leave)
+        # Connect to the revealer as well to capture mouse moving inside revealed children
+        self.revealer.connect("enter-notify-event", lambda *_: self.set_expanded(True))
 
-        # Handle click event to toggle the visibility of child widgets
+        self.connect("leave-notify-event", self.on_leave)
+        self.revealer.connect("leave-notify-event", self.on_leave)
+
         self.connect("button-press-event", self.on_click)
 
     def set_expanded(self, expanded: bool):
         """Reveal or hide child widgets and adjust spacing."""
         if expanded:
-            if self.slide_direction == "right":
-                self.revealer.set_margin_start(16)
-                self.revealer.set_margin_end(0)
-            else:
-                self.revealer.set_margin_start(0)
-                self.revealer.set_margin_end(16)
+            margin = 16
         else:
-            # Remove spacing immediately for smoother collapse
-            self.revealer.set_margin_start(0)
+            margin = 0
+
+        if self.slide_direction == "right":
+            self.revealer.set_margin_start(margin)
             self.revealer.set_margin_end(0)
+        else:
+            self.revealer.set_margin_start(0)
+            self.revealer.set_margin_end(margin)
 
         self.revealer.set_reveal_child(expanded)
 
     def on_leave(self, widget, event):
-        """Don't hide the revealer immediately when the mouse leaves."""
-        allocation = self.revealer.get_allocation()
+        if event.detail == Gdk.NotifyType.INFERIOR:
+            return
 
-        if not (allocation.x <= event.x <= allocation.x + allocation.width and
-                allocation.y <= event.y <= allocation.y + allocation.height):
-            self.set_expanded(False)
+        # Optional: Add a small timeout/delay here if you want it to feel less "snappy" when closing
+        self.set_expanded(False)
 
     def on_click(self, widget, event):
         """Handle the click event to toggle the visibility of the child widgets."""
-        if event.button == 1:  # Left-click (button 1)
+        if event.button == 1:
             self.set_expanded(not self.revealer.get_reveal_child())
