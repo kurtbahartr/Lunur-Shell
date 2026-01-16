@@ -2,60 +2,46 @@ from gi.repository import Gdk, GLib
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from fabric.system_tray import SystemTray, SystemTrayItem
-from shared.widget_container import EventBoxWidget
 from shared.widget_container import HoverButton
+from shared.reveal import HoverRevealer
 from utils import BarConfig
 from utils.icons import icons
-from widgets.common.resolver import (
-    resolve_icon,
-    create_slide_revealer,
-    set_expanded,
-    on_leave,
-)
+from widgets.common.resolver import resolve_icon
 
 
-class SystemTrayWidget(EventBoxWidget):
+class SystemTrayWidget(HoverRevealer):
     """System tray widget with configurable direction, transition, and tooltip."""
 
     def __init__(self, widget_config: BarConfig, **kwargs):
-        super().__init__(**kwargs)
         self.config = widget_config.get("system_tray", {})
         self.tray_items = {}
 
         # Config options
         self.icon_size = self.config.get("icon_size", 16)
-        self.slide_direction = self.config.get("slide_direction", "left")
-        self.transition_duration = self.config.get("transition_duration", 250)
+        slide_direction = self.config.get("slide_direction", "left")
+        transition_duration = self.config.get("transition_duration", 250)
         self.tooltip_enabled = self.config.get("tooltip", True)
 
-        # Toggle icon (arrow)
-        arrow_icon_name = "right" if self.slide_direction == "left" else "left"
+        # 1. Create Visible Child (Arrow Icon)
+        arrow_icon_name = "right" if slide_direction == "left" else "left"
         self.toggle_icon = Image(
             icon_name=icons["ui"]["arrow"][arrow_icon_name],
             icon_size=self.icon_size,
             style_classes=["panel-icon", "toggle-icon"],
         )
 
-        # Tray box
+        # 2. Create Hidden Child (Tray Box)
         self.tray_box = Box(spacing=4, orientation="horizontal")
-        self.revealer = create_slide_revealer(
-            child=self.tray_box,
-            slide_direction=self.slide_direction,
-            transition_duration=self.transition_duration,
-            initially_revealed=False,
+
+        # 3. Initialize HoverRevealer
+        super().__init__(
+            visible_child=self.toggle_icon,
+            hidden_child=self.tray_box,
+            slide_direction=slide_direction,
+            transition_duration=transition_duration,
+            expanded_margin=self.icon_size,  # Spacing when opened
+            **kwargs,
         )
-
-        # Layout setup
-        if self.slide_direction == "left":
-            self.box.add(self.revealer)
-            self.box.add(self.toggle_icon)
-        else:
-            self.box.add(self.toggle_icon)
-            self.box.add(self.revealer)
-
-        self.toggle_icon.show()
-        self.revealer.show()
-        self.box.show_all()
 
         # System tray setup
         self.tray = SystemTray()
@@ -65,29 +51,6 @@ class SystemTrayWidget(EventBoxWidget):
         # Populate existing
         for identifier, item in self.tray.items.items():
             self.on_item_added(self.tray, identifier)
-
-        # Hover behavior
-        self.connect(
-            "enter-notify-event",
-            lambda *a: set_expanded(
-                self.revealer,
-                self.toggle_icon,
-                self.slide_direction,
-                self.icon_size,
-                True,
-            ),
-        )
-        self.connect(
-            "leave-notify-event",
-            lambda w, e: on_leave(
-                w,
-                e,
-                self.revealer,
-                self.slide_direction,
-                self.toggle_icon,
-                self.icon_size,
-            ),
-        )
 
     def on_item_added(self, _, identifier: str):
         item = self.tray.items.get(identifier)
@@ -166,11 +129,6 @@ class SystemTrayWidget(EventBoxWidget):
         self.tray_box.remove(button)
         button.destroy()
 
+        # If no items left, close the reveal
         if not self.tray_items:
-            set_expanded(
-                self.revealer,
-                self.toggle_icon,
-                self.slide_direction,
-                self.icon_size,
-                False,
-            )
+            self.set_expanded(False)

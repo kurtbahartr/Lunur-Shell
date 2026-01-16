@@ -5,11 +5,10 @@ import utils.functions as helpers
 from gi.repository import GLib, Playerctl, Gtk
 from fabric.widgets.label import Label
 from fabric.widgets.image import Image
-from shared.widget_container import EventBoxWidget
 from shared.pop_over import Popover
+from shared.reveal import HoverRevealer
 from utils.icons import icons
 from utils import BarConfig
-from widgets.common.resolver import create_slide_revealer, set_expanded, on_leave
 from utils.exceptions import PlayerctlImportError
 
 try:
@@ -19,6 +18,11 @@ except ImportError:
 
 
 class PlayerctlMenu(Popover):
+    """
+    The popup menu containing playback controls, seek bar, and track info.
+    (Unchanged from original)
+    """
+
     def __init__(self, point_to_widget, service, config=None):
         self.service = service
         self.config = config or {}
@@ -220,16 +224,16 @@ class PlayerctlMenu(Popover):
             pass
 
 
-class PlayerctlWidget(EventBoxWidget):
+class PlayerctlWidget(HoverRevealer):
     def __init__(self, widget_config=None, **kwargs):
         widget_config = widget_config or BarConfig()
         config = widget_config.get("playerctl", widget_config)
-        super().__init__(**kwargs)
 
         self.config = config
         self.icon_size = config.get("icon_size", 16)
-        self.slide_direction = config.get("slide_direction", "left")
-        self.transition_duration = config.get("transition_duration", 250)
+        slide_direction = config.get("slide_direction", "left")
+        transition_duration = config.get("transition_duration", 250)
+
         self.tooltip_enabled = config.get("tooltip", True)
         self.poll_interval = config.get("poll_interval", 2000)
 
@@ -240,36 +244,29 @@ class PlayerctlWidget(EventBoxWidget):
         # Create the service
         self.service = PlayerctlService()
 
+        # 1. Create Visible Child (Icon)
         self.icon_widget = Image(
             icon_name=icons["playerctl"]["music"],
             icon_size=self.icon_size,
             style_classes=["panel-icon"],
         )
+
+        # 2. Create Hidden Child (Label Container)
         self.label = Label(label="", style_classes="panel-text")
         label_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         label_container.pack_start(self.label, True, True, 4)
+        # Ensure the container takes available space
         label_container.set_hexpand(True)
 
-        self.revealer = create_slide_revealer(
-            child=label_container,
-            slide_direction=self.slide_direction,
-            transition_duration=self.transition_duration,
-            initially_revealed=False,
+        # 3. Initialize the HoverRevealer
+        super().__init__(
+            visible_child=self.icon_widget,
+            hidden_child=label_container,
+            slide_direction=slide_direction,
+            transition_duration=transition_duration,
+            expanded_margin=self.icon_size,  # Use icon size for spacing logic similar to original
+            **kwargs,
         )
-        self.revealer.set_hexpand(True)
-        self.revealer.set_halign(Gtk.Align.FILL)
-
-        self.icon_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.icon_container.set_hexpand(False)
-        if self.slide_direction == "right":
-            self.icon_container.pack_start(self.icon_widget, False, False, 0)
-            self.icon_container.pack_start(self.revealer, True, True, 0)
-        else:
-            self.icon_container.pack_start(self.revealer, True, True, 0)
-            self.icon_container.pack_start(self.icon_widget, False, False, 0)
-
-        self.box.add(self.icon_container)
-        self.box.show_all()
 
         # Connect to service signals
         self.service.connect("metadata-changed", self._on_metadata_changed)
@@ -277,25 +274,6 @@ class PlayerctlWidget(EventBoxWidget):
 
         self._poll_source_id = GLib.timeout_add(self.poll_interval, self._poll_tick)
 
-        self.connect(
-            "enter-notify-event",
-            lambda *a: set_expanded(
-                self.revealer, None, self.slide_direction, self.icon_size, expanded=True
-            ),
-        )
-        self.connect(
-            "leave-notify-event",
-            lambda w, e: on_leave(
-                widget=w,
-                event=e,
-                revealer=self.revealer,
-                slide_direction=self.slide_direction,
-                toggle_icon=None,
-                icon_size=self.icon_size,
-            ),
-        )
-
-        self.connect("button-press-event", self.on_click)
         self.connect("destroy", self._on_destroy)
 
     def _on_destroy(self, *args):
@@ -360,10 +338,15 @@ class PlayerctlWidget(EventBoxWidget):
 
         return False
 
-    def on_click(self, *_):
+    def on_click(self, widget, event):
+        """
+        Override HoverRevealer.on_click to open the popup
+        instead of just toggling the animation.
+        """
         if self.popup:
             self.popup.destroy()
             self.popup = None
+            return
 
         if not self.service.is_valid:
             return
