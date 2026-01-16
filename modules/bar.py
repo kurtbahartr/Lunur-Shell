@@ -215,17 +215,24 @@ class StatusBar(Window, ToggleableWidget):
         if not (0 <= idx < len(groups)):
             return None
 
-        start = time.perf_counter()
-        group = ModuleGroup.from_config(
-            groups[idx],
-            self.widgets_list,
-            bar=self,
-            widget_config=widget_config,
+        group_config = groups[idx]
+        group_start = time.perf_counter()
+
+        children_widgets = []
+        for widget_name in group_config.get("widgets", []):
+            widget = self._create_widget(widget_name, widget_config)
+            if widget:
+                children_widgets.append(widget)
+
+        group = ModuleGroup(
+            children=children_widgets,
+            spacing=group_config.get("spacing", 4),
+            name=f"module-group-{idx}",
         )
 
         if self.debug:
             logger.info(
-                f"ModuleGroup {idx}: {(time.perf_counter() - start) * 1000:.1f}ms"
+                f"ModuleGroup {idx}: {(time.perf_counter() - group_start) * 1000:.1f}ms"
             )
 
         return group
