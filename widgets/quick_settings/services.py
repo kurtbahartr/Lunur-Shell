@@ -2,6 +2,7 @@
 
 from gi.repository import GLib
 from fabric.widgets.image import Image
+from fabric.widgets.label import Label
 from services import Brightness, audio_service
 from services import bluetooth_service
 from utils import functions as helpers
@@ -15,16 +16,24 @@ except ImportError:
     raise NetworkManagerNotFoundError()
 
 
+def _update_icon(
+    image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16
+):
+    """Sets the icon on the widget with a fallback if the name is missing."""
+    if icon_name:
+        image_widget.set_from_icon_name(icon_name, size)
+    else:
+        image_widget.set_from_icon_name(fallback_icon, size)
+
+
 class AudioService:
     def __init__(self, config):
         self.audio = audio_service
         self.show_audio_percent = config.get("show_audio_percent")
         self.audio_icon = Image(style_classes="panel-icon")
-        self.audio_percent_label = None
-        if self.show_audio_percent:
-            from fabric.widgets.label import Label
 
-            self.audio_percent_label = Label()
+        # Instantiate directly using the top-level import
+        self.audio_percent_label = Label() if self.show_audio_percent else None
 
     def connect_signals(self):
         self.audio.connect("notify::speaker", self._on_speaker_changed)
@@ -42,25 +51,19 @@ class AudioService:
         speaker = self.audio.speaker
         if speaker:
             volume = round(speaker.volume)
-            icon_name = get_audio_icon_name(volume, speaker.muted)["icon"]
-            self._set_icon(self.audio_icon, icon_name, icons["audio"].get("muted", ""))
+            icon_info = get_audio_icon_name(volume, speaker.muted)
+            icon_name = icon_info.get("icon", icons["audio"].get("muted", ""))
+
+            _update_icon(self.audio_icon, icon_name, icons["audio"].get("muted", ""))
+
             if self.show_audio_percent and self.audio_percent_label:
                 self.audio_percent_label.set_text(f"{volume}%")
-
-    def _set_icon(
-        self, image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16
-    ):
-        if icon_name:
-            image_widget.set_from_icon_name(icon_name, size)
-        else:
-            image_widget.set_from_icon_name(fallback_icon, size)
 
 
 class NetworkServiceWrapper:
     def __init__(self, config):
         self.network = NetworkService()
         self.show_network_name = config.get("show_network_name")
-        from fabric.widgets.label import Label
 
         self.network_icon = Image(style_classes="panel-icon")
         self.network_ssid_label = Label() if self.show_network_name else None
@@ -97,6 +100,9 @@ class NetworkServiceWrapper:
     def update_network_icon(self):
         wifi_device = self.network.wifi_device
         eth_device = self.network.ethernet_device
+        icon_name = None
+        ssid = None
+
         if wifi_device and getattr(wifi_device, "state", "") in (
             "connected",
             "activated",
@@ -111,29 +117,19 @@ class NetworkServiceWrapper:
             ssid = None
         else:
             icon_name = icons["network"]["wifi"]["disconnected"]
-            ssid = None
 
-        self._set_icon(
+        _update_icon(
             self.network_icon, icon_name, icons["network"]["wifi"]["disconnected"]
         )
 
         if self.show_network_name and self.network_ssid_label:
             self.network_ssid_label.set_text(helpers.truncate(ssid))
 
-    def _set_icon(
-        self, image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16
-    ):
-        if icon_name:
-            image_widget.set_from_icon_name(icon_name, size)
-        else:
-            image_widget.set_from_icon_name(fallback_icon, size)
-
 
 class BrightnessService:
     def __init__(self, config):
         self.brightness_service = Brightness()
         self.show_brightness_percent = config.get("show_brightness_percent")
-        from fabric.widgets.label import Label
 
         self.brightness_icon = Image(style_classes="panel-icon")
         self.brightness_percent_label = (
@@ -160,19 +156,10 @@ class BrightnessService:
             icon_name = icons["brightness"]["indicator"]
             normalized_brightness = 0
 
-        self._set_icon(
-            self.brightness_icon, icon_name, icons["brightness"]["indicator"]
-        )
+        _update_icon(self.brightness_icon, icon_name, icons["brightness"]["indicator"])
+
         if self.show_brightness_percent and self.brightness_percent_label:
             self.brightness_percent_label.set_text(f"{normalized_brightness}%")
-
-    def _set_icon(
-        self, image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16
-    ):
-        if icon_name:
-            image_widget.set_from_icon_name(icon_name, size)
-        else:
-            image_widget.set_from_icon_name(fallback_icon, size)
 
 
 class BluetoothService:
@@ -204,15 +191,8 @@ class BluetoothService:
                 if dev_type in self.DEVICE_ICON_MAP:
                     icon_name = self.DEVICE_ICON_MAP[dev_type]
                     break
-        self._set_icon(self.bluetooth_icon, icon_name, icons["bluetooth"]["disabled"])
 
-    def _set_icon(
-        self, image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16
-    ):
-        if icon_name:
-            image_widget.set_from_icon_name(icon_name, size)
-        else:
-            image_widget.set_from_icon_name(fallback_icon, size)
+        _update_icon(self.bluetooth_icon, icon_name, icons["bluetooth"]["disabled"])
 
     def _start_bluetooth_polling(self):
         self._stop_bluetooth_polling()
