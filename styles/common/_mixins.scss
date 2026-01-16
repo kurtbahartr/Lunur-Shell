@@ -2,11 +2,27 @@
 @use "../theme";
 @use "../variable";
 
+/// Generates a module shadow with configurable parameters
+@mixin module-shadow($enabled, $offset, $blur, $spread, $opacity) {
+  @if $enabled {
+    $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
+      $offset $blur $spread color.adjust(theme.$shadow-color, $alpha: calc($opacity * 0.01 - 1));
+    box-shadow: $shadow;
+  } @else {
+    box-shadow: none;
+  }
+}
+
 /* General */
+
 %unset {
   outline: none;
   border: 0;
   box-shadow: none;
+}
+
+%debug {
+  border: 1px solid red;
 }
 
 %clear_icon {
@@ -20,21 +36,12 @@
   font-weight: variable.$font-weight;
 }
 
-%heading {
-  font-weight: 700;
-  font-size: 14.6px;
-}
-
-%caption_heading {
-  font-weight: 700;
-  font-size: 13px;
-}
-
 %widget_hover {
   background-color: theme.$background;
   transition: border-color 400ms ease-in-out;
 }
 
+// Added this missing block back
 %widget {
   transition: 200ms;
   border-radius: variable.$radius;
@@ -43,13 +50,33 @@
   border: variable.$border;
 }
 
-@mixin slider($height: 11px,
+%desktop-widget {
+  transition: color .5s ease;
+  color: theme.$text-main;
+  font-family: "Jost*", sans-serif;
+}
+
+/* Typography */
+
+%large_title { font-weight: 600; font-size: 32px; }
+%title_1 { font-weight: 800; font-size: 27px; }
+%title_2 { font-weight: 800; font-size: 20px; }
+%title_3 { font-weight: 700; font-size: 20px; }
+%title_4 { font-weight: 700; font-size: 18px; }
+%title_5 { font-weight: 700; font-size: 16px; }
+%heading { font-weight: 700; font-size: 14.6px; }
+%caption_heading { font-weight: 700; font-size: 13px; }
+%caption { font-weight: 400; font-size: 12px; }
+%smaller { font-weight: 400; font-size: 12px; }
+
+/// Mixin for styling slider/progress bar widgets
+@mixin slider(
+  $height: 11px,
   $highlight-color: theme.$primary,
-  $slider: false,
+  $knob: false,
   $radius: variable.$radius,
   $slider-color: theme.$background-dark,
   $min-length: "",
-
 ) {
   trough {
     transition: 200ms;
@@ -66,19 +93,18 @@
       min-height: $height;
 
       &:hover {
-        background-color: color.mix($highlight-color,
-            black, 80%);
+        background-color: color.mix($highlight-color, black, 80%);
       }
     }
   }
 
-  @if $min-length !="" {
+  @if $min-length != "" {
     scale {
       min-width: $min-length;
     }
   }
 
-  @if $slider {
+  @if $knob {
     slider {
       background-color: theme.$text-main;
       border-color: variable.$border-color;
@@ -91,14 +117,12 @@
       margin: -0.5em;
 
       &:hover {
-        background-color: color.mix(theme.$text-main,
-            black, 90%);
+        background-color: color.mix(theme.$text-main, black, 90%);
       }
     }
   }
 
   &:disabled {
-
     highlight,
     progress {
       background-color: color.mix(theme.$text-main, transparent, 60%);
@@ -107,20 +131,18 @@
   }
 }
 
+/// Mixin for floating/popover widget styling
 @mixin floating-widget($radius: variable.$bar-menus-popover-border-radius) {
-
-  $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
-    variable.$bar-menus-popover-shadow-offset variable.$bar-menus-popover-shadow-blur variable.$bar-menus-popover-shadow-spread color.adjust(theme.$shadow-color,
-      $alpha: calc(variable.$bar-menus-popover-shadow-opacity - 1));
-
-  @if variable.$bar-menus-popover-shadow-enabled {
-    box-shadow: $shadow;
-  } @else {
-    box-shadow: none;
-  }
-
+  @include module-shadow(
+    variable.$bar-menus-popover-shadow-enabled,
+    variable.$bar-menus-popover-shadow-offset,
+    variable.$bar-menus-popover-shadow-blur,
+    variable.$bar-menus-popover-shadow-spread,
+    variable.$bar-menus-popover-shadow-opacity
+  );
+  
   margin: max(variable.$spacing, 8px);
-
+  
   @if variable.$bar-menus-popover-border-enabled {
     border: variable.$bar-menus-popover-border-width solid variable.$popover-border-color;
   } @else {
@@ -133,83 +155,71 @@
   padding: variable.$bar-menus-popover-padding_x variable.$bar-menus-popover-padding_y;
 }
 
+/// Mixin for bar widget border and icon styling
+@mixin bar-widget-style($border-radius, $border-enabled, $border-width, $icon-size: null, $spacing: null) {
+  border-radius: $border-radius;
+  border-width: $border-width;
+
+  @if $border-enabled {
+    border: variable.$border;
+  } @else {
+    border: none;
+  }
+
+  @if $icon-size and $spacing {
+    #nerd-icon.panel-font-icon {
+      font-size: $icon-size;
+      margin-right: $spacing;
+    }
+  }
+}
+
+@mixin switch {
+  slider {
+    background-color: theme.$background-dark;
+    border-radius: variable.$radius-large;
+    min-width: 24px;
+    min-height: 24px;
+  }
+  image {
+    color: transparent;
+  }
+}
+
 @mixin spacing($multiplier: 1, $spacing: variable.$spacing, $rec: false) {
   &.horizontal>* {
     margin: 0 calc($spacing * $multiplier / 2);
-
-    &:first-child {
-      margin-left: 0;
-    }
-
-    &:last-child {
-      margin-right: 0;
-    }
+    &:first-child { margin-left: 0; }
+    &:last-child { margin-right: 0; }
   }
 
   &.vertical>* {
     margin: calc($spacing * $multiplier / 2) 0;
-
-    &:first-child {
-      margin-top: 0;
-    }
-
-    &:last-child {
-      margin-bottom: 0;
-    }
+    &:first-child { margin-top: 0; }
+    &:last-child { margin-bottom: 0; }
   }
 
   @if $rec {
     box {
       &.horizontal>* {
         margin: 0 $spacing * $multiplier / 2;
-
-        &:first-child {
-          margin-left: 0;
-        }
-
-        &:last-child {
-          margin-right: 0;
-        }
+        &:first-child { margin-left: 0; }
+        &:last-child { margin-right: 0; }
       }
-
       &.vertical>* {
         margin: $spacing * $multiplier / 2 0;
-
-        &:first-child {
-          margin-top: 0;
-        }
-
-        &:last-child {
-          margin-bottom: 0;
-        }
+        &:first-child { margin-top: 0; }
+        &:last-child { margin-bottom: 0; }
       }
     }
   }
 }
 
 @mixin widget_style($type) {
-  @if $type ==flat {
-    @extend .flat;
-  }
-
-
-  @else if $type ==shadow {
-    @extend .shadow;
-  }
-
-  @else if $type ==bordered {
-    @extend .bordered;
-  }
-
-  @else if $type ==wave1 {
-    @extend .wave1;
-  }
-
-  @else if $type ==wave2 {
-    @extend .wave2;
-  }
-
-  @else {
-    @extend .default;
-  }
+  @if $type == flat { @extend .flat; }
+  @else if $type == shadow { @extend .shadow; }
+  @else if $type == bordered { @extend .bordered; }
+  @else if $type == leaf { @extend .leaf; }
+  @else if $type == leaf-inverse { @extend .leaf-inverse; }
+  @else { @extend .default; }
 }

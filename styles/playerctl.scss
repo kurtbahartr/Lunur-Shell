@@ -57,13 +57,11 @@
     }
   }
 
-  // Use the same slider mixin as OSD so the styles match
   @include common.slider(
-    $slider: true,
+    $knob: variable.$modules-osd-sliders-slider, // Changed $slider to $knob
     $min-length: 150px,
-    $height: 0.3rem
+    $height: variable.$modules-osd-sliders-height
   );
-
 
   // Placeholder for future playback buttons
   .playerctl-controls {
