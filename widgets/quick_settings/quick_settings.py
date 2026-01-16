@@ -1,5 +1,5 @@
-# widgets/quick_settings/quick_settings.py
-
+import time
+from loguru import logger
 from fabric.widgets.box import Box
 from utils import BarConfig
 from shared.widget_container import ButtonWidget
@@ -13,16 +13,44 @@ from .quick_settings_menu import QuickSettingsMenu
 
 
 class QuickSettings:
-    def __init__(self, config):
-        self.audio_service = AudioService(config)
-        self.network_service = NetworkServiceWrapper(config)
-        self.brightness_service = BrightnessService(config)
-        self.bluetooth_service = BluetoothService(config)
+    def __init__(self, config, debug=False):
+        self.debug = debug
 
+        # Audio
+        t_start = time.perf_counter()
+        self.audio_service = AudioService(config)
         self.audio_service.connect_signals()
+        if self.debug:
+            logger.info(
+                f"  [QS] Audio Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
+
+        # Network
+        t_start = time.perf_counter()
+        self.network_service = NetworkServiceWrapper(config)
         self.network_service.connect_signals()
+        if self.debug:
+            logger.info(
+                f"  [QS] Network Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
+
+        # Brightness
+        t_start = time.perf_counter()
+        self.brightness_service = BrightnessService(config)
         self.brightness_service.connect_signals()
+        if self.debug:
+            logger.info(
+                f"  [QS] Brightness Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
+
+        # Bluetooth
+        t_start = time.perf_counter()
+        self.bluetooth_service = BluetoothService(config)
         self.bluetooth_service._start_bluetooth_polling()
+        if self.debug:
+            logger.info(
+                f"  [QS] Bluetooth Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
 
     def get_icons_and_labels(self, bar_icons):
         icons_map = {
@@ -57,6 +85,9 @@ class QuickSettings:
 
 class QuickSettingsButtonWidget(ButtonWidget):
     def __init__(self, widget_config: BarConfig, **kwargs):
+        # Extract debug flag safely
+        self.debug = widget_config.get("general", {}).get("debug", False)
+
         super().__init__(
             widget_config["quick_settings"], name="quick_settings", **kwargs
         )
@@ -64,20 +95,53 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.connect("clicked", self.show_popover)
 
         self.config = widget_config["quick_settings"]
-        self.services = QuickSettings(self.config)
 
+        # Measure Services Init
+        t_start = time.perf_counter()
+        self.services = QuickSettings(self.config, debug=self.debug)
+        if self.debug:
+            logger.info(
+                f"[QS] Services Init Total: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
+
+        # Measure Icon/Label Generation
+        t_start = time.perf_counter()
         bar_icons = self.config.get("bar_icons")
         ordered_icons = self.services.get_icons_and_labels(bar_icons)
         self.children = Box(spacing=4, children=ordered_icons)
+        if self.debug:
+            logger.info(
+                f"[QS] UI Generation: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
 
+        # Measure Signal Connections
+        t_start = time.perf_counter()
         self.connect_signals(bar_icons)
+        if self.debug:
+            logger.info(
+                f"[QS] Signal Connections: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
+
+        # Measure Initial Updates
+        t_start = time.perf_counter()
         self.update_initial_icons(bar_icons)
+        if self.debug:
+            logger.info(
+                f"[QS] Initial Icon Updates: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
 
     def show_popover(self, *_):
         if self.popup:
             self.popup.destroy()
+
+        # Optional: Measure popover open time
+        t_start = time.perf_counter()
         self.popup = QuickSettingsMenu(point_to_widget=self, config=self.config)
         self.popup.open()
+        if self.debug:
+            logger.info(
+                f"[QS] Popover Open: {(time.perf_counter() - t_start) * 1000:.1f}ms"
+            )
 
     def connect_signals(self, bar_icons):
         if "audio" in bar_icons:
