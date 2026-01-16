@@ -115,8 +115,13 @@
 
 #emoji_picker {
   border-radius: variable.$bar-widgets-emoji_picker-border-radius;
-  border: if(variable.$bar-widgets-emoji_picker-border-enabled, variable.$border, none);
-  border-width: variable.$bar-widgets-emoji_picker-border-width;
+
+  @if variable.$bar-widgets-emoji_picker-border-enabled {
+    border: variable.$border;
+    border-width: variable.$bar-widgets-emoji_picker-border-width;
+  } @else {
+    border: none;
+  }
 
   #nerd-icon.panel-font-icon {
     font-size: variable.$bar-widgets-emoji_picker-icon_size;

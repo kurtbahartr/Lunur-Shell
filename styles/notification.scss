@@ -13,8 +13,14 @@ $hover-transition: background .15s ease-in-out;
   color: theme.$text-main;
   border-radius: variable.$modules-notification-border-radius;
   background-color: theme.$background-alt;
-  border: if(variable.$modules-notification-border-enabled, variable.$border, none);
-  border-width: variable.$modules-notification-border-width;
+
+  @if variable.$modules-notification-border-enabled {
+    border: variable.$border;
+    border-width: variable.$modules-notification-border-width;
+  } @else {
+    border: none;
+  }
+
   transition: border 100ms ease-in-out;
 
 
@@ -22,7 +28,11 @@ $hover-transition: background .15s ease-in-out;
     variable.$modules-notification-shadow-offset variable.$modules-notification-shadow-blur variable.$modules-notification-shadow-spread color.adjust(theme.$shadow-color,
       $alpha: calc(variable.$modules-notification-shadow-opacity - 1));
 
-  box-shadow: if(variable.$modules-notification-shadow-enabled, $shadow, none);
+  @if variable.$modules-notification-shadow-enabled {
+    box-shadow: $shadow;
+  } @else {
+    box-shadow: none;
+  }
 
   .notification-header {
     padding: common.toEm(5);

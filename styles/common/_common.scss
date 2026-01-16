@@ -1,5 +1,4 @@
 @use "sass:color";
-
 @use "functions";
 @use "mixins";
 @use "../theme.scss";
@@ -43,7 +42,11 @@
         variable.$bar-shadow-offset variable.$bar-shadow-blur variable.$bar-shadow-spread color.adjust(theme.$shadow-color,
           $alpha: calc(variable.$bar-shadow-opacity - 1));
 
-      box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
+      @if variable.$bar-shadow-enabled {
+        box-shadow: $shadow;
+      } @else {
+        box-shadow: none;
+      }
 
       #corner-left, 
       #corner-right {
@@ -115,7 +118,11 @@
           variable.$bar-shadow-offset variable.$bar-shadow-blur variable.$bar-shadow-spread color.adjust(theme.$shadow-color,
             $alpha: calc(variable.$bar-shadow-opacity - 1));
 
-        box-shadow: if(variable.$bar-shadow-enabled, $shadow, none);
+        @if variable.$bar-shadow-enabled {
+          box-shadow: $shadow;
+        } @else {
+          box-shadow: none;
+        }
       }
 
       // Default: location-top (corners rounded at bottom)
@@ -169,7 +176,11 @@
     variable.$bar-buttons-shadow-offset variable.$bar-buttons-shadow-blur variable.$bar-buttons-shadow-spread color.adjust(theme.$shadow-color,
       $alpha: calc(variable.$bar-buttons-shadow-opacity - 1));
 
-  box-shadow: if(variable.$bar-buttons-shadow-enabled, $shadow, none);
+  @if variable.$bar-buttons-shadow-enabled {
+    box-shadow: $shadow;
+  } @else {
+    box-shadow: none;
+  }
 
   @include mixins.widget_style(variable.$bar-style-widget);
 
@@ -186,13 +197,22 @@ tooltip {
   border-radius: variable.$bar-menus-tooltip-border-radius;
 
   animation: tooltipShow .25s cubic-bezier(.5, .25, 0, 1);
-  border: if(variable.$bar-menus-tooltip-border-enabled, variable.$border, none);
+
+  @if variable.$bar-menus-tooltip-border-enabled {
+    border: variable.$border;
+  } @else {
+    border: none;
+  }
 
   $shadow: 0 0 0 variable.$bar-border-width theme.$shadow-color,
     variable.$bar-menus-tooltip-shadow-offset variable.$bar-menus-tooltip-shadow-blur variable.$bar-menus-tooltip-shadow-spread color.adjust(theme.$shadow-color,
       $alpha: calc(variable.$bar-menus-tooltip-shadow-opacity - 1));
 
-  box-shadow: if(variable.$bar-menus-tooltip-shadow-enabled, $shadow, none);
+  @if variable.$bar-menus-tooltip-shadow-enabled {
+    box-shadow: $shadow;
+  } @else {
+    box-shadow: none;
+  }
 
   label {
     @extend %unset;

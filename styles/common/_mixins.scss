@@ -113,9 +113,20 @@
     variable.$bar-menus-popover-shadow-offset variable.$bar-menus-popover-shadow-blur variable.$bar-menus-popover-shadow-spread color.adjust(theme.$shadow-color,
       $alpha: calc(variable.$bar-menus-popover-shadow-opacity - 1));
 
-  box-shadow: if(variable.$bar-menus-popover-shadow-enabled, $shadow, none);
+  @if variable.$bar-menus-popover-shadow-enabled {
+    box-shadow: $shadow;
+  } @else {
+    box-shadow: none;
+  }
+
   margin: max(variable.$spacing, 8px);
-  border: if(variable.$bar-menus-popover-border-enabled, variable.$bar-menus-popover-border-width solid variable.$popover-border-color, none);
+
+  @if variable.$bar-menus-popover-border-enabled {
+    border: variable.$bar-menus-popover-border-width solid variable.$popover-border-color;
+  } @else {
+    border: none;
+  }
+
   background-color: theme.$background-dark;
   color: theme.$text-main;
   border-radius: $radius;

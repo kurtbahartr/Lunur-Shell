@@ -34,8 +34,13 @@
 #system_tray {
 
   border-radius: variable.$bar-widgets-system_tray-border-radius;
-  border: if(variable.$bar-widgets-system_tray-border-enabled, variable.$border, none);
-  border-width: variable.$bar-widgets-system_tray-border-width;
+
+  @if variable.$bar-widgets-system_tray-border-enabled {
+    border: variable.$border;
+    border-width: variable.$bar-widgets-system_tray-border-width;
+  } @else {
+    border: none;
+  }
 
   &-box {
     margin: 0 variable.$bar-widgets-system_tray-spacing;
