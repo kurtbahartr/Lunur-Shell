@@ -12,7 +12,7 @@ from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from gi.repository import Gdk, GdkPixbuf, GLib
-from loguru import logger
+from fabric.utils import logger
 
 from shared.list import ListBox
 from shared.pop_over import Popover

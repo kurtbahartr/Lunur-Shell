@@ -1,9 +1,8 @@
 from fabric.notifications import (
     Notification,
     NotificationAction,
-    NotificationCloseReason,
 )
-from fabric.utils import bulk_connect, get_relative_path
+from fabric.utils import bulk_connect, get_relative_path, logger
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.eventbox import EventBox
@@ -12,7 +11,6 @@ from fabric.widgets.label import Label
 from fabric.widgets.revealer import Revealer
 from fabric.widgets.wayland import WaylandWindow as Window
 from gi.repository import Gdk, GdkPixbuf, GLib
-from loguru import logger
 
 import utils.constants as constants
 import utils.functions as helpers

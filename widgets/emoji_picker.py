@@ -10,7 +10,7 @@ from fabric.widgets.entry import Entry
 from fabric.widgets.label import Label
 from fabric.widgets.stack import Stack
 from gi.repository import Gdk
-from loguru import logger
+from fabric.utils import logger
 
 from shared.pop_over import Popover
 from shared.widget_container import ButtonWidget

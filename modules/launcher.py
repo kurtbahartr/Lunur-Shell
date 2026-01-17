@@ -13,7 +13,7 @@ import utils.functions as helpers
 import re
 import subprocess
 import shlex
-from loguru import logger
+from fabric.utils import logger
 import math
 
 

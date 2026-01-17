@@ -9,7 +9,7 @@ from shared.collapsible_groups import CollapsibleGroups
 from utils import HyprlandWithMonitors
 from utils.widget_utils import lazy_load_widget
 from modules.corners import SideCorner
-from loguru import logger
+from fabric.utils import logger
 
 
 class StatusBar(Window, ToggleableWidget):

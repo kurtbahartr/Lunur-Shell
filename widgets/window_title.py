@@ -1,8 +1,7 @@
 import re
 
 from fabric.hyprland.widgets import HyprlandActiveWindow
-from fabric.utils import FormattedString, truncate
-from loguru import logger
+from fabric.utils import FormattedString, truncate, logger
 
 from shared.widget_container import ButtonWidget
 from utils.constants import WINDOW_TITLE_MAP

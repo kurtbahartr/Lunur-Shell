@@ -2,8 +2,13 @@ import time
 import os
 import filecmp
 from fabric import Application
-from fabric.utils import cooldown, exec_shell_command, get_relative_path, monitor_file
-from loguru import logger
+from fabric.utils import (
+    cooldown,
+    exec_shell_command,
+    get_relative_path,
+    monitor_file,
+    logger,
+)
 from gi.repository import Gtk
 
 import utils.functions as helpers
@@ -14,7 +19,22 @@ from utils import (
     widget_config,
 )
 
+# --- Configuration & Logging Setup ---
 DEBUG = widget_config.get("general", {}).get("debug", False)
+
+# Disable logs if debug is False
+if not DEBUG:
+    for log in [
+        "fabric",
+        "widgets",
+        "utils",
+        "utils.config",
+        "modules",
+        "services",
+        "config",
+    ]:
+        logger.disable(log)
+
 _start_time = time.perf_counter() if DEBUG else None
 
 

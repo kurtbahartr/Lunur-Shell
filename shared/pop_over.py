@@ -7,7 +7,7 @@ from fabric.widgets.box import Box
 from fabric.widgets.wayland import WaylandWindow
 from fabric.widgets.widget import Widget
 from gi.repository import Gdk, GLib, GObject, GtkLayerShell
-from loguru import logger
+from fabric.utils import logger
 
 gi.require_versions(
     {"Gtk": "3.0", "Gdk": "3.0", "GtkLayerShell": "0.1", "GObject": "2.0"}

@@ -4,7 +4,7 @@ from typing import List
 
 from fabric import Signal
 from fabric.notifications import Notification, Notifications
-from loguru import logger
+from fabric.utils import logger
 
 from utils.constants import (
     NOTIFICATION_CACHE_FILE,

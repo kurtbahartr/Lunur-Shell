@@ -2,7 +2,7 @@ from typing import Literal
 
 from fabric import Service, Signal
 from gi.repository import Gio
-from loguru import logger
+from fabric.utils import logger
 
 from shared.dbus_helper import GioDBusHelper
 

@@ -2,8 +2,7 @@ import os
 import json
 import time
 import pytomlpp
-from fabric.utils import get_relative_path
-from loguru import logger
+from fabric.utils import get_relative_path, logger
 
 from .constants import DEFAULT_CONFIG
 from .functions import (
@@ -12,7 +11,6 @@ from .functions import (
     validate_widgets,
     ttl_lru_cache,
 )
-from .widget_settings import BarConfig
 
 
 class LunurShellConfig:

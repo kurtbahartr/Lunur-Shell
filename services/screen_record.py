@@ -5,9 +5,13 @@ from datetime import datetime
 from typing import Optional
 
 from fabric.core.service import Property, Service, Signal
-from fabric.utils import exec_shell_command, exec_shell_command_async, get_relative_path
+from fabric.utils import (
+    exec_shell_command,
+    exec_shell_command_async,
+    get_relative_path,
+    logger,
+)
 from gi.repository import Gio, GLib
-from loguru import logger
 
 import utils.functions as helpers
 from utils.constants import APPLICATION_NAME
@@ -190,7 +194,7 @@ class ScreenRecorderService(Service):
             try:
                 _, stdout, stderr = process.communicate_utf8_finish(task)
             except Exception:
-                logger.exception(f"[SCREENSHOT] Failed read notification action")
+                logger.exception("[SCREENSHOT] Failed read notification action")
                 return
 
             match stdout.strip("\n"):

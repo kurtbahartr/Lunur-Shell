@@ -1,5 +1,5 @@
 import time
-from loguru import logger
+from fabric.utils import logger
 from fabric.widgets.box import Box
 from utils import BarConfig
 from shared.widget_container import ButtonWidget

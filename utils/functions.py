@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import Dict, List, Literal, Optional, Union, Any
 
 from gi.repository import GLib, Gio
-from loguru import logger
+from fabric.utils import logger
 
 from fabric.utils import (
     cooldown,

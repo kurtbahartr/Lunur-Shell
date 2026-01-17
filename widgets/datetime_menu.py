@@ -5,7 +5,7 @@ from shared.pop_over import Popover
 
 import time
 import os
-from loguru import logger
+from fabric.utils import logger
 
 
 class DateTimeWidget(ButtonWidget):
