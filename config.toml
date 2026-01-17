@@ -32,7 +32,7 @@ end_container = [
 
 [general]
 debug = true
-layer = "top"
+layer = "bottom"
 location = "top"
 
 [general.screen_corners]
