@@ -23,7 +23,7 @@ class HyprSunsetSubMenu(QuickSubMenu):
 
         self.scale_icon = Label(
             label=text_icons["nightlight"]["enabled"],
-            style_classes=["qs-slider-value"],
+            style_classes=["slider-icon"],
         )
 
         self.scale = Scale(
@@ -39,8 +39,8 @@ class HyprSunsetSubMenu(QuickSubMenu):
         )
 
         self.value_label = Label(
-            label=("2600"+"K"),
-            style_classes=["qs-slider-value"],
+            label=("2600" + "K"),
+            style_classes=["slider-percentage"],
         )
 
         # Wrap the scale and value in a horizontal box
@@ -103,7 +103,9 @@ class HyprSunsetSubMenu(QuickSubMenu):
         # Update the scale value based on the current temperature
         try:
             sanitized_value = int(
-                moved_pos.strip("\n").strip("") if isinstance(moved_pos, str) else moved_pos
+                moved_pos.strip("\n").strip("")
+                if isinstance(moved_pos, str)
+                else moved_pos
             )
         except ValueError:
             # If the output is not a valid integer (e.g., error message), skip updating
@@ -143,7 +145,7 @@ class HyprSunsetToggle(QSChevronButton):
         # Get current slider value for dynamic command
         current_temp = int(self.submenu.scale.get_value())
         is_now_running = toggle_command("hyprsunset", f"hyprsunset -t {current_temp}")
-        
+
         # Update UI immediately
         if is_now_running:
             self.action_icon.set_label(text_icons["nightlight"]["enabled"])
@@ -155,7 +157,7 @@ class HyprSunsetToggle(QSChevronButton):
             self.action_label.set_label("Disabled")
             self.remove_style_class("active")
             self.submenu.scale.set_sensitive(False)
-        
+
         return True
 
     def update_action_button(self, *_):
