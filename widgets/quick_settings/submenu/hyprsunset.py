@@ -1,9 +1,10 @@
+import json
+import os
 from fabric.hyprland.widgets import get_hyprland_connection
 from fabric.utils import cooldown, exec_shell_command_async, invoke_repeater
 from fabric.widgets.scale import Scale
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
-
 from gi.repository import Gtk
 
 from shared.buttons import QSChevronButton
@@ -12,14 +13,16 @@ from shared.separator import Separator
 from utils.functions import is_app_running, toggle_command
 from utils.icons import text_icons
 
+CACHE_DIR = os.path.expanduser("~/.cache/fabric")
+STATE_FILE = os.path.join(CACHE_DIR, "hyprsunset.json")
+
 
 class HyprSunsetSubMenu(QuickSubMenu):
-    """A submenu to display application-specific audio controls."""
-
     def __init__(self, **kwargs):
         self.scan_button = None
-
         self._hyprland_connection = get_hyprland_connection()
+
+        self.cached_temp = self.load_state()
 
         self.scale_icon = Label(
             label=text_icons["nightlight"]["enabled"],
@@ -33,17 +36,16 @@ class HyprSunsetSubMenu(QuickSubMenu):
             increments=(100, 100),
             max_value=10000,
             min_value=1000,
-            value=2600,
+            value=self.cached_temp,
             style_classes=["qs-slider"],
             h_expand=True,
         )
 
         self.value_label = Label(
-            label=("2600" + "K"),
+            label=f"{self.cached_temp}K",
             style_classes=["slider-percentage"],
         )
 
-        # Wrap the scale and value in a horizontal box
         scale_container = Box(
             children=[self.scale_icon, self.scale, self.value_label],
             h_expand=True,
@@ -71,58 +73,68 @@ class HyprSunsetSubMenu(QuickSubMenu):
             **kwargs,
         )
 
-        # Connect the slider immediately
         self.scale.connect("value-changed", self.on_scale_move)
         invoke_repeater(1000, self.update_scale)
 
+    def load_state(self):
+        try:
+            if not os.path.exists(CACHE_DIR):
+                os.makedirs(CACHE_DIR)
+
+            if os.path.exists(STATE_FILE):
+                with open(STATE_FILE, "r") as f:
+                    data = json.load(f)
+                    return int(data.get("temperature", 2600))
+        except Exception:
+            pass
+        return 2600
+
+    def save_state(self, temp):
+        try:
+            with open(STATE_FILE, "w") as f:
+                json.dump({"temperature": temp}, f)
+        except Exception:
+            pass
+
     def update_value_label(self, value: int):
-        """Update the value label display."""
         self.value_label.set_label(f"{value}K")
 
     @cooldown(0.1)
     def on_scale_move(self, scale: Scale):
-        temperature = int(scale.get_value())
-        self.update_value_label(temperature)
-        exec_shell_command_async(
-            f"hyprctl hyprsunset temperature {temperature}",
-            lambda *_: self._update_ui(temperature),
-        )
+        val = int(scale.get_value())
+        self.update_value_label(val)
+        self.save_state(val)
+
+        if is_app_running("hyprsunset"):
+            exec_shell_command_async(
+                f"hyprctl hyprsunset temperature {val}",
+                lambda *_: None,
+            )
         return True
 
     def update_scale(self, *_):
         if is_app_running("hyprsunset"):
-            self.scale.set_sensitive(True)
             exec_shell_command_async(
                 "hyprctl hyprsunset temperature",
-                self._update_ui,
+                self._update_ui_from_system,
             )
-        else:
-            self.scale.set_sensitive(False)
+        return True
 
-    def _update_ui(self, moved_pos: str | int):
-        # Update the scale value based on the current temperature
+    def _update_ui_from_system(self, output: str | int):
         try:
-            sanitized_value = int(
-                moved_pos.strip("\n").strip("")
-                if isinstance(moved_pos, str)
-                else moved_pos
+            val = int(
+                output.strip("\n").strip("") if isinstance(output, str) else output
             )
         except ValueError:
-            # If the output is not a valid integer (e.g., error message), skip updating
             return
 
-        # Avoid unnecessary updates if the value hasn't changed
-        if sanitized_value == round(self.scale.get_value()):
-            return
-
-        self.scale.set_value(sanitized_value)
-        self.update_value_label(sanitized_value)
-        self.scale.set_tooltip_text(f"{sanitized_value}K")
+        if abs(val - self.scale.get_value()) > 100:
+            self.scale.set_value(val)
+            self.save_state(val)
+            self.update_value_label(val)
 
 
 class HyprSunsetToggle(QSChevronButton):
-    """A widget to display a toggle button for Wifi."""
-
     def __init__(self, submenu: QuickSubMenu, popup, **kwargs):
         super().__init__(
             style_classes=["quicksettings-toggler"],
@@ -135,35 +147,22 @@ class HyprSunsetToggle(QSChevronButton):
 
         self.popup = popup
         self.action_button.set_sensitive(True)
-
         self.connect("action-clicked", self.on_action)
-
         invoke_repeater(1000, self.update_action_button)
 
     def on_action(self, *_):
-        """Handle the action button click event."""
-        # Get current slider value for dynamic command
         current_temp = int(self.submenu.scale.get_value())
         is_now_running = toggle_command("hyprsunset", f"hyprsunset -t {current_temp}")
-
-        # Update UI immediately
-        if is_now_running:
-            self.action_icon.set_label(text_icons["nightlight"]["enabled"])
-            self.action_label.set_label("Enabled")
-            self.add_style_class("active")
-            self.submenu.scale.set_sensitive(True)
-        else:
-            self.action_icon.set_label(text_icons["nightlight"]["disabled"])
-            self.action_label.set_label("Disabled")
-            self.remove_style_class("active")
-            self.submenu.scale.set_sensitive(False)
-
+        self.update_visuals(is_now_running)
         return True
 
     def update_action_button(self, *_):
         self.is_running = is_app_running("hyprsunset")
+        self.update_visuals(self.is_running)
+        return True
 
-        if self.is_running:
+    def update_visuals(self, is_running):
+        if is_running:
             self.action_icon.set_label(text_icons["nightlight"]["enabled"])
             self.action_label.set_label("Enabled")
             self.add_style_class("active")
