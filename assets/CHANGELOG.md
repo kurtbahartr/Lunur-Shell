@@ -1,3 +1,29 @@
+Version 0.4.1
+https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.4.1
+-------------------------------------------------------------
+
+# Fixes
+- Make dependency checks stricter.
+- Don't escape out of the Python virtual environment.
+- Add dependency checks where necessary.
+- Menus no longer need ESC to close.
+  - This means you can now click outside of the widget to close it.
+
+# Features
+- Add support for various calculations in launcher.
+- Add audio mixer for volume control in the quick settings.
+- Add slider for microphone to the quick settings.
+- Add a new QS tile to control `hyprsunset`.
+
+# Misc
+- Get rid of the dependency for `setproctitle`.
+- Drop update checking mechanism for the bar.
+- Drop SCSS pre-compilation for smart scss compilation.
+- Divide quick settings components into smaller parts.
+- Remove obsolete instructions from the installation instructions.
+- Change QS tile layout from 3x1 to 2x2.
+- Lots of performance and stability improvements.
+
 Version 0.4.0
 https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.4.0
 -----------------------------------------------------------------------
