@@ -1,4 +1,3 @@
-from gi.repository import Gdk, GLib
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from fabric.system_tray import SystemTray, SystemTrayItem

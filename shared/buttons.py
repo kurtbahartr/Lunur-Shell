@@ -8,7 +8,7 @@ from fabric.widgets.label import Label
 
 from utils.animator import cubic_bezier
 from utils.constants import ASSETS_DIR
-from utils.icons import icons, text_icons
+from utils.icons import icons
 from utils.widget_utils import nerd_font_icon, setup_cursor_hover
 
 from .widget_container import BaseWidget

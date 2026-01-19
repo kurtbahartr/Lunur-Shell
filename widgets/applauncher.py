@@ -1,4 +1,3 @@
-from fabric.widgets.button import Button
 from modules.launcher import AppLauncher
 from utils.functions import get_distro_icon
 from utils.widget_utils import text_icon

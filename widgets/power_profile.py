@@ -1,4 +1,4 @@
-from gi.repository import Gtk, GLib
+from gi.repository import GLib
 from fabric.utils import exec_shell_command_async
 from shared.widget_container import ButtonWidget
 from utils.icons import icons

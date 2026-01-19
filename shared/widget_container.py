@@ -5,7 +5,6 @@ from fabric.widgets.button import Button
 from fabric.widgets.eventbox import EventBox
 from fabric.widgets.widget import Widget
 
-from utils.config import widget_config
 from utils.widget_utils import setup_cursor_hover
 
 

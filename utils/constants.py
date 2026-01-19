@@ -1,6 +1,5 @@
 from fabric.utils import get_relative_path
 from gi.repository import GLib
-from typing import TypedDict, List, Dict
 
 APPLICATION_NAME = "Lunur-Shell"
 SYSTEM_CACHE_DIR = GLib.get_user_cache_dir()

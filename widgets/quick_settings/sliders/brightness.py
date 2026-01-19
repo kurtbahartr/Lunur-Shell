@@ -5,7 +5,6 @@ from services import Brightness
 import utils.functions as helpers
 from utils.icons import icons
 from utils.widget_utils import get_brightness_icon_name
-from gi.repository import GLib
 
 
 class BrightnessSlider(SliderRow):

@@ -6,7 +6,7 @@ from fabric.widgets.revealer import Revealer
 from fabric.widgets.label import Label
 from fabric.widgets.image import Image
 from fabric.widgets.scale import Scale
-from gi.repository import Gtk, GdkPixbuf
+from gi.repository import Gtk
 from .slider_row import SliderRow
 from services import audio_service
 from utils.icons import icons

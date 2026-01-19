@@ -1,4 +1,3 @@
-from gi.repository import GLib
 from shared.widget_container import ButtonWidget
 from utils.icons import icons
 from utils.widget_utils import get_icon

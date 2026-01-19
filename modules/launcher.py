@@ -5,14 +5,13 @@ from fabric.widgets.button import Button
 from fabric.widgets.label import Label
 from fabric.widgets.image import Image
 from fabric.widgets.box import Box
-from fabric.utils import get_desktop_applications, DesktopApp
+from fabric.utils import get_desktop_applications
 from gi.repository import GdkPixbuf, GLib
 from utils.config import widget_config
 from shared.scrolled_view import ScrolledView
 import utils.functions as helpers
 import re
 import subprocess
-import shlex
 from fabric.utils import logger
 import math
 
