@@ -28,6 +28,9 @@ class PowerProfileButton(ButtonWidget):
         self.current_profile = "balanced"
         self.icon_widget = None
 
+        # Helper to hold the DBus connection so it isn't garbage collected
+        self.dbus_helper = None
+
         # Cache icons if not already
         if not PowerProfileButton._profile_icons:
             for profile in power_profiles:
@@ -56,10 +59,13 @@ class PowerProfileButton(ButtonWidget):
         """Fetch current profile asynchronously and call callback(profile)"""
 
         def inner(output):
-            profile = output.strip()
-            if profile not in power_profiles:
-                profile = "balanced"
-            callback(profile)
+            if output:
+                profile = output.strip()
+                if profile in power_profiles:
+                    callback(profile)
+                    return
+            # Fallback if output is empty or invalid
+            callback("balanced")
 
         exec_shell_command_async("powerprofilesctl get", inner)
 
@@ -67,12 +73,12 @@ class PowerProfileButton(ButtonWidget):
         """Update widget display asynchronously"""
 
         def apply_profile(profile):
-            if profile == self.current_profile:
-                return
+            # Even if profile is same, we might want to ensure icon is correct
             self.current_profile = profile
 
             if self.icon_widget:
                 self.box.remove(self.icon_widget)
+
             self.icon_widget = PowerProfileButton._profile_icons.get(profile)
             self.box.add(self.icon_widget)
             self.icon_widget.show()
@@ -83,6 +89,8 @@ class PowerProfileButton(ButtonWidget):
 
     def on_click(self, button):
         next_profile = self.get_next_profile()
+        # Optimistically update the variable locally so the UI feels responsive
+        self.current_profile = next_profile
         self.set_power_profile(next_profile)
 
     def get_next_profile(self):
@@ -96,8 +104,14 @@ class PowerProfileButton(ButtonWidget):
     def set_power_profile(self, profile):
         if profile not in power_profiles:
             return
+
+        # Define a callback to force an update once the command finishes
+        def on_set_finished(output):
+            self.update_profile_display()
+
         try:
-            exec_shell_command_async(f"powerprofilesctl set {profile}")
+            # Pass the callback to exec_shell_command_async
+            exec_shell_command_async(f"powerprofilesctl set {profile}", on_set_finished)
         except Exception:
             pass
 
@@ -116,12 +130,14 @@ class PowerProfileButton(ButtonWidget):
             if "ActiveProfile" in changed_props:
                 GLib.idle_add(self.update_profile_display)
 
-        dbus = GioDBusHelper(
+        # FIX: Assign to self.dbus_helper so it isn't Garbage Collected
+        self.dbus_helper = GioDBusHelper(
             bus_name="net.hadess.PowerProfiles",
             object_path="/net/hadess/PowerProfiles",
             interface_name="net.hadess.PowerProfiles",
         )
-        dbus.listen_signal(
+
+        self.dbus_helper.listen_signal(
             sender="net.hadess.PowerProfiles",
             interface_name="org.freedesktop.DBus.Properties",
             member="PropertiesChanged",
