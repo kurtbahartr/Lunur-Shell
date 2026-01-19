@@ -55,7 +55,7 @@ class LottieAnimationWidget(Gtk.DrawingArea, BaseWidget):
         )
 
         # State Management
-        self.timeout = None
+        self.timeout: int | None = None
         self.is_playing = False
         self.do_reverse = False
         self.curr_frame: int = 0 if draw_frame is None or do_loop else draw_frame
@@ -132,7 +132,9 @@ class LottieAnimationWidget(Gtk.DrawingArea, BaseWidget):
         return True
 
     def stop_play(self):
-        GLib.source_remove(self.timeout)
+        if self.timeout is not None:
+            GLib.source_remove(self.timeout)
+            self.timeout = None
 
     def play_animation(
         self,

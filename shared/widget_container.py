@@ -32,8 +32,8 @@ class ConfigStyleMixin:
             else:
                 final_styles.extend(style_classes)
 
-        # Pass the fully prepared list to the parent Widget
-        super().__init__(style_classes=final_styles, **kwargs)
+        kwargs["style_classes"] = final_styles
+        super().__init__(**kwargs)
 
 
 class BaseWidget(Widget):

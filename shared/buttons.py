@@ -45,7 +45,7 @@ class ScanButton(HoverButton):
         self.scan_image.set_angle(p.value)
 
     def play_animation(self):
-        from .animator import Animator
+        from utils.animator import Animator
 
         if self.scan_animator is None:
             self.scan_animator = Animator(
@@ -59,7 +59,8 @@ class ScanButton(HoverButton):
         self.scan_animator.play()
 
     def stop_animation(self):
-        self.scan_animator.stop()
+        if self.scan_animator:
+            self.scan_animator.stop()
 
 
 class QSToggleButton(Box, BaseWidget):
@@ -170,15 +171,20 @@ class QSChevronButton(QSToggleButton):
         )
         self.box.add(self.reveal_button)
 
-        self.submenu.revealer.connect(
-            "notify::reveal-child",
-            self.set_chevron_icon,
-        )
+        if self.submenu:
+            self.submenu.revealer.connect(
+                "notify::reveal-child",
+                self.set_chevron_icon,
+            )
 
     def set_chevron_icon(self, *_):
+        is_revealed = (
+            self.submenu.revealer.get_reveal_child() if self.submenu else False
+        )
+
         icon_name = (
             icons["ui"]["arrow"]["down"]
-            if self.submenu.revealer.get_reveal_child()
+            if is_revealed
             else icons["ui"]["arrow"]["right"]
         )
         self.button_image.set_from_icon_name(icon_name, 20)

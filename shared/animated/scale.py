@@ -3,8 +3,7 @@ from functools import partial
 from fabric.widgets.scale import Scale
 
 from utils.animator import cubic_bezier
-
-from ..widget_container import BaseWidget
+from shared.widget_container import BaseWidget
 
 
 class AnimatedScale(Scale, BaseWidget):
@@ -22,7 +21,7 @@ class AnimatedScale(Scale, BaseWidget):
         self.set_value(p.value)
 
     def animate_value(self, value: float):
-        from ..animator import Animator
+        from utils.animator import Animator
 
         if self.animator is None:
             self.animator = Animator(

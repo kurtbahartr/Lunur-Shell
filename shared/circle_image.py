@@ -65,9 +65,15 @@ class CircularImage(Gtk.DrawingArea, BaseWidget):
         )
         self._image_file = image_file
         self._angle = 0
-        self.size = size
+        if isinstance(size, int):
+            self.size = size
+        elif isinstance(size, Iterable):
+            self.size = next(iter(size), 0)
+        else:
+            self.size = 0
+
         self._image: GdkPixbuf.Pixbuf | None = (
-            GdkPixbuf.Pixbuf.new_from_file_at_size(image_file, size, size)
+            GdkPixbuf.Pixbuf.new_from_file_at_size(image_file, self.size, self.size)
             if image_file
             else pixbuf
             if pixbuf
@@ -81,10 +87,11 @@ class CircularImage(Gtk.DrawingArea, BaseWidget):
             ctx.arc(self.size / 2, self.size / 2, self.size / 2, 0, 2 * math.pi)
             ctx.translate(self.size * 0.5, self.size * 0.5)
             ctx.rotate(self._angle * math.pi / 180.0)
+            img_w = self._image.get_width()
+            img_h = self._image.get_height()
+
             ctx.translate(
-                -self.size * 0.5
-                - self._image.get_width() // 2
-                + self._image.get_height() // 2,
+                -self.size * 0.5 - img_w // 2 + img_h // 2,
                 -self.size * 0.5,
             )
             Gdk.cairo_set_source_pixbuf(ctx, self._image, 0, 0)
@@ -93,17 +100,18 @@ class CircularImage(Gtk.DrawingArea, BaseWidget):
             ctx.restore()
 
     def set_image_from_file(self, new_image_file):
-        if new_image_file == "":
+        if not new_image_file:
             return
-        self._image = (
-            GdkPixbuf.Pixbuf.new_from_file_at_size(
+        try:
+            self._image = GdkPixbuf.Pixbuf.new_from_file_at_size(
                 new_image_file,
                 -1,
                 self.size,
             )
-            if self._image_file is not None
-            else None
-        )
+            self._image_file = new_image_file
+        except Exception:
+            self._image = None
+
         self.queue_draw()
 
     def set_image_from_pixbuf(self, pixbuf):
@@ -113,11 +121,17 @@ class CircularImage(Gtk.DrawingArea, BaseWidget):
         self.queue_draw()
 
     def set_image_size(self, size: Iterable[int] | int):
-        if size is Iterable:
-            x, y = size
-            self._image = self._image.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
+        if self._image is None:
+            return
+
+        if isinstance(size, Iterable):
+            s_list = list(size)
+            if len(s_list) >= 2:
+                x, y = s_list[0], s_list[1]
+            else:
+                x = y = s_list[0] if s_list else 0
         else:
-            self._image = self._image.scale_simple(
-                size, size, GdkPixbuf.InterpType.BILINEAR
-            )
+            x = y = int(size)
+
+        self._image = self._image.scale_simple(x, y, GdkPixbuf.InterpType.BILINEAR)
         self.queue_draw()

@@ -25,7 +25,7 @@ class HoverRevealer(EventBoxWidget):
         self.expanded_margin = expanded_margin
 
         # Setup the animation direction
-        gtk_direction = "slide_right" if slide_direction == "right" else "slide_left"
+        gtk_direction = "slide-right" if slide_direction == "right" else "slide-left"
 
         # Initialize the Fabric Revealer
         self.revealer = Revealer(
