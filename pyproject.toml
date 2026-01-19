@@ -19,7 +19,13 @@ dependencies = [
 fabric = { git = "https://github.com/Fabric-Development/fabric.git", rev = "main" }
 
 [dependency-groups]
-dev = [
-    "pyright>=1.1.408",
-    "pytest>=9.0.2",
-]
+dev = ["pyright>=1.1.408", "pytest>=9.0.2"]
+
+[tool.pyright]
+include = ["."]
+exclude = ["**/node_modules", "**/__pycache__", "**/dist", "**/.venv"]
+reportMissingModuleSource = "none"
+reportAttributeAccessIssue = "warning"
+reportArgumentType = "warning"
+typeCheckingMode = "basic"
+pythonVersion = "3.14"
