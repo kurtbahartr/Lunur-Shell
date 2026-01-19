@@ -1,3 +1,10 @@
+Version 0.4.2
+https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.4.2
+------------------------------------------------------------
+
+# Misc
+This is a test release for workflow updates. Don't mind it.
+
 Version 0.4.1
 https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.4.1
 -------------------------------------------------------------
