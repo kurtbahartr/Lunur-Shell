@@ -56,9 +56,7 @@ Run the following script
 #### Step 1: Set up python envirement & python packages
 
 ```
-  python -m venv venv
-  source venv/bin/activate
-  pip install -r requirements.txt
+  uv run main.py
 ```
 
 #### Step 2: Run Lunur-Shell

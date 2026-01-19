@@ -89,13 +89,7 @@ fi
 # Python virtual environment
 # -------------------------
 
-echo "Setting up Python virtual environment..."
-
-python -m venv venv
-source venv/bin/activate
-
 echo "Installing Python requirements..."
-pip install --upgrade pip
-pip install -r requirements.txt
+uv sync
 
 echo "All Lunur Shell requirements installed successfully!"
