@@ -9,10 +9,23 @@ def resolve_icon(item, icon_size: int = 16):
     if not item:
         return None
 
-    icon_name = getattr(item, "icon_name", None)
+    if pixmap := getattr(item, "icon_pixmap", None):
+        try:
+            return pixmap.as_pixbuf(icon_size, "bilinear")
+        except Exception:
+            pass
 
+    icon_name = getattr(item, "icon_name", None)
     if not icon_name:
         return None
+
+    if os.path.isfile(icon_name):
+        try:
+            return GdkPixbuf.Pixbuf.new_from_file_at_size(
+                icon_name, icon_size, icon_size
+            )
+        except GLib.Error:
+            pass
 
     icon_base = os.path.basename(icon_name)
     try:
@@ -22,13 +35,5 @@ def resolve_icon(item, icon_size: int = 16):
         )
     except GLib.Error:
         pass
-
-    if os.path.isfile(icon_name):
-        try:
-            return GdkPixbuf.Pixbuf.new_from_file_at_size(
-                icon_name, icon_size, icon_size
-            )
-        except GLib.Error:
-            pass
 
     return None
