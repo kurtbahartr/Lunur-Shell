@@ -16,4 +16,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-fabric = { git = "https://github.com/Fabric-Development/fabric.git" }
+fabric = { git = "https://github.com/Fabric-Development/fabric.git", rev = "main" }
