@@ -1,6 +1,7 @@
 import time
 import os
 import filecmp
+from typing import Any, cast
 from fabric import Application
 from fabric.utils import (
     cooldown,
@@ -157,7 +158,7 @@ if __name__ == "__main__":
 
     # Instantiate core modules
     launcher = time_module_load("AppLauncher", AppLauncher)
-    bar = time_module_load("StatusBar", lambda: StatusBar(widget_config))
+    bar = time_module_load("StatusBar", lambda: StatusBar(cast(Any, widget_config)))
 
     windows = [bar, launcher]
 
@@ -210,7 +211,7 @@ if __name__ == "__main__":
         record_stop = _record_stop
 
     # Setup Icons
-    icon_theme = Gtk.IconTheme.get_default()
+    icon_theme = Gtk.IconTheme.get_default()  # type: ignore
     icon_theme.append_search_path(get_relative_path("./assets/icons/svg/gtk"))
 
     # Smart Setup (Checks name, file existence, and content differences)

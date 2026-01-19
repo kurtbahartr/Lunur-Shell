@@ -17,7 +17,7 @@ class HoverRevealer(EventBoxWidget):
         transition_duration: int = 300,
         expanded_margin: int = 16,
         tooltip: str | None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(tooltip=tooltip or "", **kwargs)
 

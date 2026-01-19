@@ -5,6 +5,7 @@ import utils.functions as helpers
 
 from .widget_container import ButtonWidget
 
+
 class CommandSwitcher(ButtonWidget):
     """A button widget to toggle a command.
     Useful for making services with two states."""

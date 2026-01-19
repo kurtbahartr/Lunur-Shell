@@ -76,9 +76,7 @@ def is_app_running(app_name: str) -> bool:
     """
     try:
         result = subprocess.run(
-            ["pgrep", "-f", app_name],
-            capture_output=True,
-            text=True
+            ["pgrep", "-f", app_name], capture_output=True, text=True
         )
         return result.returncode == 0
     except Exception:

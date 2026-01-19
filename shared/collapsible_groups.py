@@ -4,7 +4,6 @@ from shared.reveal import HoverRevealer
 
 
 class CollapsibleGroups(HoverRevealer):
-
     def __init__(
         self,
         collapsed_icon: str,
@@ -14,7 +13,7 @@ class CollapsibleGroups(HoverRevealer):
         spacing: int = 4,
         tooltip: str | None = None,
         icon_size: int = 16,
-        **kwargs
+        **kwargs,
     ):
         icon_widget = text_icon(collapsed_icon, {"size": icon_size})
 
@@ -29,5 +28,5 @@ class CollapsibleGroups(HoverRevealer):
             transition_duration=transition_duration,
             tooltip=tooltip,
             expanded_margin=16,  # You can customize the slide-out margin here
-            **kwargs
+            **kwargs,
         )

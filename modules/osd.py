@@ -10,7 +10,11 @@ from gi.repository import GLib, GObject
 
 from services import audio_service, Brightness
 from utils.icons import icons
-from utils.widget_utils import create_scale, get_audio_icon_name, get_brightness_icon_name
+from utils.widget_utils import (
+    create_scale,
+    get_audio_icon_name,
+    get_brightness_icon_name,
+)
 
 gi.require_versions({"GObject": "2.0"})
 
@@ -35,7 +39,9 @@ class GenericOSDContainer(Box):
             icon_size=self.icon_size,
         )
 
-        scale_style = "scale {min-height: 150px; min-width: 11px;}" if is_vertical else ""
+        scale_style = (
+            "scale {min-height: 150px; min-width: 11px;}" if is_vertical else ""
+        )
 
         self.scale = create_scale(
             name="osd-scale",
@@ -60,6 +66,7 @@ class GenericOSDContainer(Box):
         self.scale.set_value(round_value)
         if self.show_level:
             self.level.set_label(f"{round_value}%")
+
 
 class AudioOSDContainer(GenericOSDContainer):
     """OSD container for audio volume."""
@@ -109,9 +116,11 @@ class AudioOSDContainer(GenericOSDContainer):
             return
         volume = round(speaker.volume)
         is_muted = speaker.muted
-        if (self.previous_volume is None or
-            volume != self.previous_volume or
-            is_muted != self.previous_muted):
+        if (
+            self.previous_volume is None
+            or volume != self.previous_volume
+            or is_muted != self.previous_muted
+        ):
             self._update_volume_ui(volume, is_muted)
 
     def _update_volume_ui(self, volume: int, is_muted: bool):
@@ -142,7 +151,9 @@ class BrightnessOSDContainer(GenericOSDContainer):
     }
 
     def __init__(self, config: dict, **kwargs):
-        super().__init__(config=config, icon_name=icons["brightness"]["medium"], **kwargs)
+        super().__init__(
+            config=config, icon_name=icons["brightness"]["medium"], **kwargs
+        )
 
         self.brightness_service = Brightness()
         self.previous_level = None
@@ -184,7 +195,9 @@ class OSDWindow(Window):
 
         if "brightness" in self.config.get("osds", []):
             self.brightness_container = BrightnessOSDContainer(config=self.config)
-            self.brightness_container.connect("brightness-changed", self.show_brightness)
+            self.brightness_container.connect(
+                "brightness-changed", self.show_brightness
+            )
 
         self.timeout = self.config["timeout"]
 
@@ -242,4 +255,3 @@ class OSDWindow(Window):
         self.set_visible(False)
         self.hide_timer_id = None
         return False
-

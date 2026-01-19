@@ -69,7 +69,9 @@ class CircularImage(Gtk.DrawingArea, BaseWidget):
         self._image: GdkPixbuf.Pixbuf | None = (
             GdkPixbuf.Pixbuf.new_from_file_at_size(image_file, size, size)
             if image_file
-            else pixbuf if pixbuf else None
+            else pixbuf
+            if pixbuf
+            else None
         )
         self.connect("draw", self.on_draw)
 

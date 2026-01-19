@@ -13,7 +13,7 @@ from .submenu import (
     HyprSunsetSubMenu,
     HyprSunsetToggle,
 )
- 
+
 from shared.pop_over import Popover
 
 
@@ -59,16 +59,16 @@ class QuickSettingsMenu(Popover):
         self.grid.attach(self.hyprsunset, 1, 1, 1, 1)
 
         content_box.pack_start(self.grid, True, True, 0)
-        
+
         # Add the hyprsunset submenu to the content box
         content_box.pack_start(self.hyprsunset.submenu, False, False, 0)
-        
+
         # Connect the chevron click to toggle the submenu
         self.hyprsunset.connect("reveal-clicked", self._toggle_hyprsunset_submenu)
-        
+
         content_box.show_all()
         super().__init__(content=content_box, point_to=point_to_widget)
-    
+
     def _toggle_hyprsunset_submenu(self, *_):
         """Toggle the HyprSunset submenu visibility."""
         self.hyprsunset.submenu.toggle_reveal()

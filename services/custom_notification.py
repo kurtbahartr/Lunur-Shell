@@ -87,9 +87,7 @@ class CustomNotifications(Notifications):
                 self.all_notifications = valid_notifications
                 self._count = highest_id  # Update to highest ID seen
                 write_json_file(self.all_notifications, NOTIFICATION_CACHE_FILE)
-                logger.info(
-                    f"[Notification] Notifications written successfully."
-                )
+                logger.info(f"[Notification] Notifications written successfully.")
 
             except (json.JSONDecodeError, KeyError, ValueError, IndexError) as e:
                 logger.exception(f"[Notification] {e}")
@@ -102,9 +100,7 @@ class CustomNotifications(Notifications):
         if item:
             self.all_notifications.remove(item)
             write_json_file(self.all_notifications, NOTIFICATION_CACHE_FILE)
-            logger.info(
-                f"[Notification] Notifications written successfully."
-            )
+            logger.info(f"[Notification] Notifications written successfully.")
 
             self.emit("notification_count", len(self.all_notifications))
 
@@ -183,9 +179,7 @@ class CustomNotifications(Notifications):
         if invalid_count > 0:
             self.all_notifications = valid_notifications
             write_json_file(self.all_notifications, NOTIFICATION_CACHE_FILE)
-            logger.info(
-                f"[Notification] Notifications written successfully."
-            )
+            logger.info(f"[Notification] Notifications written successfully.")
 
             self.emit("notification_count", len(self.all_notifications))
 

@@ -19,9 +19,8 @@ class ConfigStyleMixin:
         style_classes: str | Iterable[str] | None = None,
         default_styles: list[str] | None = None,
         config: dict | None = None,
-        **kwargs
+        **kwargs,
     ):
-
         # Store config safely
         self.config = config or {}
 
@@ -79,14 +78,14 @@ class BoxWidget(ConfigStyleMixin, ToggleableWidget, Box):
         spacing: int | None = None,
         style_classes: str | list[str] | None = None,
         config: dict | None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             spacing=4 if spacing is None else spacing,
             default_styles=["panel-box"],
             style_classes=style_classes,
             config=config,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -117,9 +116,8 @@ class WidgetGroup(BoxWidget):
         spacing: int = 4,
         style_classes: str | list[str] | None = None,
         config: dict | None = None,
-        **kwargs
+        **kwargs,
     ):
-
         # Merge WidgetGroup specific styles with user provided styles
         # before passing to BoxWidget (which will add "panel-box")
         merged_styles = ["panel-module-group"]
@@ -133,7 +131,7 @@ class WidgetGroup(BoxWidget):
             style_classes=merged_styles,
             config=config,
             orientation="h",
-            **kwargs
+            **kwargs,
         )
 
         if children:
