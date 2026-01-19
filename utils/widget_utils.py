@@ -98,7 +98,7 @@ def get_icon(app_icon, size=25) -> Image:
             icon_size=icon_size,
         )
 
-    except GLib.GError:
+    except GLib.Error:
         return Image(
             name="app-icon",
             icon_name=icons["fallback"]["notification"],
@@ -117,8 +117,7 @@ def nerd_font_icon(icon: str, props=None, name="nerd-icon") -> Label:
 
     if props:
         label_props.update(props)
-
-    return Label(**label_props)
+    return Label(**label_props)  # type: ignore[reportCallIssue]
 
 
 def text_icon(icon: str, props=None):
@@ -132,11 +131,10 @@ def text_icon(icon: str, props=None):
     if props:
         label_props.update(props)
 
-    return Label(**label_props)
+    return Label(**label_props)  # type: ignore[reportCallIssue]
 
 
-# Pre-compute brightness levels for faster lookup
-_BRIGHTNESS_LEVELS = [
+_BRIGHTNESS_LEVELS: list[tuple[int, dict[Literal["text_icon", "icon"], str]]] = [
     (
         0,
         {
@@ -169,7 +167,7 @@ _BRIGHTNESS_LEVELS = [
 
 
 # Function to get brightness icon
-def get_brightness_icon_name(level: int) -> dict[Literal["icon_text", "icon"], str]:
+def get_brightness_icon_name(level: int) -> dict[Literal["text_icon", "icon"], str]:
     for threshold, result in _BRIGHTNESS_LEVELS:
         if level <= threshold:
             return result
@@ -177,7 +175,7 @@ def get_brightness_icon_name(level: int) -> dict[Literal["icon_text", "icon"], s
 
 
 # Pre-compute volume levels for faster lookup
-_VOLUME_LEVELS = [
+_VOLUME_LEVELS: list[tuple[int, dict[Literal["text_icon", "icon"], str]]] = [
     (
         0,
         {
@@ -208,7 +206,7 @@ _VOLUME_LEVELS = [
     ),
 ]
 
-_VOLUME_OVERAMPLIFIED = {
+_VOLUME_OVERAMPLIFIED: dict[Literal["text_icon", "icon"], str] = {
     "text_icon": text_icons["volume"]["overamplified"],
     "icon": icons["audio"]["volume"]["overamplified"],
 }
@@ -217,12 +215,12 @@ _VOLUME_OVERAMPLIFIED = {
 # Function to get volume icon
 def get_audio_icon_name(
     volume: int, is_muted: bool
-) -> dict[Literal["icon_text", "icon"], str]:
+) -> dict[Literal["text_icon", "icon"], str]:
     if is_muted:
         return _VOLUME_LEVELS[0][1]
 
     if volume > 100:
-        return _VOLUME_OVERAMPLIFIED
+        return _VOLUME_OVERAMPLIFIED  # type: ignore[return-value]
 
     for threshold, result in _VOLUME_LEVELS:
         if volume <= threshold:

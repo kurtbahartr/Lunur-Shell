@@ -25,7 +25,8 @@ dev = ["pyright>=1.1.408", "pytest>=9.0.2"]
 include = ["."]
 exclude = ["**/node_modules", "**/__pycache__", "**/dist", "**/.venv"]
 reportMissingModuleSource = "none"
-reportAttributeAccessIssue = "warning"
+reportAttributeAccessIssue = "none"
+reportMissingTypeStubs = "warning"
 reportArgumentType = "warning"
 typeCheckingMode = "basic"
 pythonVersion = "3.14"

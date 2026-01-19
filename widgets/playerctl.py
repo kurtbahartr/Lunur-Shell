@@ -20,7 +20,6 @@ except ImportError:
 class PlayerctlMenu(Popover):
     """
     The popup menu containing playback controls, seek bar, and track info.
-    (Unchanged from original)
     """
 
     def __init__(self, point_to_widget, service, config=None):
@@ -37,6 +36,7 @@ class PlayerctlMenu(Popover):
         content_box.set_hexpand(True)
 
         self.track_frame = Gtk.Frame()
+        # GTK3 Note: set_shadow_type is deprecated in late versions but exists
         self.track_frame.set_shadow_type(Gtk.ShadowType.IN)
         self.track_frame.set_name("playerctl-track-frame")
         for side in ("top", "bottom", "start", "end"):
@@ -104,6 +104,7 @@ class PlayerctlMenu(Popover):
         self.track_frame.add(track_box)
         content_box.add(self.track_frame)
         content_box.show_all()
+
         super().__init__(content=content_box, point_to=point_to_widget)
 
         self.connect("destroy", self._on_destroy)
@@ -226,7 +227,16 @@ class PlayerctlMenu(Popover):
 
 class PlayerctlWidget(HoverRevealer):
     def __init__(self, widget_config=None, **kwargs):
-        widget_config = widget_config or BarConfig()
+        # Handle BarConfig instantiation: Pass empty dict if None to avoid TypeErrors
+        # or fallback to empty dict logic if BarConfig is not a constructor.
+        if widget_config is None:
+            try:
+                widget_config = BarConfig()
+            except Exception:
+                # Fallback if BarConfig requires arguments or fails
+                widget_config = BarConfig({})
+
+        # Determine config: use 'playerctl' key if available, otherwise use whole config
         config = widget_config.get("playerctl", widget_config)
 
         self.config = config

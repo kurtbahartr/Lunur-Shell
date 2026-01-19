@@ -74,6 +74,18 @@ Notification = TypedDict(
     },
 )
 
+# Separate definition for nested TypedDict
+BatteryNotifications = TypedDict(
+    "BatteryNotifications",
+    {
+        "enabled": bool,
+        "full_battery": bool,
+        "charging": bool,
+        "low_battery": bool,
+        "low_threshold": int,
+    },
+)
+
 Battery = TypedDict(
     "Battery",
     {
@@ -83,16 +95,7 @@ Battery = TypedDict(
         "full_battery_level": int,
         "hide_label_when_full": bool,
         "icon_size": int,
-        "notifications": TypedDict(
-            "BatteryNotifications",
-            {
-                "enabled": bool,
-                "full_battery": bool,
-                "charging": bool,
-                "low_battery": bool,
-                "low_threshold": int,
-            },
-        ),
+        "notifications": BatteryNotifications,
     },
 )
 
@@ -100,7 +103,8 @@ Battery = TypedDict(
 SystemTray = TypedDict(
     "SystemTray",
     {
-        **BaseConfig.__annotations__,
+        "label": bool,
+        "tooltip": bool,
         "transition_duration": int,
         "icon_size": int,
         "slide_direction": str,
@@ -153,14 +157,22 @@ Hyprpicker = TypedDict(
     },
 )
 
-Cliphist = TypedDict("Cliphist", {"icon": str, **BaseConfig.__annotations__})
+Cliphist = TypedDict(
+    "Cliphist",
+    {
+        "icon": str,
+        "label": bool,
+        "tooltip": bool,
+    },
+)
 
 
 # Playerctl configuration
 Playerctl = TypedDict(
     "Playerctl",
     {
-        **BaseConfig.__annotations__,
+        "label": bool,
+        "tooltip": bool,
         "transition_duration": int,
         "icon_size": int,
         "slide_direction": str,
@@ -168,8 +180,14 @@ Playerctl = TypedDict(
 )
 
 EmojiPicker = TypedDict(
-    "emoji_picker",
-    {"icon": str, **BaseConfig.__annotations__, "per_row": int, "per_column": int},
+    "EmojiPicker",
+    {
+        "icon": str,
+        "label": bool,
+        "tooltip": bool,
+        "per_row": int,
+        "per_column": int,
+    },
 )
 
 # Theme configuration
@@ -190,10 +208,34 @@ CollapsibleGroup = TypedDict(
 )
 
 # Power menu buttons
-Sleep = TypedDict("SleepButtonConfig", {**BaseConfig.__annotations__})
-Reboot = TypedDict("RebootButtonConfig", {**BaseConfig.__annotations__})
-Logout = TypedDict("LogoutButtonConfig", {**BaseConfig.__annotations__})
-Shutdown = TypedDict("ShutdownButtonConfig", {**BaseConfig.__annotations__})
+Sleep = TypedDict(
+    "Sleep",
+    {
+        "label": bool,
+        "tooltip": bool,
+    },
+)
+Reboot = TypedDict(
+    "Reboot",
+    {
+        "label": bool,
+        "tooltip": bool,
+    },
+)
+Logout = TypedDict(
+    "Logout",
+    {
+        "label": bool,
+        "tooltip": bool,
+    },
+)
+Shutdown = TypedDict(
+    "Shutdown",
+    {
+        "label": bool,
+        "tooltip": bool,
+    },
+)
 
 # Recording configuration
 Recording = TypedDict(
@@ -206,9 +248,9 @@ Screenshot = TypedDict(
         "enabled": bool,
         "icon": str,
         "path": str,
-        **BaseConfig.__annotations__,
+        "label": bool,
+        "tooltip": bool,
         "annotation": bool,
-        # "capture_sound": bool,
     },
 )
 
@@ -220,7 +262,6 @@ OSD = TypedDict(
         "enabled": bool,
         "anchor": str,
         "icon_size": int,
-        # "opacity": int,
         "timeout": int,
         "transition_type": str,
         "transition_duration": int,
