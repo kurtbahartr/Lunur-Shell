@@ -1,5 +1,5 @@
-from fabric.audio import Audio
-from fabric.bluetooth import BluetoothClient
+from fabric.audio.service import Audio
+from fabric.bluetooth.service import BluetoothClient
 
 from .custom_notification import CustomNotifications
 

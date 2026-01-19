@@ -91,7 +91,7 @@ class Animator(Service):
         return self._timing_function
 
     @timing_function.setter
-    def timing_function(self, value: TimingFunctionCallback):
+    def set_timing_function(self, value: TimingFunctionCallback):
         self._timing_function = value
         return
 
@@ -100,7 +100,7 @@ class Animator(Service):
         return self._duration
 
     @duration.setter
-    def duration(self, value: float):
+    def set_duration(self, value: float):
         if value <= 0.0:
             raise ValueError("duration can't be smaller than or equal to 0.0")
 
@@ -112,7 +112,7 @@ class Animator(Service):
         return self._value
 
     @value.setter
-    def value(self, value: float):
+    def set_value(self, value: float):
         self._value = value
         return
 
@@ -121,7 +121,7 @@ class Animator(Service):
         return self._max_value
 
     @max_value.setter
-    def max_value(self, value: float):
+    def set_max_value(self, value: float):
         self._max_value = value
         return
 
@@ -130,7 +130,7 @@ class Animator(Service):
         return self._min_value
 
     @min_value.setter
-    def min_value(self, value: float):
+    def set_min_value(self, value: float):
         self._min_value = value
         return
 
@@ -139,7 +139,7 @@ class Animator(Service):
         return self._playing
 
     @playing.setter
-    def playing(self, value: bool):  # this setter is intended for internal usage only
+    def set_playing(self, value: bool):
         self._playing = value
         return
 
@@ -148,7 +148,7 @@ class Animator(Service):
         return self._repeat
 
     @repeat.setter
-    def repeat(self, value: bool):
+    def set_repeat(self, value: bool):
         self._repeat = value
         return
 

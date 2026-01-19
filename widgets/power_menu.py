@@ -1,7 +1,9 @@
 from shared.widget_container import ButtonWidget
 from utils.icons import icons
 from utils.widget_utils import get_icon
-from utils.widget_settings import BarConfig
+
+# Removed BarConfig import as it is no longer instantiated directly to avoid errors
+# from utils.widget_settings import BarConfig
 from fabric.utils import exec_shell_command_async
 from functools import lru_cache
 import getpass
@@ -50,14 +52,15 @@ class PowerWidget(ButtonWidget):
 
     def _on_click(self, *_):
         """Execute command on click."""
-        exec_shell_command_async(self.command)
+        if self.command:
+            exec_shell_command_async(self.command)
         return True
 
 
 class SleepWidget(PowerWidget):
     def __init__(self, widget_config=None, **kwargs):
         if widget_config is None:
-            widget_config = BarConfig()
+            widget_config = {}
         config = widget_config.get("sleep", widget_config)
         super().__init__(
             name="sleep",
@@ -71,7 +74,7 @@ class SleepWidget(PowerWidget):
 class RebootWidget(PowerWidget):
     def __init__(self, widget_config=None, **kwargs):
         if widget_config is None:
-            widget_config = BarConfig()
+            widget_config = {}
         config = widget_config.get("reboot", widget_config)
         super().__init__(
             name="reboot",
@@ -85,7 +88,7 @@ class RebootWidget(PowerWidget):
 class LogoutWidget(PowerWidget):
     def __init__(self, widget_config=None, **kwargs):
         if widget_config is None:
-            widget_config = BarConfig()
+            widget_config = {}
         config = widget_config.get("logout", widget_config)
         user = getpass.getuser()
         super().__init__(
@@ -100,7 +103,7 @@ class LogoutWidget(PowerWidget):
 class ShutdownWidget(PowerWidget):
     def __init__(self, widget_config=None, **kwargs):
         if widget_config is None:
-            widget_config = BarConfig()
+            widget_config = {}
         config = widget_config.get("shutdown", widget_config)
         super().__init__(
             name="shutdown",
