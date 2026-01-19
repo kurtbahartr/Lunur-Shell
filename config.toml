@@ -31,7 +31,7 @@ end_container = [
 ]
 
 [general]
-debug = true
+debug = false
 layer = "bottom"
 location = "top"
 
@@ -111,7 +111,7 @@ max_count = 5
 
 [battery]
 full_battery_level = 100
-hide_label_when_full = true
+hide_label_when_full = false
 label = true
 tooltip = true
 orientation = "vertical"
@@ -126,7 +126,7 @@ low_threshold = 25
 [date_time]
 # To list all available timezones run: timedatectl list-timezones
 # To update timezone run the following command: sudo timedatectl set-timezone America/Denver
-clock_format = "24h" # 24h or "12h"
+clock_format = "12h" # 24h or "12h"
 format = "%b %d"
 
 [system_tray]
@@ -137,12 +137,11 @@ tooltip = true
 
 [quick_settings]
 bar_icons = [
+  "bluetooth",
   "network",
   "audio",
-  "bluetooth",
-  "brightness",
 ] # quick setting buttons to display on the bar
-show_network_name = true
+show_network_name = false
 show_audio_percent = false
 show_brightness_percent = false
 
