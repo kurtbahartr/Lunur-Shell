@@ -3,15 +3,18 @@
 
 <div align=center>
   
-![GitHub last commit](https://img.shields.io/github/last-commit/dianaw353/Lunur-Shell?style=for-the-badge&labelColor=101418&color=9ccbfb)
-![GitHub Repo stars](https://img.shields.io/github/stars/dianaw353/Lunur-Shell?style=for-the-badge&labelColor=101418&color=b9c8da)
-![GitHub repo size](https://img.shields.io/github/repo-size/dianaw353/Lunur-Shell?style=for-the-badge&labelColor=101418&color=d3bfe6)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dianaw353/Lunur-Shell?style=for-the-badge&labelColor=101418&color=CBA6F7)
+![GitHub last commit](https://img.shields.io/github/last-commit/kurtbahartr/Lunur-Shell?style=for-the-badge&labelColor=101418&color=9ccbfb)
+![GitHub Repo stars](https://img.shields.io/github/stars/kurtbahartr/Lunur-Shell?style=for-the-badge&labelColor=101418&color=b9c8da)
+![GitHub repo size](https://img.shields.io/github/repo-size/kurtbahartr/Lunur-Shell?style=for-the-badge&labelColor=101418&color=d3bfe6)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/kurtbahartr/Lunur-Shell?style=for-the-badge&labelColor=101418&color=CBA6F7)
 
 </div>
 
 > [!WARNING]  
 > This is in active development
+
+> [!NOTE]
+> This fork is pretty much the same as the parent repository except the configuration is different, made for my own liking. If this doesn't interest you, you're better off using the upstream repo instead.
 
 ## Screenshots
 
@@ -31,7 +34,7 @@ As of 8/3/25
 Clone the repo:
 
 ```
-  git clone https://github.com/dianaw353/Lunur-Shell.git ~/.config/Lunur-Shell
+  git clone https://github.com/kurtbahartr/Lunur-Shell.git ~/.config/Lunur-Shell
   cd ~/.config/Lunur-Shell/
 ```
 
