@@ -48,21 +48,24 @@ Run the following script
 #### Step 2: Run Lunur-Shell
 
 ```
-  python main.py
-```
-
-### Option 2: Manual Installation via Python Envirement
-
-#### Step 1: Set up python envirement & python packages
-
-```
   uv run main.py
 ```
 
-#### Step 2: Run Lunur-Shell
+### Option 2: Manual Installation
+
+#### Step 1: Install system packages
 
 ```
-  python main.py
+  yay -S --needed - < ~/.config/Lunur-Shell/assets/packages/arch/packages_official.txt
+  yay -S --needed - < ~/.config/Lunur-Shell/assets/packages/arch/packages_aur.txt
+```
+
+#### Step 2: Run Lunur-Shell 
+
+`uv` is a Python package and project manager in whitch it will download and install python dependencies and run the shell
+
+```
+  uv run main.py
 ```
 
 ## Roadmap
