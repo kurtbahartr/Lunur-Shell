@@ -1,6 +1,6 @@
 import textwrap
 import shutil
-from typing import Iterator
+from typing import Iterator, Tuple
 from fabric.widgets.button import Button
 from fabric.widgets.label import Label
 from fabric.widgets.image import Image
@@ -138,7 +138,8 @@ class Calculator:
                         return int(result), "🧮 Math"
                     return round(result, 10), "🧮 Math"
                 return result, "🧮 Math"
-            except:
+            except Exception as e:
+                logger.error(f"[Calculator] Math function error '{query}': {e}")
                 pass  # Try next pattern
 
         # Check for power operations (e.g., "2^8", "5**3")
@@ -156,7 +157,8 @@ class Calculator:
                             return int(result), "🧮 Math"
                         return round(result, 10), "🧮 Math"
                     return result, "🧮 Math"
-                except:
+                except Exception as e:
+                    logger.error(f"[Calculator] Power operation error '{query}': {e}")
                     return None
 
         # Only allow numbers, operators, parentheses, and whitespace
@@ -177,7 +179,8 @@ class Calculator:
                     return int(result), "🧮 Math"
                 return round(result, 10), "🧮 Math"
             return result, "🧮 Math"
-        except:
+        except Exception as e:
+            logger.error(f"[Calculator] Calculation error '{query}': {e}")
             return None
 
     def _try_temperature_conversion(self, query: str):
