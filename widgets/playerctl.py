@@ -226,15 +226,12 @@ class PlayerctlMenu(Popover):
 
 
 class PlayerctlWidget(HoverRevealer):
-    def __init__(self, widget_config=None, **kwargs):
-        # Handle BarConfig instantiation: Pass empty dict if None to avoid TypeErrors
-        # or fallback to empty dict logic if BarConfig is not a constructor.
+    def __init__(self, widget_config: BarConfig | None = None, **kwargs):
+        # Handle BarConfig instantiation: Pass empty dict if None to avoid TypeErrors.
+        # BarConfig is likely a TypedDict requiring specific keys, so we avoid instantiating it
+        # directly if we don't have those keys, and just use a plain dict.
         if widget_config is None:
-            try:
-                widget_config = BarConfig()
-            except Exception:
-                # Fallback if BarConfig requires arguments or fails
-                widget_config = BarConfig({})
+            widget_config = {}  # type: ignore
 
         # Determine config: use 'playerctl' key if available, otherwise use whole config
         config = widget_config.get("playerctl", widget_config)

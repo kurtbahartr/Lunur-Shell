@@ -16,7 +16,7 @@ class BatteryWidget(ButtonWidget):
 
     def __init__(self, widget_config: BarConfig, **kwargs):
         super().__init__(
-            widget_config["battery"],
+            widget_config["battery"],  # type: ignore
             name="battery",
             **kwargs,
         )
@@ -52,9 +52,13 @@ class BatteryWidget(ButtonWidget):
 
     def update_ui(self, *_):
         is_present = self.client.get_property("IsPresent") == 1
+
+        # Check if percentage is None before rounding to fix type error
+        raw_percentage = self.client.get_property("Percentage")
         battery_percent = (
-            round(self.client.get_property("Percentage")) if is_present else 0
+            round(raw_percentage) if is_present and raw_percentage is not None else 0
         )
+
         battery_state = self.client.get_property("State")
         is_charging = battery_state == 1 if is_present else False
 
@@ -83,7 +87,10 @@ class BatteryWidget(ButtonWidget):
             self.time_since_last_notification = datetime.now()
 
         temperature = self.client.get_property("Temperature") or 0
-        energy = self.client.get_property("Energy") or 0
+
+        # Suppress type error: 'Energy' is not in the Literal type definition of get_property
+        energy = self.client.get_property("Energy") or 0  # type: ignore
+
         time_remaining = (
             self.client.get_property("TimeToFull")
             if is_charging
@@ -92,13 +99,14 @@ class BatteryWidget(ButtonWidget):
 
         self.battery_label.set_text(f" {battery_percent}%")
 
-        self.battery_icon.set_from_icon_name(
-            self.client.get_property("IconName"), self.config["icon_size"]
-        )
+        # Ensure icon_name is a string (handle None)
+        icon_name = self.client.get_property("IconName") or ""
+
+        self.battery_icon.set_from_icon_name(icon_name, self.config["icon_size"])
 
         if self.config["orientation"] == "horizontal":
             pixbuf = Gtk.IconTheme.get_default().load_icon(
-                self.client.get_property("IconName"),
+                icon_name,
                 14,
                 Gtk.IconLookupFlags.FORCE_SIZE,
             )
