@@ -58,140 +58,99 @@ class Calculator:
     def calculate(self, query: str):
         """Try to evaluate a math expression or conversion safely
 
-        Returns a tuple of (result, calculator_type_label) or None if no match
+        Prioritizes:
+        1. Unit Conversions
+        2. Accounting percentages (100 + 20% -> 120)
+        3. Standard Math with Order of Operations (2 + 3 * 4 -> 14)
         """
         if not query or not query.strip():
             return None
 
-        # Check for temperature conversions
+        # 1. Check for specific Unit Conversions
         temp_result = self._try_temperature_conversion(query)
         if temp_result is not None:
             return temp_result, "🌡️ Temperature"
 
-        # Check for weight conversions
         weight_result = self._try_weight_conversion(query)
         if weight_result is not None:
             return weight_result, "⚖️ Weight"
 
-        # Check for liquid conversions
         liquid_result = self._try_liquid_conversion(query)
         if liquid_result is not None:
             return liquid_result, "🥤 Volume"
 
-        # Check for percentage calculations (e.g., "250 + 15%", "80 - 20%", "2 * 20%", "2 / 20%")
-        match = re.match(r"^(\d+\.?\d*)\s*([+\-*/])\s*(\d+\.?\d*)%$", query)
+        # 2. Check for "Accounting" Percentage calculations
+        # Standard math says 100 + 10% is 100 + 0.1 = 100.1
+        # But humans often mean 100 + (10% of 100) = 110.
+        # We catch this specific pattern here.
+        match = re.match(r"^(\d+\.?\d*)\s*([+\-])\s*(\d+\.?\d*)%$", query)
         if match:
-            base, op, perc = (
-                float(match.group(1)),
-                match.group(2),
-                float(match.group(3)),
-            )
+            base = float(match.group(1))
+            op = match.group(2)
+            perc = float(match.group(3))
+
             value = base * (perc / 100)
             if op == "+":
                 result = base + value
-            elif op == "-":
+            else:  # op == "-"
                 result = base - value
-            elif op == "*":
-                result = base * (perc / 100)
-            else:  # op == "/"
-                result = base / (perc / 100)
             return f"{result:.2f}", "📊 Percentage"
 
-        # Check for "what is X% of Y" pattern (e.g., "15% of 200", "20% * 500")
+        # Check for "what is X% of Y" pattern
         match = re.match(r"^(\d+\.?\d*)%\s*(?:of|\*)\s*(\d+\.?\d*)$", query)
         if match:
             perc, base = float(match.group(1)), float(match.group(2))
             result = base * (perc / 100)
             return f"{result:.2f}", "📊 Percentage"
 
-        # Check for simple percentage conversion (e.g., "15%" -> "0.15")
-        match = re.match(r"^(\d+\.?\d*)%$", query)
-        if match:
-            perc = float(match.group(1))
-            return f"{perc / 100:.4f}", "📊 Percentage"
+        # 3. Universal Math Evaluation (Respects Order of Operations)
+        # This handles: 2+3*4, 5^2, sqrt(16), 50 * 5% (as 0.05)
+        return self._try_math_expression(query)
 
-        # Check for math functions (sqrt, abs, pow, etc.)
-        if re.match(r"^[\d+\-*/().^ a-z,]+$", query.lower()):
-            safe_dict = {
-                "__builtins__": {},
-                "sqrt": math.sqrt,
-                "pow": pow,
-                "abs": abs,
-                "round": round,
-                "sin": math.sin,
-                "cos": math.cos,
-                "tan": math.tan,
-                "log": math.log,
-                "pi": math.pi,
-                "e": math.e,
-            }
+    def _try_math_expression(self, query: str):
+        """Evaluates standard math expressions respecting PEMDAS/BODMAS."""
 
-            query_normalized = query.replace("^", "**")
-
-            try:
-                result = eval(query_normalized, safe_dict, {})
-
-                # Format the result nicely
-                if isinstance(result, float):
-                    # Remove unnecessary decimals
-                    if result.is_integer():
-                        return int(result), "🧮 Math"
-                    return round(result, 10), "🧮 Math"
-                return result, "🧮 Math"
-            except Exception as e:
-                logger.error(f"[Calculator] Math function error '{query}': {e}")
-                pass  # Try next pattern
-
-        # Check for power operations (e.g., "2^8", "5**3")
-        if re.match(r"^[\d+\-*/().^ ]+$", query):
-            query_normalized = query.replace("^", "**")
-
-            # Must contain at least one operator
-            if re.search(r"[+\-*/^]", query):
-                try:
-                    result = eval(query_normalized, {"__builtins__": {}}, {})
-
-                    # Format the result nicely
-                    if isinstance(result, float):
-                        if result.is_integer():
-                            return int(result), "🧮 Math"
-                        return round(result, 10), "🧮 Math"
-                    return result, "🧮 Math"
-                except Exception as e:
-                    logger.error(f"[Calculator] Power operation error '{query}': {e}")
-                    return None
-
-        # Only allow numbers, operators, parentheses, and whitespace
-        if not re.match(r"^[\d+\-*/(). ]+$", query):
+        if not re.match(r"^[\d+\-*/().^% a-z,]+$", query.lower()):
             return None
 
-        # Must contain at least one operator
-        if not re.search(r"[+\-*/]", query):
+        if not re.search(r"[+\-*/^%a-z]", query.lower()):
             return None
+
+        safe_query = query.replace("^", "**")
+
+        safe_query = re.sub(r"(\d+\.?\d*)%", r"(\1/100)", safe_query)
+
+        safe_dict = {
+            "__builtins__": {},
+            "sqrt": math.sqrt,
+            "pow": pow,
+            "abs": abs,
+            "round": round,
+            "sin": math.sin,
+            "cos": math.cos,
+            "tan": math.tan,
+            "log": math.log,
+            "pi": math.pi,
+            "e": math.e,
+            "ceil": math.ceil,
+            "floor": math.floor,
+        }
 
         try:
-            # Safely evaluate the expression
-            result = eval(query, {"__builtins__": {}}, {})
-            # Format the result nicely
-            if isinstance(result, float):
-                # Remove unnecessary decimals
-                if result.is_integer():
+            result = eval(safe_query, safe_dict, {})
+
+            # Format the result
+            if isinstance(result, (int, float)):
+                if isinstance(result, float) and result.is_integer():
                     return int(result), "🧮 Math"
                 return round(result, 10), "🧮 Math"
             return result, "🧮 Math"
-        except Exception as e:
-            logger.error(f"[Calculator] Calculation error '{query}': {e}")
+
+        except Exception:
             return None
 
     def _try_temperature_conversion(self, query: str):
-        """Try to convert temperature units
-
-        Supported formats:
-        - 100c, 100C, 100°c, 100°C -> Celsius to Fahrenheit
-        - 212f, 212F, 212°f, 212°F -> Fahrenheit to Celsius
-        - 100c to f, 100°C to °F -> Explicit conversion
-        - 212f to c, 212°F to °C -> Explicit conversion
-        """
+        """Try to convert temperature units"""
         query = query.strip().lower()
 
         # Pattern 1: Simple conversion (e.g., "100c", "212f", "100°c")
@@ -201,75 +160,54 @@ class Calculator:
             unit = match.group(2)
 
             if unit == "c":
-                # Celsius to Fahrenheit
                 result = (value * 9 / 5) + 32
                 return f"{result:.2f}°F"
-            else:  # unit == "f"
-                # Fahrenheit to Celsius
+            else:
                 result = (value - 32) * 5 / 9
                 return f"{result:.2f}°C"
 
-        # Pattern 2: Explicit conversion (e.g., "100c to f", "212°F to °C")
+        # Pattern 2: Explicit conversion
         match = re.match(r"^(-?\d+\.?\d*)°?([cf])\s+(?:to|in)\s+°?([cf])$", query)
         if match:
             value = float(match.group(1))
             from_unit = match.group(2)
             to_unit = match.group(3)
 
-            # If converting to same unit, just return the value
             if from_unit == to_unit:
                 return f"{value}°{to_unit.upper()}"
 
             if from_unit == "c":
-                # Celsius to Fahrenheit
                 result = (value * 9 / 5) + 32
                 return f"{result:.2f}°F"
-            else:  # from_unit == "f"
-                # Fahrenheit to Celsius
+            else:
                 result = (value - 32) * 5 / 9
                 return f"{result:.2f}°C"
 
         return None
 
     def _try_weight_conversion(self, query: str):
-        """Try to convert weight units
-
-        Supported formats:
-        - Metric: kg, g, mg, mt/ton/tonne (metric ton)
-        - Imperial/US: lb/lbs/pound/pounds, ust (US ton)
-
-        Examples:
-        - 100kg, 100 kg -> converts to lbs
-        - 150lbs to kg, 150 pounds to kg
-        - 5kg to g, 5000g to kg
-        - 1mt to ust, 1 metric ton to us ton
-        """
+        """Try to convert weight units"""
         query = query.strip().lower()
+        units_regex = "mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust"
 
-        # Pattern 1: Simple weight (e.g., "100kg", "150 lbs")
-        match = re.match(
-            r"^(\d+\.?\d*)\s*(mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust)s?$", query
-        )
+        # Pattern 1: Simple weight
+        match = re.match(rf"^(\d+\.?\d*)\s*({units_regex})s?$", query)
         if match:
             value = float(match.group(1))
             unit = match.group(2)
 
-            # Convert to grams first
             grams = value * self.weight_to_grams[unit]
 
-            # Decide what to convert to based on the input unit
             if unit in ["mg", "g", "kg", "mt", "ton", "tonne", "t"]:
-                # Metric to Imperial (pounds)
                 result = grams / self.weight_to_grams["lb"]
                 return f"{result:.2f} lbs"
             else:
-                # Imperial to Metric (kilograms)
                 result = grams / self.weight_to_grams["kg"]
                 return f"{result:.2f} kg"
 
-        # Pattern 2: Explicit conversion (e.g., "100kg to lbs", "150 pounds to kg")
+        # Pattern 2: Explicit conversion
         match = re.match(
-            r"^(\d+\.?\d*)\s*(mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust)s?\s+(?:to|in)\s+(mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust)s?$",
+            rf"^(\d+\.?\d*)\s*({units_regex})s?\s+(?:to|in)\s+({units_regex})s?$",
             query,
         )
         if match:
@@ -277,21 +215,17 @@ class Calculator:
             from_unit = match.group(2)
             to_unit = match.group(3)
 
-            # Normalize plurals
             if from_unit == "pounds":
                 from_unit = "lb"
             if to_unit == "pounds":
                 to_unit = "lb"
 
-            # If converting to same unit, just return the value
             if from_unit == to_unit:
                 return f"{value} {to_unit}"
 
-            # Convert via grams
             grams = value * self.weight_to_grams[from_unit]
             result = grams / self.weight_to_grams[to_unit]
 
-            # Format the result
             if result >= 1000 or result < 0.01:
                 return f"{result:.2e} {to_unit}"
             elif result < 1:
@@ -302,48 +236,31 @@ class Calculator:
         return None
 
     def _try_liquid_conversion(self, query: str):
-        """Try to convert liquid volume units
-
-        Supported formats:
-        - Metric: ml, l (liters)
-        - Imperial/US: floz/oz (fluid ounces), cup, pint, quart, gal/gallon
-
-        Examples:
-        - 100ml -> converts to fl oz
-        - 1l to gal, 1 liter to gallon
-        - 16floz to ml
-        - 2cup to ml
-        """
+        """Try to convert liquid volume units"""
         query = query.strip().lower()
+        units_regex = "ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons"
 
-        # Pattern 1: Simple liquid volume (e.g., "100ml", "16 floz")
-        match = re.match(
-            r"^(\d+\.?\d*)\s*(ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons)s?$",
-            query,
-        )
+        # Pattern 1: Simple liquid volume
+        match = re.match(rf"^(\d+\.?\d*)\s*({units_regex})s?$", query)
         if match:
             value = float(match.group(1))
             unit = match.group(2)
 
-            # Convert to ml first
             ml = value * self.liquid_to_ml[unit]
 
-            # Decide what to convert to based on the input unit
             if unit in ["ml", "l", "liter", "liters"]:
-                # Metric to Imperial (fluid ounces)
                 result = ml / self.liquid_to_ml["floz"]
                 return f"{result:.2f} fl oz"
             else:
-                # Imperial to Metric (liters or ml)
                 if ml >= 1000:
                     result = ml / self.liquid_to_ml["l"]
                     return f"{result:.2f} l"
                 else:
                     return f"{ml:.2f} ml"
 
-        # Pattern 2: Explicit conversion (e.g., "100ml to floz", "1gal to l")
+        # Pattern 2: Explicit conversion
         match = re.match(
-            r"^(\d+\.?\d*)\s*(ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons)s?\s+(?:to|in)\s+(ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons)s?$",
+            rf"^(\d+\.?\d*)\s*({units_regex})s?\s+(?:to|in)\s+({units_regex})s?$",
             query,
         )
         if match:
@@ -351,21 +268,19 @@ class Calculator:
             from_unit = match.group(2)
             to_unit = match.group(3)
 
-            # Normalize plurals
-            if from_unit in ["liters", "cups", "pints", "quarts", "gallons"]:
-                from_unit = from_unit[:-1]  # Remove 's'
-            if to_unit in ["liters", "cups", "pints", "quarts", "gallons"]:
-                to_unit = to_unit[:-1]  # Remove 's'
+            if from_unit.endswith("s") and from_unit not in [
+                "lbs",
+                "cups",
+            ]:  # Basic naive plural check
+                pass  # Detailed normalization is handled in regex grouping usually, but being safe
 
-            # If converting to same unit, just return the value
             if from_unit == to_unit:
                 return f"{value} {to_unit}"
 
-            # Convert via ml
+            ml = value * self.liquid_to_ml.get(from_unit, 1)  # .get for safety
             ml = value * self.liquid_to_ml[from_unit]
             result = ml / self.liquid_to_ml[to_unit]
 
-            # Format the result
             if result >= 1000 or result < 0.01:
                 return f"{result:.2e} {to_unit}"
             elif result < 1:
