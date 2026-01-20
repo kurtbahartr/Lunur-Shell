@@ -62,10 +62,10 @@ def toggle_command(command: str, full_command: str) -> bool:
     else:
         subprocess.Popen(
             full_command.split(" "),
-            stdin=subprocess.DEVNULL,  # No input stream
-            stdout=subprocess.DEVNULL,  # Optionally discard the output
-            stderr=subprocess.DEVNULL,  # Optionally discard the error output
-            start_new_session=True,  # This prevents the process from being killed
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
         return True
 
@@ -129,7 +129,11 @@ def unique_list(lst: List) -> List:
 def merge_defaults(data: Any, defaults: Any) -> Any:
     """Recursively merges configuration data with defaults."""
     if isinstance(defaults, dict) and isinstance(data, dict):
-        return {**defaults, **data}
+        merged = defaults.copy()
+        for key, value in data.items():
+            # Recursively merge nested dictionaries
+            merged[key] = merge_defaults(value, defaults.get(key))
+        return merged
     elif isinstance(defaults, list) and isinstance(data, list):
         return data if data else defaults
     else:
@@ -169,7 +173,6 @@ def copy_theme(theme: str):
     destination_file = get_relative_path("../styles/theme.scss")
     source_file = get_relative_path(f"../styles/themes/{theme}.scss")
 
-    # Fallback to catppuccin if theme doesn't exist
     if not os.path.exists(source_file):
         logger.warning(
             f"Warning: Theme '{theme}' not found. Defaulting to catpuccin-mocha."
@@ -250,7 +253,6 @@ def validate_widgets(parsed_data: Dict, default_config: Dict):
     module_groups = parsed_data.get("module_groups", [])
     collapsible_groups = parsed_data.get("collapsible_groups", [])
 
-    # Cache checked indices to avoid re-checking in loops
     validated_mods = set()
     validated_cols = set()
 
@@ -288,25 +290,23 @@ def validate_widgets(parsed_data: Dict, default_config: Dict):
             if widget.startswith("@group:"):
                 try:
                     idx = int(widget[7:])
-                    check_group_validity(
-                        module_groups, idx, "Module group", validated_mods
-                    )
                 except ValueError:
                     raise ValueError(
                         f"Invalid module group syntax: {widget} in {section_name}"
                     )
+                check_group_validity(module_groups, idx, "Module group", validated_mods)
 
             # Check Collapsible Groups
             elif widget.startswith("@collapsible_group:"):
                 try:
                     idx = int(widget[19:])
-                    check_group_validity(
-                        collapsible_groups, idx, "Collapsible group", validated_cols
-                    )
                 except ValueError:
                     raise ValueError(
                         f"Invalid collapsible group syntax: {widget} in {section_name}"
                     )
+                check_group_validity(
+                    collapsible_groups, idx, "Collapsible group", validated_cols
+                )
 
             # Check Standard Widgets
             elif widget not in default_config:
