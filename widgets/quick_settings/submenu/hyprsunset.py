@@ -1,3 +1,5 @@
+# widgets/quick_settings/submenu/hyprsunset.py
+
 import json
 import os
 from fabric.hyprland.widgets import get_hyprland_connection
@@ -5,7 +7,7 @@ from fabric.utils import cooldown, exec_shell_command_async, invoke_repeater
 from fabric.widgets.scale import Scale
 from fabric.widgets.box import Box
 from fabric.widgets.label import Label
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 
 from shared.buttons import QSChevronButton
 from shared.submenu import QuickSubMenu
@@ -20,7 +22,8 @@ STATE_FILE = os.path.join(CACHE_DIR, "hyprsunset.json")
 class HyprSunsetSubMenu(QuickSubMenu):
     def __init__(self, **kwargs):
         self.scan_button = None
-        self._hyprland_connection = get_hyprland_connection()
+        self._hyprland_connection = None
+        self._repeater_id = None
 
         self.cached_temp = self.load_state()
 
@@ -74,7 +77,24 @@ class HyprSunsetSubMenu(QuickSubMenu):
         )
 
         self.scale.connect("value-changed", self.on_scale_move)
-        invoke_repeater(1000, self.update_scale)
+
+        # Lazy initialize the repeater only when submenu is revealed
+        self.connect("notify::child-revealed", self._on_reveal_changed)
+
+    def _on_reveal_changed(self, revealer, *args):
+        """Start/stop the repeater based on reveal state."""
+        if self.get_child_revealed():
+            if self._repeater_id is None:
+                self._repeater_id = invoke_repeater(1000, self.update_scale)
+        else:
+            if self._repeater_id is not None:
+                GLib.source_remove(self._repeater_id)
+                self._repeater_id = None
+
+    def _get_hyprland_connection(self):
+        if self._hyprland_connection is None:
+            self._hyprland_connection = get_hyprland_connection()
+        return self._hyprland_connection
 
     def load_state(self):
         try:
@@ -135,7 +155,11 @@ class HyprSunsetSubMenu(QuickSubMenu):
 
 
 class HyprSunsetToggle(QSChevronButton):
-    def __init__(self, submenu: QuickSubMenu, popup, **kwargs):
+    def __init__(self, submenu: QuickSubMenu = None, popup=None, **kwargs):
+        self.popup = popup
+        self._repeater_id = None
+        self._is_running = False
+
         super().__init__(
             style_classes=["quicksettings-toggler"],
             action_icon=text_icons["nightlight"]["disabled"],
@@ -145,20 +169,32 @@ class HyprSunsetToggle(QSChevronButton):
             **kwargs,
         )
 
-        self.popup = popup
         self.action_button.set_sensitive(True)
-        self.connect("action-clicked", self.on_action)
-        invoke_repeater(1000, self.update_action_button)
+        self.action_button.connect("clicked", self.on_action)
+
+        # Do initial check but don't start repeater yet
+        GLib.idle_add(self._initial_update)
+
+    def _initial_update(self):
+        """Perform initial update after widget is shown."""
+        self.update_action_button()
+        # Start repeater only after initial update
+        if self._repeater_id is None:
+            self._repeater_id = invoke_repeater(1000, self.update_action_button)
+        return False
 
     def on_action(self, *_):
+        if self.submenu is None:
+            return True
+
         current_temp = int(self.submenu.scale.get_value())
         is_now_running = toggle_command("hyprsunset", f"hyprsunset -t {current_temp}")
         self.update_visuals(is_now_running)
         return True
 
     def update_action_button(self, *_):
-        self.is_running = is_app_running("hyprsunset")
-        self.update_visuals(self.is_running)
+        self._is_running = is_app_running("hyprsunset")
+        self.update_visuals(self._is_running)
         return True
 
     def update_visuals(self, is_running):
