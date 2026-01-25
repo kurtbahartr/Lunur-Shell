@@ -1,8 +1,9 @@
 from typing import Any, List, Literal
+import subprocess
 
 import gi
 from fabric.core.service import Property, Service, Signal
-from fabric.utils import bulk_connect, exec_shell_command_async
+from fabric.utils import bulk_connect, exec_shell_command_async, logger
 from gi.repository import Gio
 from utils.exceptions import NetworkManagerNotFoundError
 
@@ -90,6 +91,90 @@ class Wifi(Service):
                 ],
             )
 
+    def is_active_ap(self, bssid: str) -> bool:
+        """Check if an access point is currently active by BSSID."""
+        return self._ap.get_bssid() == bssid if self._ap else False
+
+    def get_ap_security(
+        self, nm_ap: NM.AccessPoint | None
+    ) -> str:
+        """Parse the security flags to return a string with 'WPA2', etc."""
+        if not nm_ap:
+            return "unsecured"
+        
+        flags = nm_ap.get_flags()
+        wpa_flags = nm_ap.get_wpa_flags()
+        rsn_flags = nm_ap.get_rsn_flags()
+        sec_str = ""
+        if (
+            (flags & getattr(NM, "80211ApFlags").PRIVACY)
+            and (wpa_flags == 0)
+            and (rsn_flags == 0)
+        ):
+            sec_str += " WEP"
+        if wpa_flags != 0:
+            sec_str += " WPA1"
+        if rsn_flags != 0:
+            sec_str += " WPA2"
+        if (wpa_flags & getattr(NM, "80211ApSecurityFlags").KEY_MGMT_802_1X) or (
+            rsn_flags & getattr(NM, "80211ApSecurityFlags").KEY_MGMT_802_1X
+        ):
+            sec_str += " 802.1X"
+
+        # If there is no security use "unsecured"
+        if sec_str == "":
+            sec_str = "unsecured"
+        return sec_str.lstrip()
+
+    def connect_network(
+        self, ssid: str, password: str = "", remember: bool = True
+    ) -> bool:
+        """Connect to a WiFi network"""
+        if not ssid:
+            logger.exception("[NetworkService] SSID cannot be empty")
+            return False
+        try:
+            # First try to connect using saved connection
+            try:
+                subprocess.run(["nmcli", "con", "up", ssid], check=True)
+                return True
+            except subprocess.CalledProcessError:
+                # If saved connection fails, try with password if provided
+                if password:
+                    cmd = [
+                        "nmcli",
+                        "device",
+                        "wifi",
+                        "connect",
+                        ssid,
+                        "password",
+                        password,
+                    ]
+                    if not remember:
+                        cmd.extend(["--temporary"])
+                    subprocess.run(cmd, check=True)
+                    return True
+                return False
+        except subprocess.CalledProcessError as e:
+            logger.exception(f"[NetworkService] Failed connecting to network: {e}")
+            return False
+
+    def disconnect_network(self, ssid: str) -> bool:
+        """Disconnect from a WiFi network"""
+        if not ssid:
+            logger.exception("[NetworkService] SSID cannot be empty")
+            return False
+        try:
+            subprocess.run(["nmcli", "con", "down", ssid], check=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            logger.exception(f"[NetworkService] Failed disconnecting from network: {e}")
+            return False
+
+    def get_raw_access_points(self) -> List[NM.AccessPoint]:
+        """Get the raw NM.AccessPoint objects for direct access."""
+        return self._device.get_access_points() if self._device else []
+
     def notifier(self, name: str, *args):
         self.notify(name)
         self.emit("changed")
@@ -132,7 +217,7 @@ class Wifi(Service):
     def frequency(self):
         return self._ap.get_frequency() if self._ap else -1
 
-    @Property(int, "readable")
+    @Property(str, "readable")
     def internet(self):
         return {
             NM.ActiveConnectionState.ACTIVATED: "activated",
@@ -182,7 +267,7 @@ class Wifi(Service):
         ssid = self._ap.get_ssid().get_data()
         return NM.utils_ssid_to_utf8(ssid) if ssid else "Unknown"
 
-    @Property(int, "readable")
+    @Property(str, "readable")
     def state(self):
         return {
             NM.DeviceState.UNMANAGED: "unmanaged",
@@ -331,6 +416,6 @@ class NetworkService(Service):
             f"nmcli device wifi connect {bssid}", lambda *args: print(args)
         )
 
-    @Property(str, "readable")
+    @Property(object, "readable")
     def primary_device(self) -> Literal["wifi", "wired"] | None:
         return self._get_primary_device()
