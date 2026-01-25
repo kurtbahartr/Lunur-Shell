@@ -11,6 +11,7 @@ from gi.repository import Gtk
 from services import bluetooth_service
 from shared.buttons import HoverButton, QSChevronButton, ScanButton
 from shared.list import ListBox
+from shared.separator import Separator
 from shared.submenu import QuickSubMenu
 from utils.icons import text_icons
 from utils.widget_utils import nerd_font_icon
@@ -112,6 +113,13 @@ class BluetoothSubMenu(QuickSubMenu):
     """A submenu to display the Bluetooth settings."""
 
     def __init__(self, **kwargs):
+        self.client = bluetooth_service
+        self.client.connect("device-added", self.populate_new_device)
+
+        self.separator = Separator(
+            orientation="horizontal",
+            style_classes=["app-volume-separator"],
+        )
         self.paired_devices_listbox = ListBox(
             visible=True, name="paired-devices-listbox"
         )
@@ -158,9 +166,11 @@ class BluetoothSubMenu(QuickSubMenu):
             child=Box(
                 orientation="v",
                 children=[
+                    self.separator,
                     self.paired_devices_container,
                     self.available_devices_container,
                 ],
+                spacing=10,
             ),
         )
 
