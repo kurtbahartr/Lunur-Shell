@@ -17,3 +17,4 @@ power-profiles-daemon
 swappy
 wf-recorder
 slurp
+uv
