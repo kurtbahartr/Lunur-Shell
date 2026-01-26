@@ -28,6 +28,7 @@ class AppVolumeControl(Box):
         self.stream = stream
         self.on_close = on_close
         self._updating = False
+        self._signal_ids = []  # Track signal IDs for cleanup
 
         # App icon
         self.icon = Image(style_classes=["app-volume-icon"])
@@ -55,10 +56,31 @@ class AppVolumeControl(Box):
         self.percentage_label.set_size_request(45, -1)
         self.pack_start(self.percentage_label, False, False, 0)
 
-        # Connect to stream changes
-        self.stream.connect("notify::volume", self._on_stream_volume_changed)
-        self.stream.connect("notify::muted", self._on_stream_volume_changed)
-        self.stream.connect("closed", self._on_stream_closed)
+        # Connect to stream changes and track IDs
+        if self.stream:
+            self._signal_ids.append(
+                self.stream.connect("notify::volume", self._on_stream_volume_changed)
+            )
+            self._signal_ids.append(
+                self.stream.connect("notify::muted", self._on_stream_volume_changed)
+            )
+            self._signal_ids.append(
+                self.stream.connect("closed", self._on_stream_closed)
+            )
+
+        # Clean up signals when this specific widget is destroyed
+        self.connect("destroy", self._on_destroy)
+
+    def _on_destroy(self, *_):
+        """Disconnect all signals to prevent crashes when widget is removed."""
+        if self.stream:
+            for sig_id in self._signal_ids:
+                try:
+                    if self.stream.handler_is_connected(sig_id):
+                        self.stream.disconnect(sig_id)
+                except Exception:
+                    pass
+        self._signal_ids.clear()
 
     def _set_app_icon(self):
         """Set the app icon from stream icon name or use fallback."""
@@ -71,7 +93,7 @@ class AppVolumeControl(Box):
                 self.icon.set_from_icon_name(self.stream.icon_name, icon_size)
                 return
             except Exception:
-                logger.error("[Quick settings] Loading volume icon failed: {e}")
+                pass
 
         # Try to get icon from application_id
         if hasattr(self.stream, "application_id") and self.stream.application_id:
