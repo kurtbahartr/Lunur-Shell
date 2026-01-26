@@ -4,11 +4,10 @@ from fabric.widgets.entry import Entry
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from fabric.widgets.wayland import WaylandWindow as Window
 from fabric.utils import idle_add, remove_handler
-from gi.repository import GLib, Gtk, GtkLayerShell
+from gi.repository import Gtk, GtkLayerShell
+
 
 # --- Click Interceptor Manager ---
-
-
 class ClickInterceptor:
     _instance = None
 
@@ -29,21 +28,17 @@ class ClickInterceptor:
     @property
     def overlay(self):
         if self._overlay is None:
-            # We set layer to 'top'. This puts it below the 'overlay' layer
-            # (where ScrolledView lives), preventing it from stealing scroll events.
             self._overlay = Window(
                 name="click-interceptor-overlay",
                 layer="top",
                 anchor="left top right bottom",
-                margin="-50px",  # Extend past edges
+                margin="-50px",
                 exclusivity="auto",
                 visible=False,
                 all_visible=False,
             )
             self._overlay.add(Box())
             self._overlay.connect("button-press-event", self._on_overlay_clicked)
-
-            # Crucial: Prevent this overlay from stealing keyboard focus
             GtkLayerShell.set_keyboard_mode(
                 self._overlay, GtkLayerShell.KeyboardMode.NONE
             )
@@ -81,15 +76,12 @@ class ScrolledView(Window):
         max_content_size: tuple[int, int],
         **kwargs,
     ):
-        # Force this window to be in the 'overlay' layer to sit strictly above the Interceptor
         kwargs.setdefault("layer", "overlay")
-
         super().__init__(**kwargs)
 
         self.arrange_func = arrange_func
         self.add_item_func = add_item_func
         self._arranger_handler: int = 0
-        self._resized_once = False
 
         self.min_content_size = min_content_size
         self.set_size_request(560, 320)
@@ -117,6 +109,7 @@ class ScrolledView(Window):
             max_content_size=max_content_size,
             child=self.viewport,
             h_scrollbar_policy=Gtk.PolicyType.NEVER,
+            v_scrollbar_policy=Gtk.PolicyType.AUTOMATIC,
         )
         self.displayitems.set_name("displayitems")
 
@@ -137,13 +130,8 @@ class ScrolledView(Window):
         self.search_entry.set_text("")
         self.arrange_viewport()
 
-        # Activate interceptor (shows background layer first)
         self._click_interceptor.activate(self)
-
-        # Show this window (overlay layer) on top
         super().show_all()
-
-        # Explicitly grab focus so typing/scrolling works immediately
         self.search_entry.grab_focus()
 
     def hide(self):
@@ -154,7 +142,7 @@ class ScrolledView(Window):
         super().hide()
 
     def on_key_press(self, widget, event) -> bool:
-        if event.keyval == 65307:
+        if event.keyval == 65307:  # Escape key
             self.hide()
             return True
         return False
@@ -179,22 +167,8 @@ class ScrolledView(Window):
     def add_next_item(self, items_iter: Iterator[Any]) -> bool:
         item = next(items_iter, None)
         if not item:
-            if not self._resized_once:
-                GLib.idle_add(self._resize_to_contents)
-                self._resized_once = True
             return False
 
         widget = self.add_item_func(item)
         self.viewport.add(widget)
         return True
-
-    def _resize_to_contents(self):
-        max_width = 0
-
-        for child in self.viewport.get_children():
-            _, nat_width = child.get_preferred_width()
-            max_width = max(max_width, nat_width)
-
-        max_width += 40
-        _, current_height = self.get_size()
-        self.set_size_request(max_width, current_height)
