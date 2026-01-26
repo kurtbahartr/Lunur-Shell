@@ -167,7 +167,9 @@ _BRIGHTNESS_LEVELS: list[tuple[int, dict[Literal["text_icon", "icon"], str]]] = 
 
 
 # Function to get brightness icon
-def get_brightness_icon_name(level: int) -> dict[Literal["text_icon", "icon"], str]:
+def get_brightness_icon_name(
+    level: int | float,
+) -> dict[Literal["text_icon", "icon"], str]:
     for threshold, result in _BRIGHTNESS_LEVELS:
         if level <= threshold:
             return result
