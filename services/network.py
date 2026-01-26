@@ -95,13 +95,11 @@ class Wifi(Service):
         """Check if an access point is currently active by BSSID."""
         return self._ap.get_bssid() == bssid if self._ap else False
 
-    def get_ap_security(
-        self, nm_ap: NM.AccessPoint | None
-    ) -> str:
+    def get_ap_security(self, nm_ap: NM.AccessPoint | None) -> str:
         """Parse the security flags to return a string with 'WPA2', etc."""
         if not nm_ap:
             return "unsecured"
-        
+
         flags = nm_ap.get_flags()
         wpa_flags = nm_ap.get_wpa_flags()
         rsn_flags = nm_ap.get_rsn_flags()
