@@ -47,7 +47,7 @@ class GenericOSDContainer(Box):
         self.scale = create_scale(
             name="osd-scale",
             orientation=config["orientation"],
-            h_expand=is_vertical,
+            h_expand=not is_vertical,
             v_expand=is_vertical,
             duration=config["transition_duration"] / 1000,  # seconds
             curve=(0.34, 1.56, 0.64, 1.0),
@@ -62,7 +62,8 @@ class GenericOSDContainer(Box):
             self.level = Label(name="osd-level", h_align="center", h_expand=True)
             self.add(self.level)
 
-    def update_values(self, value):
+    def update_values(self, value: int):
+        """Update scale and label with percentage value (0-100)."""
         round_value = round(value)
         self.scale.set_value(round_value)
         if self.show_level:
@@ -125,6 +126,7 @@ class AudioOSDContainer(GenericOSDContainer):
             self._update_volume_ui(volume, is_muted)
 
     def _update_volume_ui(self, volume: int, is_muted: bool):
+        """Update UI with volume percentage."""
         icon_info = get_audio_icon_name(volume, is_muted)
         self.icon.set_from_icon_name(icon_info["icon"], self.icon_size)
 
@@ -159,16 +161,21 @@ class BrightnessOSDContainer(GenericOSDContainer):
         self.brightness_service = Brightness()
         self.previous_level = None
 
+        # Connect to brightness_changed signal (receives percentage)
         self.brightness_service.brightness_changed.connect(self._on_brightness_changed)
 
-        self._update_brightness_ui(round(self.brightness_service.screen_brightness))
+        # Initialize with current percentage
+        initial_percentage = self.brightness_service.screen_brightness_percentage
+        self._update_brightness_ui(initial_percentage)
 
-    def _on_brightness_changed(self, service_instance, value, *_):
-        level = round((value / service_instance.max_screen) * 100)
+    def _on_brightness_changed(self, _service_instance, percentage: int, *_):
+        """Handle brightness changes from service."""
+        level = round(percentage)
         if self.previous_level is None or level != self.previous_level:
             self._update_brightness_ui(level)
 
     def _update_brightness_ui(self, level: int):
+        """Update UI with brightness percentage (0-100)."""
         icon_info = get_brightness_icon_name(level)
         self.icon.set_from_icon_name(icon_info["icon"], self.icon_size)
 
@@ -182,8 +189,6 @@ class OSDWindow(Window):
     """Top-level OSD window for audio and brightness."""
 
     def __init__(self, config: dict, **kwargs):
-        from .osd import AudioOSDContainer  # keep audio as is
-
         self.hide_timer_id = None
         self.config = config["osd"]
 

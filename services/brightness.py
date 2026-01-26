@@ -41,7 +41,7 @@ class Brightness(Service):
         return cls._instance
 
     @Signal
-    def brightness_changed(self, value: int) -> None:
+    def brightness_changed(self, percentage: int) -> None:
         """Signal emitted when screen brightness changes."""
 
     def __init__(self, **kwargs):
@@ -67,10 +67,7 @@ class Brightness(Service):
             )
             self.screen_monitor.connect(
                 "changed",
-                lambda _, file, *args: self.emit(
-                    "brightness_changed",
-                    round(int(file.load_bytes()[0].get_data())),
-                ),
+                lambda _, file, *args: self._on_brightness_file_changed(file),
             )
 
             logger.info(
@@ -79,6 +76,16 @@ class Brightness(Service):
 
         self.kbd_backlight_path = f"/sys/class/leds/{self.kbd}" if self.kbd else ""
         self.max_kbd = self._read_max_brightness(self.kbd_backlight_path)
+
+    def _on_brightness_file_changed(self, file):
+        """Handle brightness file changes and emit percentage."""
+        try:
+            raw_value = int(file.load_bytes()[0].get_data())
+            if self.max_screen > 0:
+                percentage = round((raw_value / self.max_screen) * 100)
+                self.emit("brightness_changed", percentage)
+        except Exception as e:
+            logger.error(f"Error reading brightness file: {e}")
 
     def _read_max_brightness(self, path: str) -> int:
         max_brightness_path = os.path.join(path, "max_brightness")
@@ -93,6 +100,7 @@ class Brightness(Service):
 
     @Property(int, "read-write")
     def screen_brightness(self) -> int:
+        """Get raw screen brightness value (0 to max_screen)."""
         if not self.screen_backlight_path:
             logger.warning("Cannot get brightness: no screen device.")
             return -1
@@ -105,6 +113,7 @@ class Brightness(Service):
 
     @screen_brightness.setter
     def screen_brightness(self, value: int):
+        """Set raw screen brightness value (0 to max_screen)."""
         if not self.screen_backlight_path:
             logger.warning("Cannot set brightness: no screen device.")
             return
@@ -113,18 +122,40 @@ class Brightness(Service):
 
         try:
             exec_brightnessctl_async(f"--device '{self.screen_device}' set {value}")
-            percentage = (
-                int((value / self.max_screen) * 100) if self.max_screen > 0 else 0
-            )
-            self.emit("brightness_changed", percentage)
             logger.info(f"Set screen brightness to {value} (out of {self.max_screen})")
+            # Note: brightness_changed signal will be emitted by file monitor
         except GLib.Error as e:
             logger.error(f"Error setting screen brightness: {e.message}")
         except Exception as e:
             logger.exception(f"Unexpected error setting screen brightness: {e}")
 
     @Property(int, "read-write")
+    def screen_brightness_percentage(self) -> int:
+        """Get screen brightness as percentage (0-100)."""
+        if not self.screen_backlight_path or self.max_screen <= 0:
+            return 0
+        current_brightness = self.screen_brightness
+        if current_brightness < 0:
+            return 0
+        return round((current_brightness / self.max_screen) * 100)
+
+    @screen_brightness_percentage.setter
+    def screen_brightness_percentage(self, percentage: int):
+        """Set screen brightness as percentage (0-100)."""
+        if not self.screen_backlight_path or self.max_screen <= 0:
+            logger.warning("Cannot set brightness percentage: no screen device.")
+            return
+
+        # Clamp percentage to 0-100
+        percentage = max(0, min(percentage, 100))
+
+        # Convert percentage to raw value
+        raw_value = round((percentage / 100) * self.max_screen)
+        self.screen_brightness = raw_value
+
+    @Property(int, "read-write")
     def keyboard_brightness(self) -> int:  # type: ignore
+        """Get raw keyboard brightness value."""
         if not self.kbd_backlight_path:
             logger.warning("No keyboard backlight device detected.")
             return -1
@@ -137,21 +168,15 @@ class Brightness(Service):
 
     @keyboard_brightness.setter
     def keyboard_brightness(self, value: int):
+        """Set raw keyboard brightness value."""
         if not self.kbd_backlight_path:
             logger.warning("No keyboard backlight device detected.")
             return
         if value < 0 or value > self.max_kbd:
-            return
+            value = max(0, min(value, self.max_kbd))
         try:
             exec_brightnessctl_async(f"--device '{self.kbd}' set {value}")
         except GLib.Error as e:
             logger.exception(e.message)
         except Exception as e:
             logger.exception(f"Failed to set keyboard brightness: {e}")
-
-    @Property(int, "readable")
-    def screen_brightness_percentage(self) -> int:
-        if not self.screen_backlight_path or self.max_screen <= 0:
-            return 0
-        current_brightness = self.screen_brightness
-        return int((current_brightness / self.max_screen) * 100)
