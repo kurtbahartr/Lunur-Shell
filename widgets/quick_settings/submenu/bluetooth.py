@@ -294,7 +294,7 @@ class BluetoothToggle(QSChevronButton):
         for sig_id in self._client_signals:
             try:
                 self.client.disconnect(sig_id)
-            except:
+            except Exception:
                 pass
 
         # Disconnect individual device signals
@@ -302,7 +302,7 @@ class BluetoothToggle(QSChevronButton):
             try:
                 if device.handler_is_connected(sig_id):
                     device.disconnect(sig_id)
-            except:
+            except Exception:
                 pass
         self._device_signals.clear()
 
