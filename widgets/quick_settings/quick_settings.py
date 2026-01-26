@@ -1,12 +1,17 @@
 import time
 from fabric.utils import logger
 from fabric.widgets.box import Box
+from fabric.widgets.image import Image
+from fabric.widgets.label import Label
 from utils.widget_settings import BarConfig
 from shared.widget_container import ButtonWidget
+from services.brightness import Brightness
+from utils import functions as helpers
+from utils.icons import icons
+from utils.widget_utils import get_brightness_icon_name
 from .services import (
     AudioService,
     NetworkServiceWrapper,
-    BrightnessService,
     BluetoothService,
 )
 from .quick_settings_menu import QuickSettingsMenu
@@ -15,6 +20,7 @@ from .quick_settings_menu import QuickSettingsMenu
 class QuickSettings:
     def __init__(self, config, debug=False):
         self.debug = debug
+        self.config = config
 
         # Audio
         t_start = time.perf_counter()
@@ -34,10 +40,14 @@ class QuickSettings:
                 f"  [QS] Network Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
             )
 
-        # Brightness
+        # Brightness - use singleton directly
         t_start = time.perf_counter()
-        self.brightness_service = BrightnessService(config)
-        self.brightness_service.connect_signals()
+        self.brightness = Brightness()
+        self.show_brightness_percent = config.get("show_brightness_percent")
+        self.brightness_icon = Image(style_classes="panel-icon")
+        self.brightness_percent_label = (
+            Label() if self.show_brightness_percent else None
+        )
         if self.debug:
             logger.info(
                 f"  [QS] Brightness Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
@@ -52,11 +62,39 @@ class QuickSettings:
                 f"  [QS] Bluetooth Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
             )
 
+    def connect_brightness_signals(self):
+        self.brightness.connect("brightness_changed", self._on_brightness_changed)
+
+    def _on_brightness_changed(self, *_):
+        self.update_brightness_icon()
+
+    def update_brightness_icon(self):
+        try:
+            current_brightness = self.brightness.screen_brightness
+            normalized_brightness = helpers.convert_to_percent(
+                current_brightness, self.brightness.max_screen
+            )
+            icon_info = get_brightness_icon_name(normalized_brightness)
+            icon_name = icon_info.get("icon", icons["brightness"]["indicator"])
+        except Exception:
+            icon_name = icons["brightness"]["indicator"]
+            normalized_brightness = 0
+
+        if icon_name:
+            self.brightness_icon.set_from_icon_name(icon_name, 16)
+        else:
+            self.brightness_icon.set_from_icon_name(
+                icons["brightness"]["indicator"], 16
+            )
+
+        if self.show_brightness_percent and self.brightness_percent_label:
+            self.brightness_percent_label.set_text(f"{normalized_brightness}%")
+
     def get_icons_and_labels(self, bar_icons):
         icons_map = {
             "audio": self.audio_service.audio_icon,
             "network": self.network_service.network_icon,
-            "brightness": self.brightness_service.brightness_icon,
+            "brightness": self.brightness_icon,
             "bluetooth": self.bluetooth_service.bluetooth_icon,
         }
         ordered_icons = []
@@ -67,19 +105,14 @@ class QuickSettings:
                     ordered_icons.append(self.network_service.network_ssid_label)
                 elif name == "audio" and self.audio_service.audio_percent_label:
                     ordered_icons.append(self.audio_service.audio_percent_label)
-                elif (
-                    name == "brightness"
-                    and self.brightness_service.brightness_percent_label
-                ):
-                    ordered_icons.append(
-                        self.brightness_service.brightness_percent_label
-                    )
+                elif name == "brightness" and self.brightness_percent_label:
+                    ordered_icons.append(self.brightness_percent_label)
         return ordered_icons
 
     def update_all_icons(self):
         self.audio_service.update_audio_icon()
         self.network_service.update_network_icon()
-        self.brightness_service.update_brightness_icon()
+        self.update_brightness_icon()
         self.bluetooth_service.update_bluetooth_icon()
 
 
@@ -147,7 +180,7 @@ class QuickSettingsButtonWidget(ButtonWidget):
         if "audio" in bar_icons:
             self.services.audio_service.connect_signals()
         if "brightness" in bar_icons:
-            self.services.brightness_service.connect_signals()
+            self.services.connect_brightness_signals()
         if "network" in bar_icons:
             self.services.network_service.connect_signals()
         if "bluetooth" in bar_icons:
@@ -160,6 +193,6 @@ class QuickSettingsButtonWidget(ButtonWidget):
         if "audio" in bar_icons:
             self.services.audio_service.update_audio_icon()
         if "brightness" in bar_icons:
-            self.services.brightness_service.update_brightness_icon()
+            self.services.update_brightness_icon()
         if "bluetooth" in bar_icons:
             self.services.bluetooth_service.update_bluetooth_icon()

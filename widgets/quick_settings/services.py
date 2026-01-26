@@ -3,11 +3,10 @@
 from gi.repository import GLib
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
-from services.brightness import Brightness
 from services import audio_service, bluetooth_service
 from utils import functions as helpers
 from utils.icons import icons
-from utils.widget_utils import get_audio_icon_name, get_brightness_icon_name
+from utils.widget_utils import get_audio_icon_name
 from utils.exceptions import NetworkManagerNotFoundError
 
 try:
@@ -124,42 +123,6 @@ class NetworkServiceWrapper:
 
         if self.show_network_name and self.network_ssid_label:
             self.network_ssid_label.set_text(helpers.truncate(ssid))
-
-
-class BrightnessService:
-    def __init__(self, config):
-        self.brightness_service = Brightness()
-        self.show_brightness_percent = config.get("show_brightness_percent")
-
-        self.brightness_icon = Image(style_classes="panel-icon")
-        self.brightness_percent_label = (
-            Label() if self.show_brightness_percent else None
-        )
-
-    def connect_signals(self):
-        self.brightness_service.connect(
-            "brightness_changed", self._on_brightness_changed
-        )
-
-    def _on_brightness_changed(self, *_):
-        self.update_brightness_icon()
-
-    def update_brightness_icon(self):
-        try:
-            current_brightness = self.brightness_service.screen_brightness
-            normalized_brightness = helpers.convert_to_percent(
-                current_brightness, self.brightness_service.max_screen
-            )
-            icon_info = get_brightness_icon_name(normalized_brightness)
-            icon_name = icon_info.get("icon", icons["brightness"]["indicator"])
-        except Exception:
-            icon_name = icons["brightness"]["indicator"]
-            normalized_brightness = 0
-
-        _update_icon(self.brightness_icon, icon_name, icons["brightness"]["indicator"])
-
-        if self.show_brightness_percent and self.brightness_percent_label:
-            self.brightness_percent_label.set_text(f"{normalized_brightness}%")
 
 
 class BluetoothService:
