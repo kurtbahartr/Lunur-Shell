@@ -133,6 +133,7 @@ class VolumeSlider(Box):
         )
 
         self.audio = audio_service
+        self._speaker_signals = []  # Track signal IDs
 
         # Main row (slider + expand button)
         self.main_row = Box(
@@ -206,16 +207,37 @@ class VolumeSlider(Box):
         self.audio.connect("stream-added", self._on_stream_added)
         self.audio.connect("stream-removed", self._on_stream_removed)
 
+        self.connect("destroy", self._on_destroy)
+
         if self.audio.speaker:
             self._connect_speaker_signals()
 
         self._update_icon(initial_volume)
         self._populate_apps()
 
+    def _on_destroy(self, *_):
+        self._disconnect_speaker_signals()
+
+    def _disconnect_speaker_signals(self):
+        for speaker_obj, sig_id in self._speaker_signals:
+            try:
+                if speaker_obj.handler_is_connected(sig_id):
+                    speaker_obj.disconnect(sig_id)
+            except Exception:
+                pass
+        self._speaker_signals.clear()
+
     def _connect_speaker_signals(self):
+        self._disconnect_speaker_signals()
+
         if self.audio.speaker:
-            self.audio.speaker.connect("notify::volume", self._on_volume_changed)
-            self.audio.speaker.connect("notify::muted", self._on_volume_changed)
+            speaker = self.audio.speaker
+            self._speaker_signals.append(
+                (speaker, speaker.connect("notify::volume", self._on_volume_changed))
+            )
+            self._speaker_signals.append(
+                (speaker, speaker.connect("notify::muted", self._on_volume_changed))
+            )
 
     def _on_speaker_changed(self, *_):
         self._connect_speaker_signals()

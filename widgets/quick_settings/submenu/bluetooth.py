@@ -51,13 +51,15 @@ class BluetoothDeviceBox(CenterBox):
             lambda _: self.device.set_property("connecting", not self.device.connected),
         )
 
-        bulk_connect(
+        # Store signal IDs to disconnect them later
+        self._signal_ids = bulk_connect(
             self.device,
             {
                 "notify::connecting": self.on_device_connecting,
                 "notify::connected": self.on_device_connect,
             },
         )
+        self.connect("destroy", self._on_destroy)
 
         device_name = device.name or "Unknown Device"
 
@@ -82,6 +84,18 @@ class BluetoothDeviceBox(CenterBox):
 
         self.on_device_connect()
 
+    def _on_destroy(self, *_):
+        """Clean up signals when widget is destroyed to prevent crashes."""
+        if self.device and self._signal_ids:
+            for signal_id in self._signal_ids:
+                try:
+                    if self.device.handler_is_connected(signal_id):
+                        self.device.disconnect(signal_id)
+                except Exception:
+                    pass
+            # FIX: Tuple does not have .clear(), reassign instead
+            self._signal_ids = ()
+
     def on_device_connecting(self, *_):
         if self.device.connecting:
             self.connect_button.set_label("Connecting...")
@@ -98,9 +112,6 @@ class BluetoothSubMenu(QuickSubMenu):
     """A submenu to display the Bluetooth settings."""
 
     def __init__(self, **kwargs):
-        self.client = bluetooth_service
-        self.client.connect("device-added", self.populate_new_device)
-
         self.paired_devices_listbox = ListBox(
             visible=True, name="paired-devices-listbox"
         )
@@ -161,13 +172,39 @@ class BluetoothSubMenu(QuickSubMenu):
             **kwargs,
         )
 
+        self.client = bluetooth_service
+        self._added_signal_id = self.client.connect(
+            "device-added", self.populate_new_device
+        )
+
+        # Connect to self (safe now)
+        self.connect("destroy", self._on_destroy)
+
         # Track device rows for easy update
         self.device_rows = {}
+        # Track device signals separately
+        self.device_signals = {}
 
         # Populate initial devices
         for device in self.client.devices:
             self.add_device_row(device)
-            device.connect("notify::paired", self.on_device_paired_changed)
+            # Track this signal connection
+            sig_id = device.connect("notify::paired", self.on_device_paired_changed)
+            self.device_signals[device.address] = (device, sig_id)
+
+    def _on_destroy(self, *_):
+        """Clean up submenu signals."""
+        if self._added_signal_id:
+            self.client.disconnect(self._added_signal_id)
+
+        # Clean up device specific signals
+        for device, sig_id in self.device_signals.values():
+            try:
+                if device.handler_is_connected(sig_id):
+                    device.disconnect(sig_id)
+            except Exception:
+                pass
+        self.device_signals.clear()
 
     def on_scan_toggle(self, btn: Button):
         self.client.toggle_scan()
@@ -180,8 +217,12 @@ class BluetoothSubMenu(QuickSubMenu):
         device = client.get_device(address)
         if device is None:
             return
-        self.add_device_row(device)
-        device.connect("notify::paired", self.on_device_paired_changed)
+
+        # Avoid duplicate connections
+        if address not in self.device_signals:
+            self.add_device_row(device)
+            sig_id = device.connect("notify::paired", self.on_device_paired_changed)
+            self.device_signals[address] = (device, sig_id)
 
     def add_device_row(self, device: BluetoothDevice):
         # Remove existing row if present
@@ -189,6 +230,7 @@ class BluetoothSubMenu(QuickSubMenu):
             row, listbox = self.device_rows[device.address]
             listbox.remove(row)
             row.destroy()
+
         bt_item = Gtk.ListBoxRow(visible=True, name="bluetooth-device-row")
         bt_item.add(BluetoothDeviceBox(device))
         if device.paired:
@@ -217,11 +259,14 @@ class BluetoothToggle(QSChevronButton):
 
         # Client Signals
         self.client = bluetooth_service
+        self._device_signals = []  # Store device signal IDs
 
-        bulk_connect(
+        # Track main client signals
+        self._client_signals = bulk_connect(
             self.client,
             {"device-added": self.new_device, "notify::enabled": self.toggle_bluetooth},
         )
+        self.connect("destroy", self._on_destroy)
 
         self.toggle_bluetooth(self.client)
 
@@ -233,6 +278,23 @@ class BluetoothToggle(QSChevronButton):
 
         # Button Signals
         self.connect("action-clicked", lambda *_: self.client.toggle_power())
+
+    def _on_destroy(self, *_):
+        # Disconnect client signals
+        for sig_id in self._client_signals:
+            try:
+                self.client.disconnect(sig_id)
+            except:
+                pass
+
+        # Disconnect individual device signals
+        for device, sig_id in self._device_signals:
+            try:
+                if device.handler_is_connected(sig_id):
+                    device.disconnect(sig_id)
+            except:
+                pass
+        self._device_signals.clear()
 
     def toggle_bluetooth(self, client: BluetoothClient, *_):
         if client.enabled:
@@ -248,9 +310,19 @@ class BluetoothToggle(QSChevronButton):
         device = client.get_device(address)
         if device is None:
             return
-        device.connect("changed", self.device_connected)
 
-    def device_connected(self, device: BluetoothDevice):
+        # Track the connected signal
+        sig_id = device.connect("changed", self.device_connected)
+        self._device_signals.append((device, sig_id))
+
+    def device_connected(self, device: BluetoothDevice, *_):
+        # Safety check if widget is destroyed but signal fired
+        try:
+            if not self.action_label or self.action_label.in_destruction():
+                return
+        except AttributeError:
+            pass
+
         if device.connected:
             self.action_label.set_label(device.name)
         elif self.action_label.get_label() == device.name:
