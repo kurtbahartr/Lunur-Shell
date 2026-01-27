@@ -278,8 +278,8 @@ class VolumeSlider(Box):
 
     def _update_icon(self, volume: float, muted: bool = False):
         try:
-            icon_info = get_audio_icon_name(volume, muted)
-            icon_name = icon_info.get("icon", icons["audio"]["volume"]["medium"])
+            icon_info = get_audio_icon_name(int(volume), muted)
+            icon_name = str(icon_info.get("icon", icons["audio"]["volume"]["medium"]))
             self.volume_slider.set_icon(icon_name)
         except Exception:
             pass

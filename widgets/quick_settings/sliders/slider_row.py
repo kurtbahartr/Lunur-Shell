@@ -1,11 +1,12 @@
 # widgets/quick_settings/sliders/slider_row.py
 
+from typing import Callable, Optional
 from fabric.widgets.box import Box
 from fabric.widgets.scale import Scale
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.button import Button
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk
 
 
 class SliderRow(Box):
@@ -17,8 +18,8 @@ class SliderRow(Box):
         min_value: float = 0,
         max_value: float = 100,
         initial_value: float = 50,
-        on_change: callable = None,
-        on_icon_click: callable = None,
+        on_change: Optional[Callable] = None,
+        on_icon_click: Optional[Callable] = None,
         show_percentage: bool = True,
         clickable_icon: bool = False,
         style_class: str = "slider-row",
@@ -71,10 +72,6 @@ class SliderRow(Box):
                 style_classes=["slider-percentage"],
             )
             self.percentage_label.set_size_request(45, -1)
-
-            # Force bold using Pango
-            font_desc = Pango.FontDescription("Sans Bold 10")  # adjust size if needed
-            self.percentage_label.modify_font(font_desc)
 
             self.pack_start(self.percentage_label, False, False, 0)
 

@@ -6,7 +6,7 @@ from services import notification_service
 from shared.button_toggle import CommandSwitcher
 from shared.buttons import HoverButton
 from utils.icons import text_icons
-from utils.widget_utils import nerd_font_icon, get_icon
+from utils.widget_utils import nerd_font_icon
 
 
 class QuickSettingToggler(CommandSwitcher):
@@ -49,7 +49,7 @@ class NotificationQuickSetting(HoverButton):
             label="Noisy",
         )
         self.notification_icon = nerd_font_icon(
-            icon=get_icon(text_icons["notification"]["noisy"]),
+            icon=text_icons["notification"]["noisy"],
             props={"style_classes": ["panel-font-icon"]},
         )
 

@@ -155,7 +155,7 @@ class HyprSunsetSubMenu(QuickSubMenu):
 
 
 class HyprSunsetToggle(QSChevronButton):
-    def __init__(self, submenu: QuickSubMenu = None, popup=None, **kwargs):
+    def __init__(self, submenu: QuickSubMenu | None = None, popup=None, **kwargs):
         self.popup = popup
         self._repeater_id = None
         self._is_running = False

@@ -1,4 +1,5 @@
 import time
+from typing import cast
 from fabric.utils import logger
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
@@ -71,8 +72,10 @@ class QuickSettings:
     def update_brightness_icon(self):
         try:
             current_brightness = self.brightness.screen_brightness
-            normalized_brightness = helpers.convert_to_percent(
-                current_brightness, self.brightness.max_screen
+            normalized_brightness = int(
+                helpers.convert_to_percent(
+                    current_brightness, self.brightness.max_screen
+                )
             )
             icon_info = get_brightness_icon_name(normalized_brightness)
             icon_name = icon_info.get("icon", icons["brightness"]["indicator"])
@@ -121,13 +124,10 @@ class QuickSettingsButtonWidget(ButtonWidget):
         # Extract debug flag safely
         self.debug = widget_config.get("general", {}).get("debug", False)
 
-        super().__init__(
-            widget_config["quick_settings"], name="quick_settings", **kwargs
-        )
+        self.config = cast(dict, widget_config["quick_settings"])
+        super().__init__(self.config, name="quick_settings", **kwargs)
         self.popup = None
         self.connect("clicked", self.show_popover)
-
-        self.config = widget_config["quick_settings"]
 
         # Measure Services Init
         t_start = time.perf_counter()

@@ -28,10 +28,10 @@ class BrightnessSlider(SliderRow):
 
         # Get initial icon
         try:
-            icon_info = get_brightness_icon_name(initial_percent)
-            initial_icon = icon_info.get("icon", icons["brightness"]["indicator"])
+            icon_info = get_brightness_icon_name(int(initial_percent))
+            initial_icon = str(icon_info.get("icon", icons["brightness"]["indicator"]))
         except Exception:
-            initial_icon = icons["brightness"]["indicator"]
+            initial_icon = str(icons["brightness"]["indicator"])
 
         # Initialize parent SliderRow
         super().__init__(
@@ -146,8 +146,8 @@ class BrightnessSlider(SliderRow):
             return
 
         try:
-            icon_info = get_brightness_icon_name(percent)
-            icon_name = icon_info.get("icon", icons["brightness"]["indicator"])
+            icon_info = get_brightness_icon_name(int(percent))
+            icon_name = str(icon_info.get("icon", icons["brightness"]["indicator"]))
             self.set_icon(icon_name)
         except Exception as e:
             print(f"[BrightnessSlider] Error updating icon: {e}")

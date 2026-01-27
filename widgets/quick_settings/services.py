@@ -1,5 +1,6 @@
 # widgets/quick_settings/services.py
 
+from typing import Any, Optional
 from gi.repository import GLib
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
@@ -16,7 +17,7 @@ except ImportError:
 
 
 def _update_icon(
-    image_widget: Image, icon_name: str, fallback_icon: str, size: int = 16
+    image_widget: Image, icon_name: Optional[str], fallback_icon: str, size: int = 16
 ):
     """Sets the icon on the widget with a fallback if the name is missing."""
     if icon_name:
@@ -26,7 +27,7 @@ def _update_icon(
 
 
 class AudioService:
-    def __init__(self, config):
+    def __init__(self, config: Any):
         self.audio = audio_service
         self.show_audio_percent = config.get("show_audio_percent")
         self.audio_icon = Image(style_classes="panel-icon")
@@ -50,8 +51,8 @@ class AudioService:
         speaker = self.audio.speaker
         if speaker:
             volume = round(speaker.volume)
-            icon_info = get_audio_icon_name(volume, speaker.muted)
-            icon_name = icon_info.get("icon", icons["audio"].get("muted", ""))
+            icon_info = get_audio_icon_name(int(volume), speaker.muted)
+            icon_name = str(icon_info.get("icon", icons["audio"].get("muted", "")))
 
             _update_icon(self.audio_icon, icon_name, icons["audio"].get("muted", ""))
 
@@ -60,7 +61,7 @@ class AudioService:
 
 
 class NetworkServiceWrapper:
-    def __init__(self, config):
+    def __init__(self, config: Any):
         self.network = NetworkService()
         self.show_network_name = config.get("show_network_name")
 
@@ -122,7 +123,7 @@ class NetworkServiceWrapper:
         )
 
         if self.show_network_name and self.network_ssid_label:
-            self.network_ssid_label.set_text(helpers.truncate(ssid))
+            self.network_ssid_label.set_text(helpers.truncate(ssid if ssid else ""))
 
 
 class BluetoothService:
@@ -132,7 +133,7 @@ class BluetoothService:
         "speaker": icons["audio"]["type"]["speaker"],
     }
 
-    def __init__(self, config):
+    def __init__(self, config: Any):
         self.bluetooth = bluetooth_service
         self.bluetooth_icon = Image(style_classes="panel-icon")
         self._bluetooth_poll_id = None
