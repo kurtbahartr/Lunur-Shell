@@ -94,7 +94,6 @@ class BluetoothDeviceBox(CenterBox):
                         self.device.disconnect(signal_id)
                 except Exception:
                     pass
-            # FIX: Tuple does not have .clear(), reassign instead
             self._signal_ids = ()
 
     def on_device_connecting(self, *_):
@@ -105,8 +104,8 @@ class BluetoothDeviceBox(CenterBox):
 
     def on_device_connect(self, *_):
         self.connect_button.set_label(
-            "Disconnect",
-        ) if self.device.connected else self.connect_button.set_label("Connect")
+            "Disconnect" if self.device.connected else "Connect"
+        )
 
 
 class BluetoothSubMenu(QuickSubMenu):
@@ -114,7 +113,6 @@ class BluetoothSubMenu(QuickSubMenu):
 
     def __init__(self, **kwargs):
         self.client = bluetooth_service
-        self.client.connect("device-added", self.populate_new_device)
 
         self.separator = Separator(
             orientation="horizontal",
@@ -182,12 +180,12 @@ class BluetoothSubMenu(QuickSubMenu):
             **kwargs,
         )
 
-        self.client = bluetooth_service
+        # Connect device-added signal
         self._added_signal_id = self.client.connect(
             "device-added", self.populate_new_device
         )
 
-        # Connect to self (safe now)
+        # Connect to self for cleanup
         self.connect("destroy", self._on_destroy)
 
         # Track device rows for easy update
@@ -205,7 +203,10 @@ class BluetoothSubMenu(QuickSubMenu):
     def _on_destroy(self, *_):
         """Clean up submenu signals."""
         if self._added_signal_id:
-            self.client.disconnect(self._added_signal_id)
+            try:
+                self.client.disconnect(self._added_signal_id)
+            except Exception:
+                pass
 
         # Clean up device specific signals
         for device, sig_id in self.device_signals.values():
@@ -217,10 +218,12 @@ class BluetoothSubMenu(QuickSubMenu):
         self.device_signals.clear()
 
     def on_scan_toggle(self, btn: Button):
+        """Toggle Bluetooth scanning - this is the ONLY place scanning starts."""
         self.client.toggle_scan()
-        btn.add_style_class(
-            ["active"]
-        ) if self.client.scanning else btn.remove_style_class(["active"])
+        if self.client.scanning:
+            btn.add_style_class("active")
+        else:
+            btn.remove_style_class("active")
         self.scan_button.play_animation()
 
     def populate_new_device(self, client: BluetoothClient, address: str):
@@ -248,7 +251,10 @@ class BluetoothSubMenu(QuickSubMenu):
             self.device_rows[device.address] = (bt_item, self.paired_devices_listbox)
         else:
             self.available_devices_listbox.add(bt_item)
-            self.device_rows[device.address] = (bt_item, self.available_devices_listbox)
+            self.device_rows[device.address] = (
+                bt_item,
+                self.available_devices_listbox,
+            )
 
     def on_device_paired_changed(self, device, *_):
         # Move device row between listboxes when paired status changes
@@ -282,9 +288,8 @@ class BluetoothToggle(QSChevronButton):
 
         for device in self.client.devices:
             self.new_device(self.client, device.address)
-        self.device_connected(
-            self.client.connected_devices[0]
-        ) if self.client.connected_devices else None
+        if self.client.connected_devices:
+            self.device_connected(self.client.connected_devices[0])
 
         # Button Signals
         self.connect("action-clicked", lambda *_: self.client.toggle_power())
@@ -294,7 +299,7 @@ class BluetoothToggle(QSChevronButton):
         for sig_id in self._client_signals:
             try:
                 self.client.disconnect(sig_id)
-            except:
+            except Exception:
                 pass
 
         # Disconnect individual device signals
@@ -302,7 +307,7 @@ class BluetoothToggle(QSChevronButton):
             try:
                 if device.handler_is_connected(sig_id):
                     device.disconnect(sig_id)
-            except:
+            except Exception:
                 pass
         self._device_signals.clear()
 
@@ -331,7 +336,7 @@ class BluetoothToggle(QSChevronButton):
             if not self.action_label or self.action_label.in_destruction():
                 return
         except AttributeError:
-            pass
+            return
 
         if device.connected:
             self.action_label.set_label(device.name)

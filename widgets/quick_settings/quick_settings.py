@@ -54,10 +54,8 @@ class QuickSettings:
                 f"  [QS] Brightness Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
             )
 
-        # Bluetooth
         t_start = time.perf_counter()
         self.bluetooth_service = BluetoothService(config)
-        self.bluetooth_service._start_bluetooth_polling()
         if self.debug:
             logger.info(
                 f"  [QS] Bluetooth Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
@@ -185,7 +183,6 @@ class QuickSettingsButtonWidget(ButtonWidget):
             self.services.network_service.connect_signals()
         if "bluetooth" in bar_icons:
             self.services.bluetooth_service.connect_signals()
-            self.services.bluetooth_service._start_bluetooth_polling()
 
     def update_initial_icons(self, bar_icons):
         if "network" in bar_icons:
