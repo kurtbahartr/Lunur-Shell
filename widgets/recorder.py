@@ -1,3 +1,4 @@
+from typing import Optional
 from fabric.utils import get_relative_path
 
 from services.screen_record import ScreenRecorderService
@@ -31,7 +32,7 @@ class RecorderWidget(ButtonWidget):
         if self.config.get("tooltip"):
             self.set_tooltip_text("Recording stopped")
 
-        self.recorder_service = None
+        self.recorder_service: Optional[ScreenRecorderService] = None
 
         self.connect("clicked", self.handle_click)
 
@@ -65,8 +66,8 @@ class RecorderWidget(ButtonWidget):
         """Start or stop recording the screen."""
         self.lazy_init()
 
-        if not self.initialized:
-            return  # Early exit if script not available
+        if not self.initialized or self.recorder_service is None:
+            return  # Early exit if service not available
 
         if self.recorder_service.is_recording:
             self.recorder_service.screenrecord_stop()

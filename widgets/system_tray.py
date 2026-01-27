@@ -1,6 +1,6 @@
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
-from fabric.system_tray import SystemTray, SystemTrayItem
+from fabric.system_tray.service import SystemTray, SystemTrayItem
 from shared.widget_container import HoverButton
 from shared.reveal import HoverRevealer
 from utils.widget_settings import BarConfig
