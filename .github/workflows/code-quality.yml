@@ -21,7 +21,6 @@ jobs:
           enable-cache: true
           python-version: "3.14"
       - run: uvx ruff check .
-
   formatting:
     runs-on: ubuntu-latest
     needs: [lock_file]
@@ -41,15 +40,28 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libcairo2-dev pkg-config libgirepository1.0-dev
-
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
           python-version: "3.14"
       - run: uv run --with pyright pyright .
+  pytest:
+    runs-on: ubuntu-latest
+    needs: [lock_file]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2-dev pkg-config libgirepository1.0-dev
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          python-version: "3.14"
+      - run: uv run pytest
   build:
     runs-on: ubuntu-latest
-    needs: [linting, formatting, type_consistency]
+    needs: [linting, formatting, type_consistency, pytest]
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
