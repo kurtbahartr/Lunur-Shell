@@ -1,6 +1,6 @@
 import pytest
 import math
-from modules.launcher import Calculator
+from modules.calculator import Calculator
 
 
 @pytest.fixture
