@@ -5,6 +5,7 @@ from utils.config import widget_config
 from utils.widget_settings import BarConfig
 from shared.widget_container import ButtonWidget
 from utils.icons import text_icons
+from typing import cast
 import os
 
 hyprpicker = widget_config["hyprpicker"]
@@ -13,13 +14,13 @@ hyprpicker = widget_config["hyprpicker"]
 class HyprPickerButton(ButtonWidget):
     def __init__(self, widget_config: BarConfig, **kwargs):
         super().__init__(
-            config=widget_config["hyprpicker"],
+            config=cast(dict, widget_config["hyprpicker"]),
             name="hyprpicker-button",
             **kwargs,
         )
 
         self.initialized = False
-        self.script_file = None
+        self.script_file: str | None = None
 
         icon_char = text_icons["ui"]["hyprpicker"]
         font_size = self.config.get("icon_size", 14)
@@ -43,6 +44,7 @@ class HyprPickerButton(ButtonWidget):
         if not self.initialized:
             self.script_file = get_relative_path("../assets/scripts/hyprpicker.sh")
             if not os.path.isfile(self.script_file):
+                self.script_file = None
                 self.set_sensitive(False)
                 self.set_tooltip_text("Script not found")
                 return
@@ -50,7 +52,7 @@ class HyprPickerButton(ButtonWidget):
 
     def on_button_press(self, widget, event):
         self.lazy_init()
-        if not self.initialized:
+        if not self.initialized or self.script_file is None:
             return
 
         command = self.script_file

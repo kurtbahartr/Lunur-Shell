@@ -227,14 +227,9 @@ class PlayerctlMenu(Popover):
 
 class PlayerctlWidget(HoverRevealer):
     def __init__(self, widget_config: BarConfig | None = None, **kwargs):
-        # Handle BarConfig instantiation: Pass empty dict if None to avoid TypeErrors.
-        # BarConfig is likely a TypedDict requiring specific keys, so we avoid instantiating it
-        # directly if we don't have those keys, and just use a plain dict.
-        if widget_config is None:
-            widget_config = {}  # type: ignore
+        safe_config = widget_config if widget_config is not None else {}
 
-        # Determine config: use 'playerctl' key if available, otherwise use whole config
-        config = widget_config.get("playerctl", widget_config)
+        config = safe_config.get("playerctl", safe_config)
 
         self.config = config
         self.icon_size = config.get("icon_size", 16)
@@ -271,7 +266,7 @@ class PlayerctlWidget(HoverRevealer):
             hidden_child=label_container,
             slide_direction=slide_direction,
             transition_duration=transition_duration,
-            expanded_margin=self.icon_size,  # Use icon size for spacing logic similar to original
+            expanded_margin=self.icon_size,
             **kwargs,
         )
 

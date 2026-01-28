@@ -43,8 +43,10 @@ class PowerProfileButton(ButtonWidget):
 
         # Set initial icon
         self.icon_widget = PowerProfileButton._profile_icons[self.current_profile]
-        self.box.add(self.icon_widget)
-        self.icon_widget.show()
+        if self.icon_widget:
+            self.box.add(self.icon_widget)
+            self.icon_widget.show()
+
         self.set_tooltip_text(f"Power Profile: {self.current_profile.capitalize()}")
         self.box.show_all()
 
@@ -79,9 +81,15 @@ class PowerProfileButton(ButtonWidget):
             if self.icon_widget:
                 self.box.remove(self.icon_widget)
 
-            self.icon_widget = PowerProfileButton._profile_icons.get(profile)
-            self.box.add(self.icon_widget)
-            self.icon_widget.show()
+            # Retrieve the new icon from the cache
+            new_icon = PowerProfileButton._profile_icons.get(profile)
+
+            # Explicit check to ensure the icon is valid before using it
+            if new_icon:
+                self.icon_widget = new_icon
+                self.box.add(self.icon_widget)
+                self.icon_widget.show()
+
             self.set_tooltip_text(f"Power Profile: {profile.capitalize()}")
             self.box.show_all()
 
@@ -130,7 +138,7 @@ class PowerProfileButton(ButtonWidget):
             if "ActiveProfile" in changed_props:
                 GLib.idle_add(self.update_profile_display)
 
-        # FIX: Assign to self.dbus_helper so it isn't Garbage Collected
+        # Assign to self.dbus_helper so it isn't Garbage Collected
         self.dbus_helper = GioDBusHelper(
             bus_name="net.hadess.PowerProfiles",
             object_path="/net/hadess/PowerProfiles",

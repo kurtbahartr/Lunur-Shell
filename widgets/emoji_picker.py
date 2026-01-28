@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-import ijson
+import ijson  # type: ignore
 from fabric.utils import remove_handler
 from fabric.utils.helpers import get_relative_path
 from fabric.widgets.box import Box
@@ -88,7 +88,8 @@ class EmojiPickerMenu(Box):
     def close_picker(self):
         self.stack.children = []
         self.selected_index = -1
-        self.get_parent().hide_popover()
+        if parent := self.get_parent():
+            parent.hide_popover()  # type: ignore
 
     def open_picker(self):
         self.search_entry.set_text("")

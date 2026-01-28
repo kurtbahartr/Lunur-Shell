@@ -229,8 +229,14 @@ def send_notification(
     notification = Gio.Notification.new(title)
     notification.set_body(body)
 
-    if urgency in {"low", "normal", "critical"}:
-        notification.set_urgent(urgency)
+    priority_map = {
+        "low": Gio.NotificationPriority.LOW,
+        "normal": Gio.NotificationPriority.NORMAL,
+        "critical": Gio.NotificationPriority.HIGH,
+    }
+    notification.set_priority(
+        priority_map.get(urgency, Gio.NotificationPriority.NORMAL)
+    )
 
     if icon:
         notification.set_icon(Gio.ThemedIcon.new(icon))

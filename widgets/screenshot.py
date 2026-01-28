@@ -20,7 +20,7 @@ class ScreenShotWidget(ButtonWidget):
         super().__init__(config=screenshot_config, name="screenshot", **kwargs)
 
         self.initialized = False
-        self.recorder_service = None
+        self.recorder_service: ScreenRecorderService | None = None
 
         self.box.children = nerd_font_icon(
             icon=self.config.get("icon", "󰹑"),
@@ -44,7 +44,8 @@ class ScreenShotWidget(ButtonWidget):
         """Start recording the screen."""
         self.lazy_init()
 
-        if not self.initialized:
+        # Explicitly check for None to satisfy type checker
+        if self.recorder_service is None:
             return  # Early exit if script not available
 
         self.recorder_service.screenshot(

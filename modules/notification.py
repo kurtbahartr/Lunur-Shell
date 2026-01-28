@@ -30,7 +30,7 @@ class NotificationPopup(Window):
     def __init__(self, widget_config: BarConfig, **kwargs):
         self._server = notification_service
         self.widget_config = widget_config
-        self.config = widget_config["notification"]
+        self.config = widget_config["notification"]  # type: ignore
         self.ignored_apps = helpers.unique_list(self.config["ignored"])
 
         self.notifications = Box(
@@ -150,7 +150,7 @@ class NotificationWidget(EventBox):
                             constants.NOTIFICATION_IMAGE_SIZE,
                             constants.NOTIFICATION_IMAGE_SIZE,
                             GdkPixbuf.InterpType.BILINEAR,
-                        ),
+                        ),  # type: ignore
                         h_expand=True,
                         v_expand=True,
                         size=constants.NOTIFICATION_IMAGE_SIZE,
@@ -158,7 +158,7 @@ class NotificationWidget(EventBox):
                     )
                 )
                 del pixbuf
-        except GLib.GError:
+        except GLib.Error:
             logger.warning("[Notification] Image not available.")
 
         body_container.add(
@@ -254,7 +254,7 @@ class NotificationWidget(EventBox):
 
     def set_pointer_cursor(self, cursor_name):
         if window := self.get_window():
-            cursor = Gdk.Cursor.new_from_name(self.get_display(), cursor_name)
+            cursor = Gdk.Cursor.new_from_name(self.get_display(), cursor_name)  # type: ignore
             window.set_cursor(cursor)
 
 

@@ -18,7 +18,7 @@ launcher.hide()
 class AppLauncherButton(ButtonWidget):
     def __init__(self, widget_config: BarConfig, **kwargs):
         super().__init__(
-            config=widget_config["app_launcher"],
+            config=widget_config["app_launcher"],  # type: ignore
             name="app-launcher-button",
             **kwargs,
         )

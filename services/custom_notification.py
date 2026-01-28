@@ -120,7 +120,7 @@ class CustomNotifications(Notifications):
         # Create the new notification
         self._count += 1
         new_id = self._count
-        serialized_data = data.serialize()
+        serialized_data = dict(data.serialize())
         serialized_data.update({"id": new_id, "app_name": data.app_name})
 
         # Get current notifications for this app and enforce limit

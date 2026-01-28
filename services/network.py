@@ -132,15 +132,19 @@ class Wifi(Service):
     def frequency(self):
         return self._ap.get_frequency() if self._ap else -1
 
-    @Property(int, "readable")
+    @Property(str, "readable")
     def internet(self):
+        active_conn = self._device.get_active_connection()
+        if not active_conn:
+            return "disconnected"
+
         return {
             NM.ActiveConnectionState.ACTIVATED: "activated",
             NM.ActiveConnectionState.ACTIVATING: "activating",
             NM.ActiveConnectionState.DEACTIVATING: "deactivating",
             NM.ActiveConnectionState.DEACTIVATED: "deactivated",
         }.get(
-            self._device.get_active_connection().get_state(),
+            active_conn.get_state(),
             "unknown",
         )
 
@@ -182,7 +186,7 @@ class Wifi(Service):
         ssid = self._ap.get_ssid().get_data()
         return NM.utils_ssid_to_utf8(ssid) if ssid else "Unknown"
 
-    @Property(int, "readable")
+    @Property(str, "readable")
     def state(self):
         return {
             NM.DeviceState.UNMANAGED: "unmanaged",
@@ -215,13 +219,17 @@ class Ethernet(Service):
 
     @Property(str, "readable")
     def internet(self) -> str:
+        active_conn = self._device.get_active_connection()
+        if not active_conn:
+            return "disconnected"
+
         return {
             NM.ActiveConnectionState.ACTIVATED: "activated",
             NM.ActiveConnectionState.ACTIVATING: "activating",
             NM.ActiveConnectionState.DEACTIVATING: "deactivating",
             NM.ActiveConnectionState.DEACTIVATED: "deactivated",
         }.get(
-            self._device.get_active_connection().get_state(),
+            active_conn.get_state(),
             "disconnected",
         )
 
@@ -312,19 +320,18 @@ class NetworkService(Service):
         if not self._client:
             return None
 
-        if self._client.get_primary_connection() is None:
+        primary_conn = self._client.get_primary_connection()
+        if primary_conn is None:
             return "wifi"
-        return (
-            "wifi"
-            if "wireless"
-            in str(self._client.get_primary_connection().get_connection_type())
-            else (
-                "wired"
-                if "ethernet"
-                in str(self._client.get_primary_connection().get_connection_type())
-                else None
-            )
-        )
+
+        conn_type = str(primary_conn.get_connection_type())
+
+        if "wireless" in conn_type:
+            return "wifi"
+        elif "ethernet" in conn_type:
+            return "wired"
+
+        return None
 
     def connect_wifi_bssid(self, bssid):
         exec_shell_command_async(
@@ -332,5 +339,7 @@ class NetworkService(Service):
         )
 
     @Property(str, "readable")
-    def primary_device(self) -> Literal["wifi", "wired"] | None:
-        return self._get_primary_device()
+    def primary_device(self) -> str:
+        # Changed to return 'str' instead of 'Literal | None'
+        res = self._get_primary_device()
+        return res if res is not None else "unknown"

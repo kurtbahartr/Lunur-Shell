@@ -73,7 +73,7 @@ class ScreenRecorderService(Service):
 
     def screenrecord_start(
         self,
-        config: dict = None,
+        config: Optional[dict] = None,
         fullscreen: bool = False,
     ):
         """Start screen recording using wf-recorder."""
@@ -144,7 +144,9 @@ class ScreenRecorderService(Service):
         else:
             start_recording()
 
-    def _send_simple_notification(self, title: str, body: str, icon: str = None):
+    def _send_simple_notification(
+        self, title: str, body: str, icon: Optional[str] = None
+    ):
         """Send a simple notification without actions."""
         cmd = [
             "notify-send",
@@ -162,7 +164,7 @@ class ScreenRecorderService(Service):
         except Exception as e:
             logger.exception(f"[NOTIFICATION] Failed to send: {e}")
 
-    def send_screenshot_notification(self, file_path: str = None):
+    def send_screenshot_notification(self, file_path: Optional[str] = None):
         """Send screenshot notification with actions."""
         cmd = ["notify-send"]
         cmd.extend(
@@ -207,11 +209,11 @@ class ScreenRecorderService(Service):
                 case "edit":
                     exec_shell_command_async(f"swappy -f {file_path}", lambda *_: None)
 
-        proc.communicate_utf8_async(None, None, _callback)
+        proc.communicate_utf8_async("", None, _callback)
 
     def screenshot(
         self,
-        config: dict = None,
+        config: Optional[dict] = None,
         fullscreen: bool = False,
         save_copy: bool = True,
     ):
@@ -333,7 +335,7 @@ class ScreenRecorderService(Service):
                 case "view":
                     exec_shell_command_async(f"xdg-open {file_path}", lambda *_: None)
 
-        proc.communicate_utf8_async(None, None, _callback)
+        proc.communicate_utf8_async("", None, _callback)
 
     @Property(bool, "readable", default_value=False)
     def is_recording(self):
@@ -366,10 +368,6 @@ class ScreenRecorderService(Service):
 
         GLib.timeout_add(500, send_notification)
 
-
-# ============================================
-# Module-level convenience functions for fabric-cli
-# ============================================
 
 _recorder_instance: Optional[ScreenRecorderService] = None
 

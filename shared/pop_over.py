@@ -202,7 +202,7 @@ class Popover(Widget):
         widget_allocation = self._point_to.get_allocation()
         popover_allocation = self._content_window.get_allocation()
         popover_width = popover_allocation.width
-        popover_height = popover_allocation.height
+        # popover_height = popover_allocation.height
 
         display = Gdk.Display.get_default()
         if display is None:
