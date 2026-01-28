@@ -53,7 +53,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libcairo2-dev pkg-config libgirepository1.0-dev
+          sudo apt-get install -y libcairo2-dev pkg-config libgirepository1.0-dev libgtk-3-dev
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
