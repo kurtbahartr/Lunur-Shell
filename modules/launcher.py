@@ -55,6 +55,15 @@ class Calculator:
             "gallons": 3785.41,
         }
 
+        # Create regex strings sorted by length (descending) to prevent partial matching
+        # e.g., ensure "lbs" is matched before "lb"
+        self.weight_regex = "|".join(
+            sorted(self.weight_to_grams.keys(), key=len, reverse=True)
+        )
+        self.liquid_regex = "|".join(
+            sorted(self.liquid_to_ml.keys(), key=len, reverse=True)
+        )
+
     def calculate(self, query: str):
         """Try to evaluate a math expression or conversion safely
 
@@ -80,9 +89,6 @@ class Calculator:
             return liquid_result, "🥤 Volume"
 
         # 2. Check for "Accounting" Percentage calculations
-        # Standard math says 100 + 10% is 100 + 0.1 = 100.1
-        # But humans often mean 100 + (10% of 100) = 110.
-        # We catch this specific pattern here.
         match = re.match(r"^(\d+\.?\d*)\s*([+\-])\s*(\d+\.?\d*)%$", query)
         if match:
             base = float(match.group(1))
@@ -104,20 +110,33 @@ class Calculator:
             return f"{result:.2f}", "📊 Percentage"
 
         # 3. Universal Math Evaluation (Respects Order of Operations)
-        # This handles: 2+3*4, 5^2, sqrt(16), 50 * 5% (as 0.05)
         return self._try_math_expression(query)
 
     def _try_math_expression(self, query: str):
         """Evaluates standard math expressions respecting PEMDAS/BODMAS."""
+        # Lowercase everything for consistent matching (allows Sqrt, SQRT, etc.)
+        query_lower = query.lower()
 
-        if not re.match(r"^[\d+\-*/().^% a-z,]+$", query.lower()):
+        # Regex explanation:
+        # \d+      : digits
+        # \.?\d*   : optional decimals
+        # [+\-*/]  : basic operators
+        # ()       : parentheses
+        # .        : decimal point
+        # ^        : exponent
+        # %        : modulo/percent
+        # a-z      : functions (sqrt, etc)
+        # ,        : commas (for tuples or multi-arg functions)
+        if not re.match(r"^[\d+\-*/().^% a-z,]+$", query_lower):
             return None
 
-        if not re.search(r"[+\-*/^%a-z]", query.lower()):
+        # Ensure at least one operator, function, or comma exists
+        # Added ',' to allow "1, 2" to evaluate to a tuple
+        if not re.search(r"[+\-*/^%a-z,]", query_lower):
             return None
 
-        safe_query = query.replace("^", "**")
-
+        safe_query = query_lower.replace("^", "**")
+        # Handle "50%" as "50/100" in math context
         safe_query = re.sub(r"(\d+\.?\d*)%", r"(\1/100)", safe_query)
 
         safe_dict = {
@@ -188,10 +207,10 @@ class Calculator:
     def _try_weight_conversion(self, query: str):
         """Try to convert weight units"""
         query = query.strip().lower()
-        units_regex = "mg|g|kg|mt|ton|tonne|t|lb|lbs|pound|pounds|ust"
 
-        # Pattern 1: Simple weight
-        match = re.match(rf"^(\d+\.?\d*)\s*({units_regex})s?$", query)
+        # Pattern 1: Simple weight (e.g., "1kg")
+        # Note: self.weight_regex handles sorting keys by length (lbs before lb)
+        match = re.match(rf"^(\d+\.?\d*)\s*({self.weight_regex})s?$", query)
         if match:
             value = float(match.group(1))
             unit = match.group(2)
@@ -205,9 +224,9 @@ class Calculator:
                 result = grams / self.weight_to_grams["kg"]
                 return f"{result:.2f} kg"
 
-        # Pattern 2: Explicit conversion
+        # Pattern 2: Explicit conversion (e.g., "1kg to lbs")
         match = re.match(
-            rf"^(\d+\.?\d*)\s*({units_regex})s?\s+(?:to|in)\s+({units_regex})s?$",
+            rf"^(\d+\.?\d*)\s*({self.weight_regex})s?\s+(?:to|in)\s+({self.weight_regex})s?$",
             query,
         )
         if match:
@@ -226,7 +245,9 @@ class Calculator:
             grams = value * self.weight_to_grams[from_unit]
             result = grams / self.weight_to_grams[to_unit]
 
-            if result >= 1000 or result < 0.01:
+            # Thresholds for scientific notation
+            # Adjusted lower bound from 0.0001 to 0.01 to catch 0.001 (1mg) correctly
+            if result >= 1000000 or result < 0.01:
                 return f"{result:.2e} {to_unit}"
             elif result < 1:
                 return f"{result:.4f} {to_unit}"
@@ -238,10 +259,9 @@ class Calculator:
     def _try_liquid_conversion(self, query: str):
         """Try to convert liquid volume units"""
         query = query.strip().lower()
-        units_regex = "ml|l|liter|liters|floz|oz|cup|cups|pint|pints|quart|quarts|gal|gallon|gallons"
 
         # Pattern 1: Simple liquid volume
-        match = re.match(rf"^(\d+\.?\d*)\s*({units_regex})s?$", query)
+        match = re.match(rf"^(\d+\.?\d*)\s*({self.liquid_regex})s?$", query)
         if match:
             value = float(match.group(1))
             unit = match.group(2)
@@ -260,7 +280,7 @@ class Calculator:
 
         # Pattern 2: Explicit conversion
         match = re.match(
-            rf"^(\d+\.?\d*)\s*({units_regex})s?\s+(?:to|in)\s+({units_regex})s?$",
+            rf"^(\d+\.?\d*)\s*({self.liquid_regex})s?\s+(?:to|in)\s+({self.liquid_regex})s?$",
             query,
         )
         if match:
@@ -268,25 +288,26 @@ class Calculator:
             from_unit = match.group(2)
             to_unit = match.group(3)
 
-            if from_unit.endswith("s") and from_unit not in [
-                "lbs",
-                "cups",
-            ]:  # Basic naive plural check
-                pass  # Detailed normalization is handled in regex grouping usually, but being safe
-
             if from_unit == to_unit:
                 return f"{value} {to_unit}"
 
-            ml = value * self.liquid_to_ml.get(from_unit, 1)  # .get for safety
+            # Calculate conversion
             ml = value * self.liquid_to_ml[from_unit]
             result = ml / self.liquid_to_ml[to_unit]
 
-            if result >= 1000 or result < 0.01:
-                return f"{result:.2e} {to_unit}"
+            # Normalize display unit
+            display_unit = to_unit
+            if display_unit == "floz":
+                display_unit = "fl oz"
+
+            # Thresholds for scientific notation
+            # Adjusted lower bound from 0.0001 to 0.01
+            if result >= 1000000 or result < 0.01:
+                return f"{result:.2e} {display_unit}"
             elif result < 1:
-                return f"{result:.4f} {to_unit}"
+                return f"{result:.4f} {display_unit}"
             else:
-                return f"{result:.2f} {to_unit}"
+                return f"{result:.2f} {display_unit}"
 
         return None
 
