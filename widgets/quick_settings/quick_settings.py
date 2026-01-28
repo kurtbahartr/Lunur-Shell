@@ -1,6 +1,4 @@
-import time
 from typing import cast
-from fabric.utils import logger
 from fabric.widgets.box import Box
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
@@ -24,42 +22,54 @@ class QuickSettings:
         self.config = config
 
         # Audio
-        t_start = time.perf_counter()
-        self.audio_service = AudioService(config)
-        self.audio_service.connect_signals()
-        if self.debug:
-            logger.info(
-                f"  [QS] Audio Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
+        self.audio_service = helpers.total_time(
+            "Audio Service",
+            lambda: self._init_audio(),
+            debug=self.debug,
+            category="Quick Settings",
+        )
 
         # Network
-        t_start = time.perf_counter()
-        self.network_service = NetworkServiceWrapper(config)
-        self.network_service.connect_signals()
-        if self.debug:
-            logger.info(
-                f"  [QS] Network Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
+        self.network_service = helpers.total_time(
+            "Network Service",
+            lambda: self._init_network(),
+            debug=self.debug,
+            category="Quick Settings",
+        )
 
-        # Brightness - use singleton directly
-        t_start = time.perf_counter()
+        # Brightness
+        helpers.total_time(
+            "Brightness Service",
+            lambda: self._init_brightness(),
+            debug=self.debug,
+            category="Quick Settings",
+        )
+
+        # Bluetooth
+        self.bluetooth_service = helpers.total_time(
+            "Bluetooth Service",
+            lambda: BluetoothService(config),
+            debug=self.debug,
+            category="Quick Settings",
+        )
+
+    def _init_audio(self):
+        service = AudioService(self.config)
+        service.connect_signals()
+        return service
+
+    def _init_network(self):
+        service = NetworkServiceWrapper(self.config)
+        service.connect_signals()
+        return service
+
+    def _init_brightness(self):
         self.brightness = Brightness()
-        self.show_brightness_percent = config.get("show_brightness_percent")
+        self.show_brightness_percent = self.config.get("show_brightness_percent")
         self.brightness_icon = Image(style_classes="panel-icon")
         self.brightness_percent_label = (
             Label() if self.show_brightness_percent else None
         )
-        if self.debug:
-            logger.info(
-                f"  [QS] Brightness Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
-
-        t_start = time.perf_counter()
-        self.bluetooth_service = BluetoothService(config)
-        if self.debug:
-            logger.info(
-                f"  [QS] Bluetooth Service: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
 
     def connect_brightness_signals(self):
         self.brightness.connect("brightness_changed", self._on_brightness_changed)
@@ -128,51 +138,37 @@ class QuickSettingsButtonWidget(ButtonWidget):
         self.connect("clicked", self.show_popover)
 
         # Measure Services Init
-        t_start = time.perf_counter()
-        self.services = QuickSettings(self.config, debug=self.debug)
-        if self.debug:
-            logger.info(
-                f"[QS] Services Init Total: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
+        self.services = helpers.total_time(
+            "Services Init",
+            lambda: QuickSettings(self.config, debug=self.debug),
+            debug=self.debug,
+            category="Quick Settings",
+        )
 
-        # Measure Icon/Label Generation
-        t_start = time.perf_counter()
         bar_icons = self.config.get("bar_icons")
+
+        # UI Generation (Logs removed)
         ordered_icons = self.services.get_icons_and_labels(bar_icons)
         self.children = Box(spacing=4, children=ordered_icons)
-        if self.debug:
-            logger.info(
-                f"[QS] UI Generation: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
 
-        # Measure Signal Connections
-        t_start = time.perf_counter()
+        # Signal Connections (Logs removed)
         self.connect_signals(bar_icons)
-        if self.debug:
-            logger.info(
-                f"[QS] Signal Connections: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
 
-        # Measure Initial Updates
-        t_start = time.perf_counter()
+        # Initial Updates (Logs removed)
         self.update_initial_icons(bar_icons)
-        if self.debug:
-            logger.info(
-                f"[QS] Initial Icon Updates: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
 
     def show_popover(self, *_):
         if self.popup:
             self.popup.destroy()
 
-        # Optional: Measure popover open time
-        t_start = time.perf_counter()
-        self.popup = QuickSettingsMenu(point_to_widget=self, config=self.config)
+        # Measure popover open time
+        self.popup = helpers.total_time(
+            "Popover Open",
+            lambda: QuickSettingsMenu(point_to_widget=self, config=self.config),
+            debug=self.debug,
+            category="Quick Settings",
+        )
         self.popup.open()
-        if self.debug:
-            logger.info(
-                f"[QS] Popover Open: {(time.perf_counter() - t_start) * 1000:.1f}ms"
-            )
 
     def connect_signals(self, bar_icons):
         if "audio" in bar_icons:

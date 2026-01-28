@@ -1,6 +1,5 @@
 import os
 import json
-import time
 import pytomlpp
 from fabric.utils import get_relative_path, logger
 
@@ -10,6 +9,7 @@ from .functions import (
     merge_defaults,
     validate_widgets,
     ttl_lru_cache,
+    total_time,
 )
 
 
@@ -46,31 +46,38 @@ class LunurShellConfig:
             raise FileNotFoundError("Missing config.json or config.toml")
 
         use_json = os.path.exists(self.json_config)
-        start_time = time.perf_counter()
 
-        data = self.read_config_json() if use_json else self.read_config_toml()
+        # 1. Read Config
+        read_func = self.read_config_json if use_json else self.read_config_toml
+        config_type = "JSON" if use_json else "TOML"
 
-        read_time_ms = (time.perf_counter() - start_time) * 1000
+        data = total_time(f"Read ({config_type})", read_func, category="Config")
 
-        if data.get("general", {}).get("debug", False):
-            config_type = "JSON" if use_json else "TOML"
-            logger.info(
-                f"[Timing] Config ({config_type}) read in {read_time_ms:.1f} ms"
+        # Determine user debug preference for subsequent steps
+        should_debug = data.get("general", {}).get("debug", False)
+
+        # 2. Validate Widgets
+        total_time(
+            "Validation",
+            lambda: validate_widgets(data, DEFAULT_CONFIG),
+            debug=should_debug,
+            category="Config",
+        )
+
+        # 3. Merge Defaults
+        def merge_process():
+            data.update(
+                {
+                    key: (
+                        data.get(key, DEFAULT_CONFIG[key])
+                        if key == "module_groups"
+                        else merge_defaults(data.get(key, {}), DEFAULT_CONFIG[key])
+                    )
+                    for key in exclude_keys(DEFAULT_CONFIG, ["$schema"])
+                }
             )
 
-        validate_widgets(data, DEFAULT_CONFIG)
-
-        # Replaced explicit for-loop with dictionary comprehension update
-        data.update(
-            {
-                key: (
-                    data.get(key, DEFAULT_CONFIG[key])
-                    if key == "module_groups"
-                    else merge_defaults(data.get(key, {}), DEFAULT_CONFIG[key])
-                )
-                for key in exclude_keys(DEFAULT_CONFIG, ["$schema"])
-            }
-        )
+        total_time("Merge", merge_process, debug=should_debug, category="Config")
 
         self.config = data
 

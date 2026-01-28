@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import time
 from functools import lru_cache
-from typing import Dict, List, Literal, Optional, Union, Any
+from typing import Dict, List, Literal, Optional, Union, Any, Callable
 
 from gi.repository import GLib, Gio
 from fabric.utils import logger
@@ -19,6 +19,43 @@ from fabric.utils import (
 from .icons import text_icons
 from .thread import run_in_thread
 from .exceptions import ExecutableNotFoundError
+
+
+def total_time(
+    name: str, func: Callable, debug: bool = True, category: str = "Module"
+) -> Any:
+    """
+    Measures the execution time of a function/module load.
+    Automatically formats the output in microseconds (μs) or milliseconds (ms).
+
+    Args:
+        name: The name of the item being loaded.
+        func: The function to execute.
+        debug: If False, skips timing and just runs the function.
+        category: The label type (e.g., 'Module', 'Widget', 'Config'). Defaults to 'Module'.
+    """
+    if not debug:
+        return func()
+
+    start_time = time.perf_counter()
+    try:
+        result = func()
+    except Exception as e:
+        logger.error(f"[Timing] Failed to load {category} '{name}': {e}")
+        raise e
+    end_time = time.perf_counter()
+
+    duration = end_time - start_time
+
+    if duration < 0.001:
+        # Less than 1ms, display in microseconds
+        formatted_time = f"{duration * 1_000_000:.2f} μs"
+    else:
+        # Display in milliseconds
+        formatted_time = f"{duration * 1_000:.2f} ms"
+
+    logger.info(f"[Timing] {category} '{name}' loaded in {formatted_time}")
+    return result
 
 
 def set_process_name(name: str):

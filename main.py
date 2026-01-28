@@ -39,28 +39,12 @@ if not DEBUG:
 _start_time = time.perf_counter() if DEBUG else None
 
 
-def time_module_load(name: str, func):
-    if not DEBUG:
-        return func()
-    start = time.perf_counter()
-    result = func()
-    elapsed_ms = (time.perf_counter() - start) * 1000
-    logger.info(f"[Timing] Module '{name}' loaded in {elapsed_ms:.1f} ms")
-    return result
-
-
 def compile_scss():
     if not helpers.executable_exists("sass"):
         raise ExecutableNotFoundError("sass")
 
-    logger.info("[Main] Compiling SCSS")
-    start = time.perf_counter() if DEBUG else None
-
+    # Timing is handled by the caller via helpers.total_time
     output = exec_shell_command("sass styles/main.scss dist/main.css --no-source-map")
-
-    if DEBUG and start:
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        logger.info(f"[Timing] SCSS compiled in {elapsed_ms:.1f} ms")
 
     if output:
         logger.error("[Main] Failed to compile SCSS!")
@@ -108,8 +92,7 @@ def setup_initial_styles(target_theme: str):
                 should_compile = True
                 reason = "Theme content mismatch"
 
-    # 4. Global Timestamp Check (List Comprehension)
-    # If not compiling yet, check if ANY scss file in the directory is newer than dist/main.css
+    # 4. Global Timestamp Check
     if not should_compile:
         output_mtime = os.path.getmtime(css_output)
 
@@ -128,7 +111,9 @@ def setup_initial_styles(target_theme: str):
     if should_compile:
         logger.info(f"[Main] Compiling styles. Reason: {reason}")
         helpers.copy_theme(target_theme)
-        compile_scss()
+
+        helpers.total_time("Compilation", compile_scss, debug=DEBUG, category="SCSS")
+
         with open(state_file, "w") as f:
             f.write(target_theme)
     else:
@@ -138,7 +123,7 @@ def setup_initial_styles(target_theme: str):
 @cooldown(2)
 @helpers.run_in_thread
 def process_and_apply_css(app: Application):
-    compile_scss()
+    helpers.total_time("Compilation", compile_scss, debug=DEBUG, category="SCSS")
     app.set_stylesheet_from_file(get_relative_path("dist/main.css"))
     logger.info("[Main] CSS applied")
 
@@ -156,41 +141,62 @@ if __name__ == "__main__":
     from modules.bar import StatusBar
     from modules.launcher import AppLauncher
 
-    # Instantiate core modules
-    launcher = time_module_load("AppLauncher", AppLauncher)
-    bar = time_module_load("StatusBar", lambda: StatusBar(cast(Any, widget_config)))
+    # Instantiate core modules using total_time
+    launcher = helpers.total_time(
+        "AppLauncher", AppLauncher, debug=DEBUG, category="Module"
+    )
+
+    bar = helpers.total_time(
+        "StatusBar",
+        lambda: StatusBar(cast(Any, widget_config)),
+        debug=DEBUG,
+        category="Module",
+    )
 
     windows = [bar, launcher]
 
     if widget_config.get("keybinds", {}).get("enabled"):
         from modules.keybinds import KeybindsWidget
 
-        keybinds = time_module_load(
-            "KeybindsWidget", lambda: KeybindsWidget(widget_config)
+        keybinds = helpers.total_time(
+            "KeybindsWidget",
+            lambda: KeybindsWidget(widget_config),
+            debug=DEBUG,
+            category="Module",
         )
         windows.append(keybinds)
 
     if widget_config.get("notification", {}).get("enabled"):
         from modules.notification import NotificationPopup
 
-        notifications = time_module_load(
+        notifications = helpers.total_time(
             "NotificationPopup",
             lambda: NotificationPopup(widget_config),  # type: ignore
+            debug=DEBUG,
+            category="Module",
         )
         windows.append(notifications)
 
     if widget_config.get("general", {}).get("screen_corners", {}).get("enabled"):
         from modules.corners import ScreenCorners
 
-        screen_corners = time_module_load(
-            "ScreenCorners", lambda: ScreenCorners(widget_config)
+        screen_corners = helpers.total_time(
+            "ScreenCorners",
+            lambda: ScreenCorners(widget_config),
+            debug=DEBUG,
+            category="Module",
         )
         windows.append(screen_corners)
 
     if widget_config.get("osd", {}).get("enabled"):
         from modules.osd import OSDWindow
 
-        osd = time_module_load("OSDWindow", lambda: OSDWindow(widget_config))
+        osd = helpers.total_time(
+            "OSDWindow",
+            lambda: OSDWindow(widget_config),
+            debug=DEBUG,
+            category="Module",
+        )
         windows.append(osd)
 
     if widget_config.get("screen_record", {}).get("enabled", True):
@@ -215,7 +221,7 @@ if __name__ == "__main__":
     icon_theme = Gtk.IconTheme.get_default()  # type: ignore
     icon_theme.append_search_path(get_relative_path("./assets/icons/svg/gtk"))
 
-    # Smart Setup (Checks name, file existence, and content differences)
+    # Smart Setup
     setup_initial_styles(widget_config["theme"]["name"])
 
     # Create application
@@ -234,8 +240,12 @@ if __name__ == "__main__":
     style_monitor.connect("changed", lambda *args: process_and_apply_css(app))
 
     if DEBUG and _start_time:
-        total_ms = (time.perf_counter() - _start_time) * 1000
-        logger.info(f"[Timing] Total startup completed in {total_ms:.1f} ms")
+        total_duration = time.perf_counter() - _start_time
+        if total_duration < 0.001:
+            total_str = f"{total_duration * 1_000_000:.2f} μs"
+        else:
+            total_str = f"{total_duration * 1_000:.2f} ms"
+        logger.info(f"[Timing] Total startup completed in {total_str}")
 
     helpers.set_process_name(APPLICATION_NAME)
     app.run()
