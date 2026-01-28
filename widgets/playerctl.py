@@ -1,8 +1,6 @@
-# widgets/playerctl.py
-
 import re
 import utils.functions as helpers
-from gi.repository import GLib, Playerctl, Gtk
+from gi.repository import GLib, Gtk
 from fabric.widgets.label import Label
 from fabric.widgets.image import Image
 from shared.pop_over import Popover
@@ -11,18 +9,17 @@ from utils.icons import icons
 from utils.widget_settings import BarConfig
 from utils.exceptions import PlayerctlImportError
 
-try:
-    from services.playerctl import PlayerctlService
-except ImportError:
-    raise PlayerctlImportError()
-
 
 class PlayerctlMenu(Popover):
-    """
-    The popup menu containing playback controls, seek bar, and track info.
-    """
-
     def __init__(self, point_to_widget, service, config=None):
+        try:
+            from gi import require_version
+
+            require_version("Playerctl", "2.0")
+            from gi.repository import Playerctl
+        except ValueError:
+            raise PlayerctlImportError()
+
         self.service = service
         self.config = config or {}
         self.icon_size = self.config.get("icon_size", 16)
@@ -30,13 +27,14 @@ class PlayerctlMenu(Popover):
         self._poll_source_id = None
         self._destroyed = False
 
+        self.PlaybackStatus = Playerctl.PlaybackStatus
+
         content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         content_box.set_name("playerctl-menu")
         content_box.set_halign(Gtk.Align.FILL)
         content_box.set_hexpand(True)
 
         self.track_frame = Gtk.Frame()
-        # GTK3 Note: set_shadow_type is deprecated in late versions but exists
         self.track_frame.set_shadow_type(Gtk.ShadowType.IN)
         self.track_frame.set_name("playerctl-track-frame")
         for side in ("top", "bottom", "start", "end"):
@@ -119,26 +117,23 @@ class PlayerctlMenu(Popover):
             self._poll_source_id = None
 
     def _on_play_pause_clicked(self, *args):
-        if self._destroyed:
-            return
-        self.service.player_action("play_pause")
+        if not self._destroyed:
+            self.service.player_action("play_pause")
 
     def _on_skip_back_clicked(self, *args):
-        if self._destroyed:
-            return
-        self.service.player_action("previous")
+        if not self._destroyed:
+            self.service.player_action("previous")
 
     def _on_skip_forward_clicked(self, *args):
-        if self._destroyed:
-            return
-        self.service.player_action("next")
+        if not self._destroyed:
+            self.service.player_action("next")
 
     def _update_play_pause_icon(self, status):
         if self._destroyed:
             return
         icon_name = (
             icons["playerctl"]["playing"]
-            if status == Playerctl.PlaybackStatus.PLAYING
+            if status == self.PlaybackStatus.PLAYING
             else icons["playerctl"]["paused"]
         )
         try:
@@ -158,7 +153,7 @@ class PlayerctlMenu(Popover):
         title = metadata.get("title", "")
         artist = metadata.get("artist", "")
         length_us = metadata.get("length", 0)
-        status = metadata.get("status", Playerctl.PlaybackStatus.STOPPED)
+        status = metadata.get("status", self.PlaybackStatus.STOPPED)
         pos_us = metadata.get("position", 0)
 
         cur_sec, total_sec = int(pos_us / 1e6), int(length_us / 1e6)
@@ -188,8 +183,6 @@ class PlayerctlMenu(Popover):
         if self._destroyed:
             self._poll_source_id = None
             return False
-
-        # Request service to update position
         self.service.update_position()
         self._update_track_info()
         return True
@@ -197,15 +190,11 @@ class PlayerctlMenu(Popover):
     def _on_slider_click(self, widget, event):
         if self._destroyed:
             return False
-
         alloc = widget.get_allocation()
         if alloc.width <= 0:
             return False
-
         fraction = max(0, min(event.x / alloc.width, 1))
-        total_sec = widget.get_adjustment().get_upper()
-        seek_sec = int(total_sec * fraction)
-
+        seek_sec = int(widget.get_adjustment().get_upper() * fraction)
         self.service.player_action("seek", seek_sec * 1_000_000)
         return False
 
@@ -228,7 +217,6 @@ class PlayerctlMenu(Popover):
 class PlayerctlWidget(HoverRevealer):
     def __init__(self, widget_config: BarConfig | None = None, **kwargs):
         safe_config = widget_config if widget_config is not None else {}
-
         config = safe_config.get("playerctl", safe_config)
 
         self.config = config
@@ -243,24 +231,19 @@ class PlayerctlWidget(HoverRevealer):
         self._poll_source_id = None
         self._destroyed = False
 
-        # Create the service
-        self.service = PlayerctlService()
+        self.service = None
 
-        # 1. Create Visible Child (Icon)
         self.icon_widget = Image(
             icon_name=icons["playerctl"]["music"],
             icon_size=self.icon_size,
             style_classes=["panel-icon"],
         )
 
-        # 2. Create Hidden Child (Label Container)
         self.label = Label(label="", style_classes="panel-text")
         label_container = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         label_container.pack_start(self.label, True, True, 4)
-        # Ensure the container takes available space
         label_container.set_hexpand(True)
 
-        # 3. Initialize the HoverRevealer
         super().__init__(
             visible_child=self.icon_widget,
             hidden_child=label_container,
@@ -270,40 +253,55 @@ class PlayerctlWidget(HoverRevealer):
             **kwargs,
         )
 
-        # Connect to service signals
-        self.service.connect("metadata-changed", self._on_metadata_changed)
-        self.service.connect("player-changed", self._on_player_changed)
-
-        self._poll_source_id = GLib.timeout_add(self.poll_interval, self._poll_tick)
-
         self.connect("destroy", self._on_destroy)
+
+        GLib.timeout_add(50, self._initialize_service)
+
+    def _initialize_service(self):
+        if self._destroyed:
+            return False
+
+        try:
+            from services.playerctl import PlayerctlService
+
+            self.service = PlayerctlService.get_instance()
+
+            self.service.connect("metadata-changed", self._on_metadata_changed)
+            self.service.connect("player-changed", self._on_player_changed)
+
+            self._poll_source_id = GLib.timeout_add(self.poll_interval, self._poll_tick)
+
+            self._update_display()
+        except ImportError as e:
+            print(f"[Playerctl] Failed to load service: {e}")
+        except Exception as e:
+            print(f"[Playerctl] Error initializing: {e}")
+
+        return False
 
     def _on_destroy(self, *args):
         self._destroyed = True
         if self._poll_source_id is not None:
             GLib.source_remove(self._poll_source_id)
             self._poll_source_id = None
-        self.service.destroy()
         if self.popup:
             self.popup.destroy()
             self.popup = None
 
     def _on_metadata_changed(self, service):
-        """Handle metadata changed signal from service."""
-        if self._destroyed:
-            return
-        self._update_display()
+        if not self._destroyed:
+            self._update_display()
 
     def _on_player_changed(self, service):
-        """Handle player changed signal from service."""
         if self._destroyed:
             return
-        if not self.service.is_valid:
+        if self.service and not self.service.is_valid:
             self._clear_display()
+        else:
+            self._update_display()
 
     def _update_display(self):
-        """Update the label with cached metadata."""
-        if self._destroyed:
+        if self._destroyed or not self.service:
             return
 
         metadata = self.service.get_cached_metadata()
@@ -323,7 +321,6 @@ class PlayerctlWidget(HoverRevealer):
             pass
 
     def _clear_display(self):
-        """Clear the display."""
         if self._destroyed:
             return False
 
@@ -341,24 +338,19 @@ class PlayerctlWidget(HoverRevealer):
         return False
 
     def on_click(self, widget, event):
-        """
-        Override HoverRevealer.on_click to open the popup
-        instead of just toggling the animation.
-        """
         if self.popup:
             self.popup.destroy()
             self.popup = None
             return
 
-        if not self.service.is_valid:
+        if not self.service or not self.service.is_valid:
             return
 
         self.popup = PlayerctlMenu(self, self.service, config=self.config)
         self.popup.open()
 
     def _poll_tick(self):
-        """Periodic poll to check state."""
-        if self._destroyed:
+        if self._destroyed or not self.service:
             return False
 
         self.service.check_players()
