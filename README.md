@@ -77,7 +77,7 @@ Run the following script
 - [x] Calender
 - [x] Battery
 - [ ] Network Manager
-- [ ] Bluetooth Manager
+- [x] Bluetooth Manager
 - [x] Clipboard Manager
 - [x] Power Manager
 - [x] Power Menu
