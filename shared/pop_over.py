@@ -53,6 +53,7 @@ class PopoverManager:
                 type="top-level",
                 visible=False,
                 all_visible=False,
+                orientation="h",
             )
 
             # Add empty box so GTK doesn't complain
@@ -94,6 +95,7 @@ class PopoverManager:
             anchor="left top",
             visible=False,
             all_visible=False,
+            orientation="v",
         )
         GtkLayerShell.set_keyboard_mode(window, GtkLayerShell.KeyboardMode.ON_DEMAND)
         window.set_keep_above(True)
@@ -194,34 +196,45 @@ class Popover(Widget):
 
     def _calculate_margins(self):
         """Calculate popover position relative to point_to widget."""
+        if self._content_window is None:
+            return [0, 0, 0, 0]
+
         widget_allocation = self._point_to.get_allocation()
-        popover_size = self._content_window.get_size()
+        popover_allocation = self._content_window.get_allocation()
+        popover_width = popover_allocation.width
+        popover_height = popover_allocation.height
 
         display = Gdk.Display.get_default()
+        if display is None:
+            x = widget_allocation.x
+            y = widget_allocation.y - 5
+            return [y, 0, 0, x]
+
         screen = display.get_default_screen()
+        if screen is None:
+            x = widget_allocation.x
+            y = widget_allocation.y - 5
+            return [y, 0, 0, x]
 
         # Get monitor index, then get the geometry from that monitor
         monitor_index = screen.get_monitor_at_window(self._point_to.get_window())
         monitor_geometry = screen.get_monitor_geometry(monitor_index)
 
-        # Center horizontally relative to point_to widget
-        x = (
-            widget_allocation.x
-            + (widget_allocation.width / 2)
-            - (popover_size.width / 2)
-        )
+        x = widget_allocation.x + (widget_allocation.width / 2) - (popover_width / 2)
         y = widget_allocation.y - 5
 
-        # Keep within monitor bounds
         if x <= 0:
             x = widget_allocation.x
-        elif x + popover_size.width >= monitor_geometry.width:
-            x = widget_allocation.x - popover_size.width + widget_allocation.width
+        elif x + popover_width >= monitor_geometry.width:
+            x = widget_allocation.x - popover_width + widget_allocation.width
 
         return [y, 0, 0, x]
 
     def set_position(self, position: tuple[int, int, int, int] | None = None):
         """Set popover position manually or auto-calculate."""
+        if self._content_window is None:
+            return False
+
         if position is None:
             self._content_window.set_margin(self._calculate_margins())
         else:
@@ -238,6 +251,11 @@ class Popover(Widget):
         # Build content if using factory pattern
         if self._content is None and self._content_factory is not None:
             self._content = self._content_factory()
+
+        if self._content is None:
+            raise RuntimeError(
+                "Popover content is None and no content_factory provided"
+            )
 
         # Get a window from the pool
         self._content_window = self._manager.get_popover_window()

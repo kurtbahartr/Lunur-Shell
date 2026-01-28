@@ -174,7 +174,8 @@ if __name__ == "__main__":
         from modules.notification import NotificationPopup
 
         notifications = time_module_load(
-            "NotificationPopup", lambda: NotificationPopup(widget_config)
+            "NotificationPopup",
+            lambda: NotificationPopup(widget_config),  # type: ignore
         )
         windows.append(notifications)
 

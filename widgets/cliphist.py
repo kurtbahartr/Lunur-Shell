@@ -346,6 +346,9 @@ class ClipHistoryMenu(Box):
                     loader.write(result.stdout)
                     loader.close()
                     pixbuf = loader.get_pixbuf()
+                    if pixbuf is None:
+                        return False
+
                     width, height = pixbuf.get_width(), pixbuf.get_height()
                     max_size = 72
                     if width > height:
@@ -613,6 +616,7 @@ class ClipHistoryWidget(ButtonWidget):
     """A widget to display and manage clipboard history."""
 
     def __init__(self, config, **kwargs):
+        config = config or {}
         super().__init__(
             name="cliphist",
             config=config,
