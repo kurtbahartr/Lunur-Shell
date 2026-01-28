@@ -42,7 +42,12 @@ class StatusBar(Window, ToggleableWidget):
         # Store bar location for corner mirroring
         self.bar_location = options.get("location", "top")
 
-        layout = self.make_layout(config)
+        layout = helpers.total_time(
+            "Total Layout Build",
+            lambda: self.make_layout(config),
+            debug=self.debug,
+            category="System",
+        )
 
         # Create corners with shared size constant
         corner_size = 20
@@ -161,14 +166,19 @@ class StatusBar(Window, ToggleableWidget):
         return lazy_load_widget(name, self.widgets_list)
 
     def _create_widget(self, widget_name, widget_config):
-        """Create a single widget instance with timing using total_time."""
+        """Create a single widget instance with timing including import overhead."""
         if widget_name not in self.widgets_list:
             return None
 
-        cls = self._get_widget_class(widget_name)
+        def build_widget():
+            cls = self._get_widget_class(widget_name)
+            return cls(widget_config)
 
         return helpers.total_time(
-            widget_name, lambda: cls(widget_config), debug=self.debug, category="Widget"
+            widget_name,
+            build_widget,
+            debug=self.debug,
+            category="Widget",
         )
 
     def _create_collapsible_group(self, idx, widget_config):
@@ -227,7 +237,10 @@ class StatusBar(Window, ToggleableWidget):
             )
 
         return helpers.total_time(
-            f"ModuleGroup {idx}", build_group, debug=self.debug, category="Widget"
+            f"ModuleGroup {idx}",
+            build_group,
+            debug=self.debug,
+            category="Widget",
         )
 
     def make_layout(self, widget_config):
