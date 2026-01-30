@@ -34,6 +34,7 @@ class Brightness(Service):
     """Service to manage screen brightness levels."""
 
     _instance = None
+    _initialized = False
 
     def __new__(cls):
         if cls._instance is None:
@@ -45,9 +46,14 @@ class Brightness(Service):
         """Signal emitted when screen brightness changes."""
 
     def __init__(self, **kwargs):
+        # Skip if already initialized
+        if Brightness._initialized:
+            return
+        Brightness._initialized = True
+
         super().__init__(**kwargs)
 
-        # Check if brightnessctl is installed (inside __init__ to avoid module-level exception)
+        # Check if brightnessctl is installed
         helpers.check_executable_exists("brightnessctl")
 
         self.screen_device = screen_device
@@ -123,7 +129,6 @@ class Brightness(Service):
         try:
             exec_brightnessctl_async(f"--device '{self.screen_device}' set {value}")
             logger.info(f"Set screen brightness to {value} (out of {self.max_screen})")
-            # Note: brightness_changed signal will be emitted by file monitor
         except GLib.Error as e:
             logger.error(f"Error setting screen brightness: {e.message}")
         except Exception as e:
@@ -145,16 +150,12 @@ class Brightness(Service):
         if not self.screen_backlight_path or self.max_screen <= 0:
             logger.warning("Cannot set brightness percentage: no screen device.")
             return
-
-        # Clamp percentage to 0-100
         percentage = max(0, min(percentage, 100))
-
-        # Convert percentage to raw value
         raw_value = round((percentage / 100) * self.max_screen)
         self.screen_brightness = raw_value
 
     @Property(int, "read-write")
-    def keyboard_brightness(self) -> int:  # type: ignore
+    def keyboard_brightness(self) -> int:
         """Get raw keyboard brightness value."""
         if not self.kbd_backlight_path:
             logger.warning("No keyboard backlight device detected.")
