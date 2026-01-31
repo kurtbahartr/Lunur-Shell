@@ -1,3 +1,27 @@
+Version 0.4.2
+https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.4.2
+------------------------------------------------------------
+
+# Fixes
+- Update maximum character width for notificatons.
+- Fix lints and reformat in the context of importing components.
+- Power Profile widget now properly reflects the current profile.
+- Fix the way system tray icons are displayed.
+- Fix calculator orders of operations in launcher.
+- Fix `GTK_IS_ADJUSTMENT` errors.
+- Improve the startup time for the `hyprsunset` QS tile.
+- Fix scrolled windows appearing like they were being resized upon first interaction.
+- Fix an issue where there would be multiple instances of the brightness service would be started. This also fixes the flickering OSD when adjusting brightness from the quick settings.
+
+# Features
+- The Bluetooth tile in the quick settings is now updated to reveal device list and allow interaction with other Bluetooth devices.
+- The WiFi tile in the quick settings is now updated to reveal a list of WiFi networks and allow interaction with other WiFi networks. You can also authenticate while connecting to a new/unsaved network!
+
+# Misc
+- Migrate Python package management to `uv`.
+- Remove unused imports in applicable components.
+- Refactor `widget_settings` for easier readability.
+
 Version 0.4.1
 https://github.com/dianaw353/Lunur-Shell/releases/tag/v0.4.1
 -------------------------------------------------------------
