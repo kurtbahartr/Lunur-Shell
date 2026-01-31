@@ -6,6 +6,7 @@ from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from gi.repository import Gtk
+from typing import Any, Dict, List, cast
 
 from shared.buttons import HoverButton, QSChevronButton, ScanButton
 from shared.list import ListBox
@@ -268,7 +269,7 @@ class WifiSubMenu(QuickSubMenu):
             self.available_networks_container.set_visible(False)
             return
 
-        access_points = self.wifi.access_points
+        access_points = cast(List[Dict[str, Any]], self.wifi.access_points)
         current_ssid = self.wifi.ssid
         is_connected = self.wifi.state == "activated"
 
