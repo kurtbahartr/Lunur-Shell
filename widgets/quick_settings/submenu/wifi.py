@@ -8,7 +8,7 @@ from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from fabric.widgets.revealer import Revealer
 from gi.repository import Gtk, GLib
-from typing import Any, Dict, List, cast, Callable
+from typing import Any, Dict, List, cast, Callable, Tuple, Optional
 
 from shared.buttons import HoverButton, QSChevronButton, ScanButton
 from shared.list import ListBox
@@ -154,6 +154,7 @@ class WifiNetworkBox(Box):
         wifi: Wifi,
         network_service: NetworkService,
         is_active: bool = False,
+        on_auth_request: Optional[Callable[[str], None]] = None,
         **kwargs,
     ):
         super().__init__(
@@ -168,6 +169,7 @@ class WifiNetworkBox(Box):
         self.wifi = wifi
         self.network_service = network_service
         self.is_active = is_active
+        self.on_auth_request = on_auth_request
         self.bssid = network.get("bssid", "")
         self.ssid = network.get("ssid", "Unknown")
         self.strength = network.get("strength", 0)
@@ -194,12 +196,12 @@ class WifiNetworkBox(Box):
             h_expand=True,
         )
 
-        network_info_box.add(
-            nerd_font_icon(
-                icon=strength_icon,
-                props={"style_classes": ["panel-font-icon"]},
-            )
+        # Store reference to update it later
+        self.icon_label = nerd_font_icon(
+            icon=strength_icon,
+            props={"style_classes": ["panel-font-icon"]},
         )
+        network_info_box.add(self.icon_label)
 
         if self.is_secured:
             lock_icon = Image(
@@ -240,6 +242,26 @@ class WifiNetworkBox(Box):
         self.add(self.network_row)
         self.add(self.auth_revealer)
 
+    def update(self, network: dict, is_active: bool):
+        """Updates the widget state without destroying it."""
+        self.network = network
+        self.strength = network.get("strength", 0)
+        self.ssid = network.get("ssid", "Unknown")
+
+        # Update Signal Icon
+        new_icon_char = self._get_strength_icon(self.strength)
+        if hasattr(self, "icon_label"):
+            self.icon_label.set_label(new_icon_char)
+
+        # Only update button/connection state if changed
+        if self.is_active != is_active:
+            self.is_active = is_active
+            self._setup_button_state()
+
+    def close_auth(self):
+        """Externally close the auth dialog."""
+        self._hide_auth_dialog()
+
     def _setup_button_state(self):
         if self.is_active:
             self.connect_button.set_label("Disconnect")
@@ -251,6 +273,10 @@ class WifiNetworkBox(Box):
     def _on_connect_clicked(self, *_):
         if self._is_connecting:
             return
+
+        # Notify parent to close other auth fields
+        if self.on_auth_request:
+            self.on_auth_request(self.ssid)
 
         if self.is_secured:
             if self.network_service.has_saved_connection(self.ssid):
@@ -340,7 +366,9 @@ class WifiSubMenu(QuickSubMenu):
         self.network_service = NetworkService()
         self.wifi: Wifi | None = None
         self._wifi_signals: List[int] = []
-        self.network_rows: Dict[str, tuple] = {}
+
+        # Dictionary to track existing widgets (SSID -> (Gtk.ListBoxRow, WifiNetworkBox))
+        self.network_widgets: Dict[str, Tuple[Gtk.ListBoxRow, WifiNetworkBox]] = {}
 
         self.separator = Separator(
             orientation="horizontal",
@@ -368,6 +396,8 @@ class WifiSubMenu(QuickSubMenu):
         self.available_networks_listbox = ListBox(
             visible=True, name="available-networks-listbox"
         )
+        self.available_networks_listbox.set_sort_func(self._sort_networks)
+
         self.available_networks_container = Box(
             orientation="v",
             spacing=4,
@@ -417,6 +447,18 @@ class WifiSubMenu(QuickSubMenu):
 
         if self.network_service.wifi_device:
             self._setup_wifi_device(self.network_service.wifi_device)
+
+    def _sort_networks(self, row1: Gtk.ListBoxRow, row2: Gtk.ListBoxRow):
+        """Sort function for the listbox based on signal strength."""
+        box1 = row1.get_child()
+        box2 = row2.get_child()
+
+        # Safe access to strength attribute, defaulting to 0
+        s1 = getattr(box1, "strength", 0)
+        s2 = getattr(box2, "strength", 0)
+
+        # Descending order (higher strength first)
+        return s2 - s1
 
     def _on_destroy(self, *_):
         """Clean up signals when widget is destroyed."""
@@ -469,27 +511,31 @@ class WifiSubMenu(QuickSubMenu):
             self.wifi.scan()
             self.scan_button.play_animation()
 
-    def _populate_networks(self):
-        """Populate the network lists."""
-        self._clear_listbox(self.connected_network_listbox)
-        self._clear_listbox(self.available_networks_listbox)
-        self.network_rows.clear()
+    def _on_network_auth_request(self, requesting_ssid: str):
+        """Callback to close other authentication dialogs when one is opened."""
+        for ssid, (row, widget) in self.network_widgets.items():
+            if ssid != requesting_ssid:
+                widget.close_auth()
 
+    def _populate_networks(self):
+        """Populate or update the network lists without destroying active inputs."""
         if not self.wifi or not self.wifi.enabled:
             self.connected_network_container.set_visible(False)
             self.available_networks_container.set_visible(False)
+            self._clear_all_networks()
             return
 
         access_points = cast(List[Dict[str, Any]], self.wifi.access_points)
         current_ssid = self.wifi.ssid
         is_connected = self.wifi.state == "activated"
 
+        # Note: We sort here for initial iteration order, but the listbox sort func
+        # handles the visual order.
         sorted_aps = sorted(
             access_points, key=lambda x: x.get("strength", 0), reverse=True
         )
 
-        # Track SSIDs we've already added to avoid duplicates
-        seen_ssids: set[str] = set()
+        seen_ssids = set()
         connected_added = False
         available_count = 0
 
@@ -501,33 +547,63 @@ class WifiSubMenu(QuickSubMenu):
             seen_ssids.add(ssid)
             is_active = ssid == current_ssid and is_connected
 
-            network_row = Gtk.ListBoxRow(visible=True, name="wifi-network-row")
-
-            network_box = WifiNetworkBox(
-                network=ap,
-                wifi=self.wifi,
-                network_service=self.network_service,
-                is_active=is_active,
+            # Determine target listbox
+            target_listbox = (
+                self.connected_network_listbox
+                if is_active
+                else self.available_networks_listbox
             )
 
-            network_row.add(network_box)
+            if ssid in self.network_widgets:
+                # Update existing widget
+                row, network_box = self.network_widgets[ssid]
+                network_box.update(ap, is_active)
 
+                # Move between lists if status changed (e.g. connecting -> connected)
+                parent = row.get_parent()
+                if parent != target_listbox:
+                    if parent:
+                        parent.remove(row)
+                    target_listbox.add(row)
+            else:
+                # Create new widget
+                network_row = Gtk.ListBoxRow(visible=True, name="wifi-network-row")
+                network_box = WifiNetworkBox(
+                    network=ap,
+                    wifi=self.wifi,
+                    network_service=self.network_service,
+                    is_active=is_active,
+                    on_auth_request=self._on_network_auth_request,
+                )
+                network_row.add(network_box)
+                target_listbox.add(network_row)
+                self.network_widgets[ssid] = (network_row, network_box)
+
+            # Update counters
             if is_active:
-                self.connected_network_listbox.add(network_row)
                 connected_added = True
             else:
-                self.available_networks_listbox.add(network_row)
                 available_count += 1
 
-            self.network_rows[ssid] = (network_row, is_active)
+        # Remove networks that are no longer present
+        for ssid in list(self.network_widgets.keys()):
+            if ssid not in seen_ssids:
+                row, _ = self.network_widgets.pop(ssid)
+                row.destroy()
 
+        # Update visibility and ensure sorting is applied
         self.connected_network_container.set_visible(connected_added)
         self.available_networks_container.set_visible(available_count > 0)
 
-    def _clear_listbox(self, listbox: ListBox):
-        for child in listbox.get_children():
-            listbox.remove(child)
-            child.destroy()
+        self.available_networks_listbox.invalidate_sort()
+        self.connected_network_listbox.show_all()
+        self.available_networks_listbox.show_all()
+
+    def _clear_all_networks(self):
+        """Completely clear networks (e.g. when WiFi is disabled)."""
+        for row, _ in self.network_widgets.values():
+            row.destroy()
+        self.network_widgets.clear()
 
     def _update_header_state(self):
         """Update the header label based on connection state."""
