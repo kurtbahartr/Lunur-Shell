@@ -5,15 +5,8 @@ from gi.repository import GLib
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from services import audio_service, bluetooth_service
-from utils import functions as helpers
 from utils.icons import icons
 from utils.widget_utils import get_audio_icon_name
-from utils.exceptions import NetworkManagerNotFoundError
-
-try:
-    from services.network import NetworkService
-except ImportError:
-    raise NetworkManagerNotFoundError()
 
 
 def _update_icon(
@@ -58,72 +51,6 @@ class AudioService:
 
             if self.show_audio_percent and self.audio_percent_label:
                 self.audio_percent_label.set_text(f"{volume}%")
-
-
-class NetworkServiceWrapper:
-    def __init__(self, config: Any):
-        self.network = NetworkService()
-        self.show_network_name = config.get("show_network_name")
-
-        self.network_icon = Image(style_classes="panel-icon")
-        self.network_ssid_label = Label() if self.show_network_name else None
-
-    def connect_signals(self):
-        self.network.connect("notify::primary-device", self._on_primary_device_changed)
-        self.network.connect("notify::wifi-device", self._on_wifi_device_changed)
-        self._connect_network_device_signals()
-
-    def _connect_network_device_signals(self):
-        if self.network.wifi_device:
-            self.network.wifi_device.connect(
-                "notify::signal-strength", self._on_network_device_changed
-            )
-            self.network.wifi_device.connect(
-                "notify::state", self._on_network_device_changed
-            )
-        if self.network.ethernet_device:
-            self.network.ethernet_device.connect(
-                "notify::state", self._on_network_device_changed
-            )
-
-    def _on_primary_device_changed(self, *_):
-        self._connect_network_device_signals()
-        self.update_network_icon()
-
-    def _on_wifi_device_changed(self, *_):
-        self._connect_network_device_signals()
-        self.update_network_icon()
-
-    def _on_network_device_changed(self, *_):
-        self.update_network_icon()
-
-    def update_network_icon(self):
-        wifi_device = self.network.wifi_device
-        eth_device = self.network.ethernet_device
-        icon_name = None
-        ssid = None
-
-        if wifi_device and getattr(wifi_device, "state", "") in (
-            "connected",
-            "activated",
-        ):
-            icon_name = wifi_device.get_icon_name()
-            ssid = wifi_device.get_ssid() if self.show_network_name else None
-        elif eth_device and getattr(eth_device, "state", "") in (
-            "connected",
-            "activated",
-        ):
-            icon_name = eth_device.get_icon_name()
-            ssid = None
-        else:
-            icon_name = icons["network"]["wifi"]["disconnected"]
-
-        _update_icon(
-            self.network_icon, icon_name, icons["network"]["wifi"]["disconnected"]
-        )
-
-        if self.show_network_name and self.network_ssid_label:
-            self.network_ssid_label.set_text(helpers.truncate(ssid if ssid else ""))
 
 
 class BluetoothService:
