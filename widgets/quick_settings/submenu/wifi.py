@@ -1,9 +1,8 @@
-# widgets/quick_settings/submenu/wifi.py
-
 import gi
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.centerbox import CenterBox
+from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
 from gi.repository import Gtk
@@ -12,7 +11,7 @@ from shared.buttons import HoverButton, QSChevronButton, ScanButton
 from shared.list import ListBox
 from shared.separator import Separator
 from shared.submenu import QuickSubMenu
-from utils.icons import text_icons
+from utils.icons import text_icons, icons
 import utils.functions as helpers
 from utils.exceptions import NetworkManagerNotFoundError
 from utils.widget_utils import nerd_font_icon
@@ -40,6 +39,7 @@ class WifiNetworkBox(CenterBox):
         self.bssid = network.get("bssid", "")
         self.ssid = network.get("ssid", "Unknown")
         self.strength = network.get("strength", 0)
+        self.is_secured = network.get("secured", False)
 
         self.connect_button = HoverButton(style_classes=["submenu-button"])
 
@@ -53,21 +53,40 @@ class WifiNetworkBox(CenterBox):
         # Get strength icon
         strength_icon = self._get_strength_icon(self.strength)
 
-        self.add_start(
+        network_info_box = Box(
+            orientation="h",
+            spacing=8,
+            h_expand=True,
+        )
+
+        network_info_box.add(
             nerd_font_icon(
                 icon=strength_icon,
                 props={"style_classes": ["panel-font-icon"]},
-            ),
+            )
         )
 
-        self.add_start(
+        if self.is_secured:
+            lock_icon = Image(
+                icon_name=icons["ui"]["lock"],
+                icon_size=16,
+                style_classes=["wifi-lock-icon"],
+                h_align="start",
+                visible=True,
+            )
+            network_info_box.add(lock_icon)
+
+        network_info_box.add(
             Label(
                 label=self.ssid,
                 style_classes=["submenu-item-label"],
                 ellipsization="end",
+                h_expand=True,
+                h_align="start",
             )
         )
 
+        self.add_start(network_info_box)
         self.add_end(self.connect_button)
 
     def _on_connect_clicked(self, *_):

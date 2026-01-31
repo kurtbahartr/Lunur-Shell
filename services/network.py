@@ -176,6 +176,17 @@ class Wifi(Service):
         points: list[NM.AccessPoint] = self._device.get_access_points()
 
         def make_ap_dict(ap: NM.AccessPoint):
+            try:
+                wpa_flags = ap.get_wpa_flags()
+                rsn_flags = ap.get_rsn_flags()
+                security_none = getattr(NM, "80211ApSecurityFlags").NONE
+                # Check if network has any security flags
+                is_secured = bool(
+                    wpa_flags != security_none or rsn_flags != security_none
+                )
+            except Exception:
+                is_secured = True
+
             return {
                 "bssid": ap.get_bssid(),
                 "last_seen": ap.get_last_seen(),
@@ -187,6 +198,7 @@ class Wifi(Service):
                 "active-ap": self._ap,
                 "strength": ap.get_strength(),
                 "frequency": ap.get_frequency(),
+                "secured": is_secured,
                 "icon-name": {
                     80: "network-wireless-signal-excellent-symbolic",
                     60: "network-wireless-signal-good-symbolic",
