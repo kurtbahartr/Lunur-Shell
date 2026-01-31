@@ -30,6 +30,7 @@ class Wifi(Service):
         self._device: NM.DeviceWifi = device
         self._ap: NM.AccessPoint | None = None
         self._ap_signal: int | None = None
+        self._is_scanning: bool = False
         super().__init__(**kwargs)
 
         self._client.connect(
@@ -78,17 +79,39 @@ class Wifi(Service):
 
     def scan(self):
         """Start scanning for WiFi networks and emit scanning signal"""
-        if self._device:
-            self.emit("scanning", True)  # Emit signal that scanning has started
+        if self._device and not self._is_scanning:
+            self._is_scanning = True
+            self.emit("scanning", True)
             self._device.request_scan_async(
                 None,
-                lambda device, result: [
-                    device.request_scan_finish(result),
-                    self.emit(
-                        "scanning", False
-                    ),  # Emit signal that scanning has stopped
-                ],
+                self._on_scan_finished,
             )
+
+    def _on_scan_finished(self, device, result):
+        """Callback when scan finishes."""
+        try:
+            device.request_scan_finish(result)
+        except Exception:
+            pass
+        self._is_scanning = False
+        self.emit("scanning", False)
+        self.emit("changed")
+
+    def disconnect_network(self):
+        """Disconnect from the current WiFi network."""
+        if self._device:
+            self._device.disconnect_async(
+                None,
+                self._on_disconnect_finished,
+            )
+
+    def _on_disconnect_finished(self, device, result):
+        """Callback when disconnect finishes."""
+        try:
+            device.disconnect_finish(result)
+        except Exception:
+            pass
+        self.emit("changed")
 
     def notifier(self, name: str, *args):
         self.notify(name)
@@ -155,7 +178,6 @@ class Wifi(Service):
         def make_ap_dict(ap: NM.AccessPoint):
             return {
                 "bssid": ap.get_bssid(),
-                # "address": ap.get_
                 "last_seen": ap.get_last_seen(),
                 "ssid": (
                     NM.utils_ssid_to_utf8(ap.get_ssid().get_data())
@@ -282,6 +304,10 @@ class NetworkService(Service):
     def device_ready(self) -> None: ...
 
     def __init__(self, **kwargs):
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+        self._initialized = True
+
         self._client: NM.Client | None = None
         self.wifi_device: Wifi | None = None
         self.ethernet_device: Ethernet | None = None
@@ -289,7 +315,6 @@ class NetworkService(Service):
         NM.Client.new_async(
             cancellable=None,
             callback=self._init_network_client,
-            **kwargs,
         )
 
     def _init_network_client(self, client: NM.Client, task: Gio.Task, **kwargs):
@@ -333,13 +358,14 @@ class NetworkService(Service):
 
         return None
 
-    def connect_wifi_bssid(self, bssid):
+    def connect_wifi_bssid(self, bssid: str):
+        """Connect to a WiFi network by BSSID."""
         exec_shell_command_async(
-            f"nmcli device wifi connect {bssid}", lambda *args: print(args)
+            f"nmcli device wifi connect {bssid}",
+            lambda *args: None,
         )
 
     @Property(str, "readable")
     def primary_device(self) -> str:
-        # Changed to return 'str' instead of 'Literal | None'
         res = self._get_primary_device()
         return res if res is not None else "unknown"
