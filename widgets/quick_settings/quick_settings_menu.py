@@ -7,7 +7,7 @@ from .sliders.brightness import BrightnessSlider
 from .sliders.volume import VolumeSlider
 from .sliders.microphone import MicrophoneSlider
 from .togglers import NotificationQuickSetting
-from .submenu.wifi import WifiQuickSetting
+from .submenu.wifi import WifiToggle, WifiSubMenu
 from .submenu.bluetooth import BluetoothToggle, BluetoothSubMenu
 from .submenu.hyprsunset import HyprSunsetSubMenu, HyprSunsetToggle
 from shared.pop_over import Popover
@@ -41,6 +41,7 @@ class QuickSettingsMenu(Popover):
         "_active_submenu",
         "sliders",
         "grid",
+        "wifi_submenu",
         "bt_submenu",
         "hyprsunset_submenu",
         "wifi_btn",
@@ -69,12 +70,13 @@ class QuickSettingsMenu(Popover):
         )
 
         # Create submenus once
+        self.wifi_submenu = WifiSubMenu()
         self.bt_submenu = BluetoothSubMenu()
         self.hyprsunset_submenu = HyprSunsetSubMenu()
 
         # Create all toggle buttons
         toggles = [
-            (WifiQuickSetting(), 0, 0),
+            (WifiToggle(submenu=self.wifi_submenu), 0, 0),
             (BluetoothToggle(submenu=self.bt_submenu), 1, 0),
             (NotificationQuickSetting(), 0, 1),
             (HyprSunsetToggle(submenu=self.hyprsunset_submenu), 1, 1),
@@ -90,7 +92,11 @@ class QuickSettingsMenu(Popover):
 
         content_box.pack_start(self.grid, True, True, 0)
 
-        for submenu in (self.bt_submenu, self.hyprsunset_submenu):
+        for submenu in (
+            self.wifi_submenu,
+            self.bt_submenu,
+            self.hyprsunset_submenu,
+        ):
             if submenu.get_parent() is None:
                 content_box.pack_start(submenu, False, False, 0)
 
@@ -103,6 +109,7 @@ class QuickSettingsMenu(Popover):
     def _connect_submenu_toggles(self):
         """Connect reveal-clicked signals for submenus."""
         submenu_map = (
+            (self.wifi_btn, self.wifi_submenu),
             (self.bt_btn, self.bt_submenu),
             (self.hyprsunset_btn, self.hyprsunset_submenu),
         )
