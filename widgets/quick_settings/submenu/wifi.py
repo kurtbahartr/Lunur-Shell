@@ -2,11 +2,13 @@ import gi
 from fabric.widgets.box import Box
 from fabric.widgets.button import Button
 from fabric.widgets.centerbox import CenterBox
+from fabric.widgets.entry import Entry
 from fabric.widgets.image import Image
 from fabric.widgets.label import Label
 from fabric.widgets.scrolledwindow import ScrolledWindow
-from gi.repository import Gtk
-from typing import Any, Dict, List, cast
+from fabric.widgets.revealer import Revealer
+from gi.repository import Gtk, GLib
+from typing import Any, Dict, List, cast, Callable
 
 from shared.buttons import HoverButton, QSChevronButton, ScanButton
 from shared.list import ListBox
@@ -25,33 +27,165 @@ except ImportError:
 gi.require_versions({"Gtk": "3.0"})
 
 
-class WifiNetworkBox(CenterBox):
-    def __init__(self, network: dict, wifi: Wifi, is_active: bool = False, **kwargs):
+class PasswordEntry(Box):
+    def __init__(
+        self, on_submit: Callable[[str], None], on_cancel: Callable[[], None], **kwargs
+    ):
         super().__init__(
-            spacing=2,
-            style_classes=["submenu-button"],
+            orientation="v",
+            spacing=8,
+            style_classes=["wifi-password-container"],
             h_expand=True,
-            name="wifi-network-box",
             **kwargs,
         )
+
+        self._on_submit = on_submit
+        self._on_cancel = on_cancel
+        self._is_visible = False
+
+        self.entry = Entry(
+            placeholder="Enter password...",
+            visibility=False,
+            h_expand=True,
+            style_classes=["wifi-password-entry"],
+        )
+        self.entry.connect("activate", self._handle_entry_activate)
+        self.entry.connect("changed", self._on_entry_changed)
+
+        self.visibility_button = Button(
+            style_classes=["wifi-visibility-button"],
+            h_align="center",
+            v_align="center",
+        )
+        self._update_visibility_icon()
+        self.visibility_button.connect("clicked", self._toggle_visibility)
+
+        entry_row = Box(
+            orientation="h",
+            spacing=4,
+            h_expand=True,
+            style_classes=["wifi-entry-row"],
+            children=[self.entry, self.visibility_button],
+        )
+
+        self.cancel_button = HoverButton(
+            label="Cancel",
+            style_classes=["wifi-auth-button", "wifi-cancel-button"],
+        )
+        self.cancel_button.connect("clicked", self._handle_cancel)
+
+        self.connect_button = HoverButton(
+            label="Connect",
+            style_classes=["wifi-auth-button", "wifi-connect-button"],
+            sensitive=False,  # Disabled until password is entered
+        )
+        self.connect_button.connect("clicked", self._handle_connect)
+
+        button_row = Box(
+            orientation="h",
+            spacing=8,
+            h_align="end",
+            children=[self.cancel_button, self.connect_button],
+        )
+
+        self.add(entry_row)
+        self.add(button_row)
+
+    def _update_visibility_icon(self):
+        icon_name = (
+            icons["ui"].get("eye", "view-conceal-symbolic")
+            if self._is_visible
+            else icons["ui"].get("eye-off", "view-reveal-symbolic")
+        )
+
+        # Clear existing children
+        for child in self.visibility_button.get_children():
+            self.visibility_button.remove(child)
+
+        self.visibility_button.add(
+            Image(
+                icon_name=icon_name,
+                icon_size=16,
+            )
+        )
+        self.visibility_button.show_all()
+
+    def _toggle_visibility(self, *_):
+        self._is_visible = not self._is_visible
+        self.entry.set_visibility(self._is_visible)
+        self._update_visibility_icon()
+
+    def _on_entry_changed(self, entry):
+        text = entry.get_text()
+        # WPA passwords must be at least 8 characters
+        self.connect_button.set_sensitive(len(text) >= 8)
+
+    def _handle_entry_activate(self, *_):
+        if len(self.entry.get_text()) >= 8:
+            self._handle_connect()
+
+    def _handle_connect(self, *_):
+        password = self.entry.get_text()
+        if password and len(password) >= 8:
+            self._on_submit(password)
+
+    def _handle_cancel(self, *_):
+        self.clear()
+        self._on_cancel()
+
+    def focus_entry(self):
+        self.entry.grab_focus()
+        return False  # For GLib.idle_add compatibility
+
+    def clear(self):
+        self.entry.set_text("")
+        self._is_visible = False
+        self.entry.set_visibility(False)
+        self._update_visibility_icon()
+        self.connect_button.set_sensitive(False)
+
+
+class WifiNetworkBox(Box):
+    """A widget representing a single WiFi network in the list with inline auth."""
+
+    def __init__(
+        self,
+        network: dict,
+        wifi: Wifi,
+        network_service: NetworkService,
+        is_active: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            orientation="v",
+            spacing=0,
+            h_expand=True,
+            name="wifi-network-box-container",
+            **kwargs,
+        )
+
         self.network = network
         self.wifi = wifi
+        self.network_service = network_service
         self.is_active = is_active
         self.bssid = network.get("bssid", "")
         self.ssid = network.get("ssid", "Unknown")
         self.strength = network.get("strength", 0)
         self.is_secured = network.get("secured", False)
+        self._is_connecting = False
 
-        self.connect_button = HoverButton(style_classes=["submenu-button"])
+        # Main network info row
+        self.network_row = CenterBox(
+            spacing=2,
+            style_classes=["submenu-button"],
+            h_expand=True,
+        )
 
-        if is_active:
-            self.connect_button.set_label("Disconnect")
-            self.connect_button.connect("clicked", self._on_disconnect_clicked)
-        else:
-            self.connect_button.set_label("Connect")
-            self.connect_button.connect("clicked", self._on_connect_clicked)
+        self.connect_button = HoverButton(
+            style_classes=["wifi-auth-button", "wifi-connect-button"]
+        )
+        self._setup_button_state()
 
-        # Get strength icon
         strength_icon = self._get_strength_icon(self.strength)
 
         network_info_box = Box(
@@ -87,18 +221,103 @@ class WifiNetworkBox(CenterBox):
             )
         )
 
-        self.add_start(network_info_box)
-        self.add_end(self.connect_button)
+        self.network_row.add_start(network_info_box)
+        self.network_row.add_end(self.connect_button)
+
+        self.password_entry = PasswordEntry(
+            on_submit=self._on_password_submitted,
+            on_cancel=self._on_auth_cancelled,
+        )
+
+        self.auth_revealer = Revealer(
+            transition_type="slide-down",
+            transition_duration=200,
+            child=self.password_entry,
+            reveal_child=False,
+        )
+
+        # Add both to the vertical container
+        self.add(self.network_row)
+        self.add(self.auth_revealer)
+
+    def _setup_button_state(self):
+        if self.is_active:
+            self.connect_button.set_label("Disconnect")
+            self.connect_button.connect("clicked", self._on_disconnect_clicked)
+        else:
+            self.connect_button.set_label("Connect")
+            self.connect_button.connect("clicked", self._on_connect_clicked)
 
     def _on_connect_clicked(self, *_):
-        """Connect to this WiFi network."""
+        if self._is_connecting:
+            return
+
+        if self.is_secured:
+            if self.network_service.has_saved_connection(self.ssid):
+                self._connect_with_saved_credentials()
+            else:
+                # Need password - show auth dialog
+                self._show_auth_dialog()
+        else:
+            self._connect_open_network()
+
+    def _show_auth_dialog(self):
+        self.password_entry.clear()
+        self.auth_revealer.set_reveal_child(True)
+        GLib.timeout_add(250, self.password_entry.focus_entry)
+
+    def _hide_auth_dialog(self):
+        self.auth_revealer.set_reveal_child(False)
+        self.password_entry.clear()
+
+    def _on_password_submitted(self, password: str):
+        self._hide_auth_dialog()
+        self.connect_with_password(password)
+
+    def _on_auth_cancelled(self):
+        self._hide_auth_dialog()
+
+    def _connect_with_saved_credentials(self):
+        self._set_connecting_state()
+        self.network_service.connect_wifi_bssid(self.bssid)
+
+    def _connect_open_network(self):
+        self._set_connecting_state()
+        self.network_service.connect_wifi_bssid(self.bssid)
+
+    def connect_with_password(self, password: str):
+        self._set_connecting_state()
+        self.network_service.connect_wifi_with_password(
+            bssid=self.bssid,
+            ssid=self.ssid,
+            password=password,
+            callback=self._on_connection_result,
+        )
+
+    def _set_connecting_state(self):
+        self._is_connecting = True
         self.connect_button.set_label("Connecting...")
-        network_service = NetworkService()
-        network_service.connect_wifi_bssid(self.bssid)
+        self.connect_button.set_sensitive(False)
+
+    def _on_connection_result(self, success: bool, error: str | None):
+        self._is_connecting = False
+        self.connect_button.set_sensitive(True)
+
+        if success:
+            self.connect_button.set_label("Connected")
+        else:
+            self.connect_button.set_label("Connect")
+            print(f"WiFi connection failed: {error}")
+
+    def reset_state(self):
+        self._is_connecting = False
+        self.connect_button.set_label("Connect")
+        self.connect_button.set_sensitive(True)
+        self._hide_auth_dialog()
 
     def _on_disconnect_clicked(self, *_):
-        """Disconnect from this WiFi network."""
         self.connect_button.set_label("Disconnecting...")
+        self.connect_button.set_sensitive(False)
         self.wifi.disconnect_network()
 
     def _get_strength_icon(self, strength: int) -> str:
@@ -115,13 +334,13 @@ class WifiNetworkBox(CenterBox):
 
 
 class WifiSubMenu(QuickSubMenu):
-    """A submenu to display WiFi settings."""
+    """A submenu to display WiFi settings and network list."""
 
     def __init__(self, **kwargs):
         self.network_service = NetworkService()
         self.wifi: Wifi | None = None
-        self._wifi_signals = []
-        self.network_rows = {}
+        self._wifi_signals: List[int] = []
+        self.network_rows: Dict[str, tuple] = {}
 
         self.separator = Separator(
             orientation="horizontal",
@@ -146,7 +365,6 @@ class WifiSubMenu(QuickSubMenu):
             ],
         )
 
-        # Available networks container
         self.available_networks_listbox = ListBox(
             visible=True, name="available-networks-listbox"
         )
@@ -252,16 +470,9 @@ class WifiSubMenu(QuickSubMenu):
             self.scan_button.play_animation()
 
     def _populate_networks(self):
-        """Populate the network lists with connected network at top."""
-        # Clear existing rows
-        for child in self.connected_network_listbox.get_children():
-            self.connected_network_listbox.remove(child)
-            child.destroy()
-
-        for child in self.available_networks_listbox.get_children():
-            self.available_networks_listbox.remove(child)
-            child.destroy()
-
+        """Populate the network lists."""
+        self._clear_listbox(self.connected_network_listbox)
+        self._clear_listbox(self.available_networks_listbox)
         self.network_rows.clear()
 
         if not self.wifi or not self.wifi.enabled:
@@ -273,13 +484,12 @@ class WifiSubMenu(QuickSubMenu):
         current_ssid = self.wifi.ssid
         is_connected = self.wifi.state == "activated"
 
-        # Sort by strength (strongest first)
         sorted_aps = sorted(
             access_points, key=lambda x: x.get("strength", 0), reverse=True
         )
 
         # Track SSIDs we've already added to avoid duplicates
-        seen_ssids = set()
+        seen_ssids: set[str] = set()
         connected_added = False
         available_count = 0
 
@@ -292,7 +502,14 @@ class WifiSubMenu(QuickSubMenu):
             is_active = ssid == current_ssid and is_connected
 
             network_row = Gtk.ListBoxRow(visible=True, name="wifi-network-row")
-            network_box = WifiNetworkBox(ap, self.wifi, is_active=is_active)
+
+            network_box = WifiNetworkBox(
+                network=ap,
+                wifi=self.wifi,
+                network_service=self.network_service,
+                is_active=is_active,
+            )
+
             network_row.add(network_box)
 
             if is_active:
@@ -304,9 +521,13 @@ class WifiSubMenu(QuickSubMenu):
 
             self.network_rows[ssid] = (network_row, is_active)
 
-        # Show/hide containers based on content
         self.connected_network_container.set_visible(connected_added)
         self.available_networks_container.set_visible(available_count > 0)
+
+    def _clear_listbox(self, listbox: ListBox):
+        for child in listbox.get_children():
+            listbox.remove(child)
+            child.destroy()
 
     def _update_header_state(self):
         """Update the header label based on connection state."""
@@ -341,19 +562,19 @@ class WifiToggle(QSChevronButton):
 
         self.network_service = NetworkService()
         self.wifi: Wifi | None = None
-        self._wifi_signals = []
+        self._wifi_signals: List[int] = []
 
         self._device_ready_signal = self.network_service.connect(
-            "device-ready", self._on_device_ready
+            "device-ready", self._on_toggle_device_ready
         )
-        self.connect("destroy", self._on_destroy)
+        self.connect("destroy", self._on_toggle_destroy)
 
         if self.network_service.wifi_device:
             self._setup_wifi_device(self.network_service.wifi_device)
 
         self.connect("action-clicked", lambda *_: self._toggle_wifi())
 
-    def _on_destroy(self, *_):
+    def _on_toggle_destroy(self, *_):
         """Clean up signals when widget is destroyed."""
         try:
             self.network_service.disconnect(self._device_ready_signal)
@@ -369,15 +590,15 @@ class WifiToggle(QSChevronButton):
                     pass
         self._wifi_signals.clear()
 
-    def _on_device_ready(self, *_):
+    def _on_toggle_device_ready(self, *_):
         if self.network_service.wifi_device and not self.wifi:
             self._setup_wifi_device(self.network_service.wifi_device)
 
     def _setup_wifi_device(self, wifi_device: Wifi):
         self.wifi = wifi_device
         self._wifi_signals = [
-            self.wifi.connect("changed", self._on_wifi_changed),
-            self.wifi.connect("notify::enabled", self._on_wifi_enabled_changed),
+            self.wifi.connect("changed", self._on_toggle_wifi_changed),
+            self.wifi.connect("notify::enabled", self._on_toggle_wifi_enabled_changed),
         ]
         self._update_state()
 
@@ -385,10 +606,10 @@ class WifiToggle(QSChevronButton):
         if self.wifi:
             self.wifi.enabled = not self.wifi.enabled
 
-    def _on_wifi_changed(self, *_):
+    def _on_toggle_wifi_changed(self, *_):
         self._update_state()
 
-    def _on_wifi_enabled_changed(self, *_):
+    def _on_toggle_wifi_enabled_changed(self, *_):
         self._update_state()
 
     def _update_state(self):
