@@ -76,7 +76,7 @@ Run the following script
 - [x] Date/Time
 - [x] Calender
 - [x] Battery
-- [ ] Network Manager
+- [x] Network Manager
 - [x] Bluetooth Manager
 - [x] Clipboard Manager
 - [x] Power Manager
