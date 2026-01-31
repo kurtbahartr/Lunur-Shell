@@ -377,12 +377,15 @@ class PlayerctlWidget(HoverRevealer):
         if self._destroyed:
             return
 
-        if not self.service.is_valid:
+        if not self.service or not self.service.is_valid:
             self._clear_display()
 
     def _update_display(self):
         """Update the label with cached metadata."""
         if self._destroyed:
+            return
+
+        if not self.service:
             return
 
         metadata = self.service.get_cached_metadata()
